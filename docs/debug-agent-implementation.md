@@ -24,7 +24,7 @@ preserved. PR 42 remains a synthetic acceptance PR, never a main merge.
 | API model tool loop | committed | protocol tests and real selected-model panel/read-tool/refresh acceptance in isolated staging | encrypted credential configured in staging; production selection pending | no | OpenRouter gpt-4.1-mini staging: yes; production: no |
 | Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated token branch/commit/draft-PR writes verified; Actions dispatch 403; server enrollment pending | no | transport acceptance PR 43 verified; no permanent broker repair PR proof |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
-| Native capture/discovery and release identity | implemented; Android upload plugin and migration 186 added | actual internal Android x86_64 crash → authenticated Sentry read → local panel; ARM/iOS and application symbolication pending | EAS Sentry secrets present; new internal symbol-upload build running | no feature rollout | Android capture and isolated panel yes; production linkage/iOS no |
+| Native capture/discovery and release identity | implemented; Android upload plugin and migration 186 added | actual internal Android x86_64 crash → authenticated Sentry read → local panel; ARM/iOS and application symbolication pending | EAS Sentry secrets present; new internal symbol-upload build FINISHED, upload verification pending | no feature rollout | Android capture and isolated panel yes; production linkage/iOS no |
 | Artifact-bound deployment and verification | schema-compatible full/Agent broker and explicit review UI implemented; schema-change review/scenario resolution remain open | isolated broker/API/host-gate tests | existing regional owner gates retained; dedicated credential read-validated locally | no | pending |
 
 Latest reviewed migration head is `20261121_186`; production remains `20261018_175`.
@@ -62,8 +62,37 @@ consistency passed. New discovery/privacy/pagination/pending-group/scope regress
 The CI backend/frontend validation profiles now include these regressions. APK user-field
 readback found no email, phone, name or IP; an opaque identifier remains. Complete minidump
 privacy, app-native symbolication, ARM hardware and iOS acceptance remain unverified. Internal
-Android build `d957da3c-32cb-4bcf-b284-3673712f74f4` is running for `9e7f2b9a`; upload success is
+Android build `d957da3c-32cb-4bcf-b284-3673712f74f4` is FINISHED for `9e7f2b9a`; upload success is
 not inferred from build submission. Automatic production SMS stays disabled.
+
+### Independent runtime release wiring
+
+The existing `deploy-regional.yml` now has a manual `germany:debug_runtime` scope. It requires
+complete exact-SHA CI, the reviewed manifest hash, main-only execution, the existing protected
+owner/Germany environments and the same Germany deployment concurrency group. It cannot run
+from automatic CD, perform migrations, use a panel application-deployment authorization, pull
+a replacement image or restart the generation Agent. It uses the already tested private CI
+archive and the existing pinned SSH credentials. No separate runtime or competing workflow
+was introduced. This path is implemented but has not been dispatched to production.
+
+`ops/deploy-debug-runtime.py` verifies the compressed archive and canonical image identity,
+limits unpacked data, locks the existing regional deployment lock, checks aggregate bounded
+CPU/RAM and disk headroom, and adopts only the existing managed runtime. It preserves private
+authentication, workspaces and conversation state. It journals intent before image/service
+mutation, checks actual running image/CLI/health and unrelated container identities, and restores
+the previous contract after a failed candidate. Failed rollback remains explicitly unconfirmed.
+An interrupted/uncertain journal cannot silently repeat mutation. Automation is included only
+with its explicit dedicated secure enrollment files. Capacity/enrollment/auth/model execution
+remain separate from liveness. No user request becomes deployment authority merely through chat.
+
+CI now exercises actual rollout, replay without restart, a controlled failing runtime and
+rollback with persistent state in a credential-free, owned, network-isolated fixture. Production
+manifest publication requires the resulting bound `release-smoke.json`. Its hosted execution
+is still pending; local unit/contract checks do not substitute for that gate. Existing local
+application containers include unbounded development services and were preserved instead of
+stopping them or weakening the production capacity guard for this test. The updated ops suite
+passed 382 tests; Ruff, actionlint and shellcheck passed. The actual rollout smoke is not yet
+reported as passed. No production application, runtime, generation service or volume was replaced.
 
 Execution order and gates:
 

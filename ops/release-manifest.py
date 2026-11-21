@@ -49,6 +49,24 @@ def image_identity(role: str, digest: str, commit: str) -> dict[str, str]:
 
 def runtime_identity(root: Path, commit: str) -> dict:
     proof = json.loads((root / "smoke.json").read_text())
+    rollout = json.loads((root / "release-smoke.json").read_text())
+    if (
+        rollout.get("commit") != commit
+        or rollout.get("image_id") != proof.get("image_id")
+        or rollout.get("cli_version") != "0.167.2"
+        or rollout.get("production_deployment") is not False
+        or not all(
+            rollout.get(key) is True
+            for key in (
+                "exact_image_rollout",
+                "idempotent_replay",
+                "actual_rollback",
+                "persistent_state_retained",
+                "unrelated_services_unchanged",
+            )
+        )
+    ):
+        raise ValueError("release_runtime_rollout_smoke_required")
     if (
         proof.get("commit") != commit
         or proof.get("cli_version") != "0.167.2"

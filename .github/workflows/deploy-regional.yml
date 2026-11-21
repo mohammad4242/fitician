@@ -10,10 +10,10 @@ on:
         type: choice
         options: [iran, germany]
       deploy_kind:
-        description: Iran release scope or Germany Agent Service release
+        description: Iran application scope, Germany generation Agent or independent debug runtime
         required: true
         type: choice
-        options: [full, frontend, backend, agent]
+        options: [full, frontend, backend, agent, debug_runtime]
       image_tag:
         description: Immutable Git SHA image tag
         required: true
@@ -139,7 +139,14 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$TARGET" == iran || "$TARGET" == germany ]]
-          [[ "$DEPLOY_KIND" == full || "$DEPLOY_KIND" == frontend || "$DEPLOY_KIND" == backend || "$DEPLOY_KIND" == agent ]]
+          [[ "$DEPLOY_KIND" == full || "$DEPLOY_KIND" == frontend || "$DEPLOY_KIND" == backend || "$DEPLOY_KIND" == agent || "$DEPLOY_KIND" == debug_runtime ]]
+          if [[ "$DEPLOY_KIND" == debug_runtime ]]; then
+            test "$TARGET" = germany
+            test "$IMAGE_SOURCE" = preloaded
+            test "$INITIAL_DEPLOY" = false
+            test "$ALLOW_SCHEMA_MIGRATIONS" = false
+            test -z "$PANEL_OPERATION_ID"
+          fi
           [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]
           [[ "$CI_RUN_ID" =~ ^[0-9]+$ ]]
           [[ -z "$EXPECTED_MANIFEST_SHA256" || "$EXPECTED_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
@@ -225,7 +232,7 @@ jobs:
             fi
           else
             test "$TARGET" = germany
-            test "$DEPLOY_KIND" = agent
+            test "$DEPLOY_KIND" = agent || test "$DEPLOY_KIND" = debug_runtime
             test "$FIRST_SCALABILITY_RELEASE_APPROVED" = false
           fi
           test "$(git rev-parse HEAD)" = "$IMAGE_TAG"
@@ -274,7 +281,7 @@ jobs:
               --require-full --directory .ci-evidence/regional
           else
           case "$DEPLOY_KIND" in
-            full|agent) python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG" \
+            full|agent|debug_runtime) python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG" \
               --require-full --directory .ci-evidence/regional ;;
             frontend|backend) python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG" \
               --directory .ci-evidence/regional ;;
@@ -307,6 +314,10 @@ jobs:
               and kind == "agent"
               and plan.get("deploy_agent")
               and path in {"full", "selective"}
+          ) or (
+              target == "germany"
+              and kind == "debug_runtime"
+              and path == "full"
           )
           if not allowed:
               raise SystemExit("Exact CI release evidence does not authorize this regional component")
@@ -324,6 +335,7 @@ jobs:
       needs.verify-release.result == 'success' &&
       (needs.normalize-request.outputs.deploy_kind == 'full' ||
       needs.normalize-request.outputs.deploy_kind == 'agent' ||
+      needs.normalize-request.outputs.deploy_kind == 'debug_runtime' ||
       needs.normalize-request.outputs.frontend_contract_refresh == 'true')
     needs: [normalize-request, verify-release]
     runs-on: ubuntu-latest
@@ -338,6 +350,7 @@ jobs:
     if: >-
       always() &&
       !cancelled() &&
+      needs.normalize-request.outputs.deploy_kind != 'debug_runtime' &&
       ((github.event_name == 'workflow_dispatch' &&
       vars.REGIONAL_CD_ENABLED == 'true') ||
       (github.event_name == 'workflow_run' &&
@@ -626,4 +639,116 @@ jobs:
           name: fitician-deployment-${{ needs.normalize-request.outputs.operation_id }}
           path: .ci-evidence/debug-deployment/deployment.json
           if-no-files-found: error
+          retention-days: 30
+
+  deploy-debug-runtime:
+    name: Deploy independent Germany debug runtime
+    needs: [normalize-request, verify-release, owner-approval]
+    if: >-
+      !cancelled() && github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' && vars.REGIONAL_CD_ENABLED == 'true' &&
+      needs.normalize-request.outputs.target == 'germany' &&
+      needs.normalize-request.outputs.deploy_kind == 'debug_runtime' &&
+      needs.verify-release.result == 'success' && needs['owner-approval'].result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production-germany
+    concurrency:
+      group: fitician-production-germany
+      cancel-in-progress: false
+    env:
+      IMAGE_TAG: ${{ needs.normalize-request.outputs.image_tag }}
+      CI_RUN_ID: ${{ needs.normalize-request.outputs.ci_run_id }}
+      EXPECTED_MANIFEST_SHA256: ${{ needs.verify-release.outputs.manifest_sha256 }}
+      GH_TOKEN: ${{ github.token }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ vars.VPS_USER }}
+      VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '9011' }}
+      VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
+      DEBUG_RUNTIME_ROOT: ${{ vars.DEBUG_RUNTIME_ROOT || '/opt/fitician-debug-runtime' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.normalize-request.outputs.image_tag }}
+          persist-credentials: false
+      - name: Revalidate exact completed CI and reviewed manifest
+        run: >-
+          python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG"
+          --require-full --directory .ci-evidence/runtime-policy
+      - name: Download the already tested independent runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: fitician-debug-runtime-${{ env.IMAGE_TAG }}
+          path: .ci-evidence/runtime-bundle
+          github-token: ${{ github.token }}
+          run-id: ${{ env.CI_RUN_ID }}
+      - name: Verify bundle before exposing SSH credentials
+        run: |
+          set -euo pipefail
+          cp .ci-evidence/runtime-policy/manifest.json .ci-evidence/runtime-bundle/manifest.json
+          python3 - <<'PY'
+          import importlib.util, os
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location('runtime_release', 'ops/deploy-debug-runtime.py')
+          module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+          module.verify_bundle(Path('.ci-evidence/runtime-bundle'), os.environ['EXPECTED_MANIFEST_SHA256'], os.environ['IMAGE_TAG'], int(os.environ['CI_RUN_ID']))
+          PY
+      - name: Validate existing Germany destination
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import PurePosixPath
+          for name, pattern in [('VPS_HOST', r'[A-Za-z0-9][A-Za-z0-9.-]*'), ('VPS_USER', r'[A-Za-z0-9._-]+'), ('VPS_SSH_PORT', r'[0-9]{1,5}')]:
+              assert re.fullmatch(pattern, os.environ[name]), 'Invalid deployment destination'
+          assert 1 <= int(os.environ['VPS_SSH_PORT']) <= 65535
+          for name in ('DEBUG_RUNTIME_ROOT', 'VPS_APP_DIR'):
+              value = os.environ[name]
+              assert re.fullmatch(r'/[A-Za-z0-9_./-]+', value) and '..' not in PurePosixPath(value).parts
+          assert os.environ['DEBUG_RUNTIME_ROOT'] != os.environ['VPS_APP_DIR'], 'Runtime must remain separate'
+          PY
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      - name: Preserve pinned Germany host verification
+        env:
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$VPS_KNOWN_HOSTS"
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          ssh-keygen -F "[$VPS_HOST]:$VPS_SSH_PORT" -f "$HOME/.ssh/known_hosts" >/dev/null
+          printf '%s\n' 'Host *' '  BatchMode yes' '  StrictHostKeyChecking yes' "  UserKnownHostsFile $HOME/.ssh/known_hosts" '  GlobalKnownHostsFile /dev/null' '  ConnectTimeout 10' > "$HOME/.ssh/config"
+      - name: Stage verified runtime without touching application services
+        run: |
+          set -euo pipefail
+          incoming="$DEBUG_RUNTIME_ROOT/incoming/$IMAGE_TAG"
+          required=$((3221225472 + $(stat -c %s .ci-evidence/runtime-bundle/image.tar.gz)))
+          # shellcheck disable=SC2029
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" "set -eu; python3 -c 'import shutil; from pathlib import Path; root=Path(\"$DEBUG_RUNTIME_ROOT\"); assert not root.is_symlink() and (root/\"managed.json\").is_file(); assert shutil.disk_usage(root).free >= $required, \"Insufficient safe runtime-transfer capacity\"'; umask 077; mkdir -p '$incoming/ops' '$incoming/bundle'"
+          scp -P "$VPS_SSH_PORT" ops/deploy-debug-runtime.py "$VPS_USER@$VPS_HOST:$incoming/ops/"
+          scp -P "$VPS_SSH_PORT" backend/app/debugging/image_identity.py backend/app/debugging/release_contract.py "$VPS_USER@$VPS_HOST:$incoming/ops/"
+          scp -P "$VPS_SSH_PORT" compose.debug-runtime.yaml "$VPS_USER@$VPS_HOST:$incoming/"
+          scp -P "$VPS_SSH_PORT" .ci-evidence/runtime-bundle/image.tar.gz .ci-evidence/runtime-bundle/manifest.json "$VPS_USER@$VPS_HOST:$incoming/bundle/"
+      - name: Replace only the independent runtime and verify exact running image
+        id: runtime_rollout
+        run: |
+          set -euo pipefail
+          incoming="$DEBUG_RUNTIME_ROOT/incoming/$IMAGE_TAG"
+          # Existing automation is retained only with its explicit secure enrollment files.
+          # shellcheck disable=SC2029
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" "automation=''; if [ -f '$DEBUG_RUNTIME_ROOT/automation-private/worker.json' ] && [ -f '$DEBUG_RUNTIME_ROOT/automation-private/github.json' ]; then automation=--automation; fi; python3 '$incoming/ops/deploy-debug-runtime.py' --root '$DEBUG_RUNTIME_ROOT' --directory '$incoming/bundle' --manifest-sha256 '$EXPECTED_MANIFEST_SHA256' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID' --regional-lock '$VPS_APP_DIR/.regional-deploy.lock' --owner-approved \$automation"
+      - name: Retain bounded deployment evidence
+        if: always() && steps.runtime_rollout.outcome != 'skipped' && steps.runtime_rollout.outcome != ''
+        run: |
+          mkdir -p .ci-evidence/runtime-deployment
+          # shellcheck disable=SC2029
+          scp -P "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST:$DEBUG_RUNTIME_ROOT/releases/$IMAGE_TAG/deployment.json" .ci-evidence/runtime-deployment/deployment.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fitician-runtime-deployment-${{ env.IMAGE_TAG }}
+          path: .ci-evidence/runtime-deployment/deployment.json
+          if-no-files-found: ignore
           retention-days: 30

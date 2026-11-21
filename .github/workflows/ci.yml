@@ -603,6 +603,7 @@ jobs:
       - name: Start isolated networks and test Agent outage recovery
         run: bash ops/split-test.sh
       - uses: docker/setup-buildx-action@v3
+        id: runtime_builder
       - name: Build independent debug runtime
         uses: docker/build-push-action@v6
         with:
@@ -626,6 +627,12 @@ jobs:
           docker save fitician-debug-runtime:${{ github.sha }} | gzip -1 > .ci-evidence/debug-runtime/image.tar.gz
           cd .ci-evidence/debug-runtime
           sha256sum image.tar.gz > image.tar.gz.sha256
+      - name: Exercise actual independent runtime rollout, idempotency and rollback
+        run: |
+          # Only this job's ephemeral build daemon is stopped; no application service is involved.
+          docker buildx stop "${{ steps.runtime_builder.outputs.name }}"
+          python3 ops/smoke-debug-runtime-release.py --directory .ci-evidence/debug-runtime \
+            --commit ${{ github.sha }} --output .ci-evidence/debug-runtime/release-smoke.json
       - name: Retain bounded runtime health failure evidence
         if: failure()
         uses: actions/upload-artifact@v4
