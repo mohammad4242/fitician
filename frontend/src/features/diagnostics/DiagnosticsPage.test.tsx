@@ -48,6 +48,12 @@ beforeEach(async () => {
 });
 
 describe("admin diagnostics", () => {
+  it("does not interpret a missing user identity as zero people affected", async () => {
+    api.getDiagnosticIssue.mockResolvedValue({ ...detail, affected_user_count: 0, events: [{ ...event, user_id: null }] });
+    renderAt("/admin/diagnostics?tab=issues&issue=issue-1");
+    expect(await screen.findByText("No user ID was recorded; user impact is unknown.")).toBeInTheDocument();
+  });
+
   it("shows real overview metrics and an accessible trend chart", async () => {
     renderAt();
     expect((await screen.findAllByText("8")).length).toBeGreaterThan(0);

@@ -44,7 +44,7 @@ const words = {
     intro: "نشانه‌های فنی ثبت‌شده را بررسی و دسته‌بندی کن. گزارش‌ها ممکن است ناقص باشند و علت قطعی را نشان ندهند.",
     overview: "نمای کلی", traces: "ردگیری درخواست", issues: "مسئله‌ها", events: "رویدادها", generations: "تولید برنامه", infrastructure: "زیرساخت", alerts: "هشدارها",
     hours: "بازه زمانی", hour: "۱ ساعت", day: "۲۴ ساعت", week: "۷ روز", month: "۳۰ روز",
-    failures: "رخدادهای خطا", criticalFailures: "خطاهای بحرانی", newIssues: "مسئله‌های جدید", affectedUsers: "کاربران متأثر", errorRate: "نرخ خطای سرور",
+    failures: "رخدادهای خطا", criticalFailures: "خطاهای بحرانی", newIssues: "مسئله‌های جدید", affectedUsers: "کاربران متأثر با شناسهٔ ثبت‌شده", errorRate: "نرخ خطای سرور",
     eventCount: "رویدادهای بازه", issueCount: "مسئله‌های دیده‌شده در بازه", httpSuccess: "پاسخ‌های موفق HTTP", httpFailure: "پاسخ‌های ناموفق HTTP",
     trend: "روند خطاها و عملیات", trendNote: "نمودار از تمام نتایج ثبت‌شده در بازهٔ انتخاب‌شده محاسبه می‌شود.",
     platforms: "تفکیک پلتفرم‌ها", sample: "ثبت‌شده در بازه: {{count}} رویداد", noEvents: "در این صفحه رویدادی ثبت نشده است.",
@@ -67,7 +67,7 @@ const words = {
     intro: "Review and classify recorded technical signals. Reports may be incomplete and do not establish a root cause.",
     overview: "Overview", traces: "Request traces", issues: "Issues", events: "Events", generations: "Generations", infrastructure: "Infrastructure", alerts: "Alerts",
     hours: "Time window", hour: "1 hour", day: "24 hours", week: "7 days", month: "30 days",
-    failures: "Recorded failures", criticalFailures: "Critical failures", newIssues: "New issues", affectedUsers: "Affected users", errorRate: "Server error rate",
+    failures: "Recorded failures", criticalFailures: "Critical failures", newIssues: "New issues", affectedUsers: "Recorded affected user IDs", errorRate: "Server error rate",
     eventCount: "Events in window", issueCount: "Issues seen in window", httpSuccess: "Successful HTTP responses", httpFailure: "Failed HTTP responses",
     trend: "Operation trend", trendNote: "Computed from all recorded outcomes in the selected window.",
     platforms: "Platforms in recent page", sample: "Recorded in window: {{count}} outcomes", noEvents: "No events were returned for this page.",
@@ -455,7 +455,8 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
       <section className="diagnostics-card">
         <h3>{explanation.what}</h3>
         <p>{english ? "Observed location" : "محل مشاهده خطا"}: <code dir="ltr">{issue.component} / {issue.operation} / {issue.stage}</code></p>
-        <p>{english ? "Occurrences" : "تعداد رخداد"}: {number(issue.count, english)} · {english ? "Affected users" : "کاربران متأثر"}: {detail.affected_user_count === undefined ? "—" : number(detail.affected_user_count, english)}</p>
+        <p>{english ? "Occurrences" : "تعداد رخداد"}: {number(issue.count, english)} · {english ? "Recorded affected user IDs" : "کاربران متأثر با شناسهٔ ثبت‌شده"}: {detail.affected_user_count === undefined ? "—" : number(detail.affected_user_count, english)}</p>
+        {detail.affected_user_count === 0 && <p>{english ? "No user ID was recorded; user impact is unknown." : "شناسهٔ کاربر ثبت نشده است؛ تعداد کاربران متأثر نامشخص است."}</p>}
         <p>{english ? "Cause assessments and their verification appear in the selected occurrence's investigation findings." : "فرضیه‌ها و نتیجهٔ بررسی علت، همراه با مدرک در یافته‌های رخداد منتخب نمایش داده می‌شوند."}</p>
         <p>{english ? "Next check" : "بررسی بعدی"}: {explanation.next}</p>
       </section>

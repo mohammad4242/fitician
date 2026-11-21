@@ -218,8 +218,11 @@ def sanitize_remote_evidence(
                 if source and ".." not in source[1].split("/"):
                     safe["filename"] = source[1][:240]
                 function = frame.get("function")
+                if isinstance(function, str) and "::" in function:
+                    # Keep the C++ symbol name, never argument values/signature payloads.
+                    function = function.split("(", 1)[0]
                 if isinstance(function, str) and re.fullmatch(
-                    r"[A-Za-z0-9_.$<>-]{1,160}", function
+                    r"[A-Za-z0-9_.$<>:~-]{1,160}", function
                 ):
                     safe["function"] = function
                 for original, target in (("lineNo", "lineno"), ("colNo", "colno")):

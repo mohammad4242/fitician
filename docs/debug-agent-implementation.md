@@ -103,6 +103,32 @@ link and external target, and did not modify any existing service. A filesystem 
 first; 26 targeted runtime/release/workflow tests and Ruff/actionlint/shellcheck passed afterward.
 This verifies the cleanup defect and fix; the hosted rerun remains the release acceptance gate.
 
+### Matching private Android artifacts and unknown user impact
+
+Internal build `d957da3c-32cb-4bcf-b284-3673712f74f4` completed for exact source `9e7f2b9a`.
+APK SHA-256 `b5737f3fd8d8df00861a166febfd9c4bead9867d6304cbac270b7b96133f9410` passed ZIP
+integrity and decompressed-file scans for supplied privileged tokens; no public `.map` was
+present. Authenticated Sentry readback matched APK ProGuard UUID
+`73640863-ceb3-363b-a32c-819619ecc6e1` to an uploaded mapping, and the application's x86_64
+`libFiticianBodyVision.so` debug ID `0969337a-ab70-4281-7d0e-ec4568e5a961` to an ELF with
+debug/symtab/unwind features. This proves actual matching private uploads, not merely options.
+
+The updated internal APK was installed only on the named owned Android AVD. One journaled
+SIGSEGV exited that test process; restart delivered event `04221e2f10414d164be012f01990e107`
+with release `fitician-mobile@9e7f2b9a199e141b83eacf63a78e136f1bf39b1c`. Discovery imported it
+as occurrence `7da7ee60-fb29-5036-91f1-83f88d5ca085` beneath the same isolated issue. Both
+source releases remain distinct immutable occurrences; total count is exactly two. The real
+390 px panel selected the new occurrence and verified its release, Sentry linkage and refresh
+persistence without overflow. Production panel acceptance, physical ARM/iOS capture and useful
+application-frame symbolication remain separate gates: this signal still has four system
+frames, one named frame and no in-app source lines. Empty symbolication errors do not close it.
+
+Native C++ namespace/function names now survive evidence scrubbing without argument/signature
+values. The panel calls user counts recorded identities and explicitly marks unknown impact
+when none exists; an anonymous crash cannot imply zero users affected. Both regressions failed
+first. All 74 selected PostgreSQL tests, 23 UI tests, focused Ruff/mypy/Oxlint and TypeScript
+passed. Production alerts remain disabled and no additional live SMS was sent.
+
 Execution order and gates:
 
 - [x] Phase 0: reconcile Git/PR/runtime evidence, preserve local changes, identify latest CI failure.

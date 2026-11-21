@@ -206,6 +206,17 @@ def test_tag_release_is_usable_but_conflicting_release_stays_unknown():
     assert sanitize_remote_evidence(remote, expected_commit="a" * 40)["release_commit"] is None
 
 
+def test_native_cpp_function_name_survives_without_argument_values():
+    from app.observability.sentry_sync import sanitize_remote_evidence
+
+    remote = remote_native()
+    frame = remote["entries"][0]["data"]["values"][0]["stacktrace"]["frames"][0]
+    frame["function"] = "fitician::BodyVision::run(secret_argument=private_value)"
+    result = sanitize_remote_evidence(remote, expected_commit="a" * 40)
+    assert result["exceptions"][0]["frames"][0]["function"] == "fitician::BodyVision::run"
+    assert "private_value" not in json.dumps(result)
+
+
 def test_expired_worker_response_is_fenced_after_another_worker_claim(db, monkeypatch):
     from uuid import uuid4
 
