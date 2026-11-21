@@ -96,3 +96,16 @@ describe("admin diagnostics", () => {
     await waitFor(() => expect(api.getDiagnosticGenerations).toHaveBeenCalledTimes(2));
   });
 });
+
+vi.mock("./SentryHealth", () => ({ SentryHealth: () => null }));
+
+it("shows bounded process-local capture losses without claiming a durable dead letter", async () => {
+  api.getDiagnosticInfrastructure.mockResolvedValue({
+    signals: [], queues: { diagnostics: { queued: 0, dropped: 1, persistence_failed: 1 } },
+    capture_losses: [{ event_id: "00000000-0000-4000-8000-000000000001", reason: "persistence_exhausted", observed_at: "2026-11-21T19:00:00Z" }],
+  });
+  renderAt("/admin/diagnostics?tab=infrastructure");
+  expect(await screen.findByText("Recent capture losses (this process)")).toBeInTheDocument();
+  expect(screen.getByText("persistence_exhausted")).toBeInTheDocument();
+  expect(screen.getByText("00000000-0000-4000-8000-000000000001")).toBeInTheDocument();
+});

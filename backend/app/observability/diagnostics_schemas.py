@@ -438,6 +438,7 @@ class InfrastructureSignal(StrictModel):
 class InfrastructureResponse(StrictModel):
     signals: list[InfrastructureSignal]
     queues: dict[str, dict[str, int]]
+    capture_losses: list[dict[str, str]] = Field(default_factory=list, max_length=32)
 
 
 class NativeDiscoveryHealth(StrictModel):

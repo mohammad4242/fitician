@@ -954,7 +954,7 @@ async def infrastructure(
             except Exception:
                 pass
     if runtime is not None:
-        queues["diagnostics"] = {"queued": runtime.queued_count, "dropped": runtime.dropped_count}
+        queues["diagnostics"] = runtime.health_snapshot()
         signals.append(
             {
                 "component": "diagnostics",
@@ -968,7 +968,11 @@ async def infrastructure(
                 "business_operation_verified": False,
             }
         )
-    return {"signals": signals, "queues": queues}
+    return {
+        "signals": signals,
+        "queues": queues,
+        "capture_losses": runtime.recent_losses() if runtime is not None else [],
+    }
 
 
 router.include_router(trace_router)

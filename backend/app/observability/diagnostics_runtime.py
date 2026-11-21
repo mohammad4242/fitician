@@ -6,6 +6,7 @@ import re
 import threading
 import time
 import traceback
+from collections import deque
 from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 
 from fastapi import Request, Response
 from sqlalchemy import Engine, create_engine
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import DataError, IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import QueuePool
 
@@ -30,6 +31,7 @@ from app.observability.diagnostics_service import (
     cleanup_retention,
     detect_abandoned_attempts,
     record_event,
+    record_spans,
 )
 from app.observability.logging import log_event
 
@@ -369,6 +371,18 @@ class DiagnosticsRuntime:
         self._injected_sink = injected_sink
         self._queue: queue.Queue[tuple[EventInput, UUID | None]] = queue.Queue(maxsize=256)
         self.dropped_count = 0
+        self._health_lock = threading.Lock()
+        self._counts = dict(
+            persisted=0,
+            retried=0,
+            persistence_failed=0,
+            queue_rejected=0,
+            evicted=0,
+            shutdown_discarded=0,
+            in_flight=0,
+        )
+        self._losses: deque[dict[str, str]] = deque(maxlen=32)
+        self._shutdown_deadline: float | None = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self._engine: Engine | None = None
@@ -380,6 +394,32 @@ class DiagnosticsRuntime:
     @property
     def queued_count(self) -> int:
         return self._queue.qsize()
+
+    def health_snapshot(self) -> dict[str, int]:
+        queued = self.queued_count  # Never acquire queue.mutex while holding the health lock.
+        with self._health_lock:
+            return {
+                **self._counts,
+                "queued": queued,
+                "dropped": self.dropped_count,
+                "process_local": 1,
+            }
+
+    def recent_losses(self) -> list[dict[str, str]]:
+        with self._health_lock:
+            return [dict(item) for item in self._losses]
+
+    def _lost(self, event: EventInput, reason: str, counter: str) -> None:
+        with self._health_lock:
+            self.dropped_count += 1
+            self._counts[counter] += 1
+            self._losses.append(
+                {
+                    "event_id": str(event.event_id),
+                    "reason": reason,
+                    "observed_at": datetime.now(UTC).isoformat(),
+                }
+            )
 
     def start(self) -> None:
         if not self.enabled or self._injected_sink is not None or self._thread is not None:
@@ -426,10 +466,15 @@ class DiagnosticsRuntime:
             event = event.model_copy(update={"build": self.settings.app_build_sha})
         if not self.enabled:
             return False
+        # Keep identity across every transaction attempt, including uncertain commit ACKs.
+        if event.event_id is None:
+            event.event_id = uuid4()
+        if self._stop.is_set():
+            self._lost(event, "writer_stopping", "shutdown_discarded")
+            return False
         try:
             self._queue.put_nowait((event, user_id))
         except queue.Full:
-            self.dropped_count += 1
             if event.record_type == "event" and event.outcome in {
                 "failure",
                 "blocked",
@@ -460,7 +505,9 @@ class DiagnosticsRuntime:
                                 )
                             )
                             self._queue.not_empty.notify()
+                            self._lost(queued, "queue_evicted", "evicted")
                             return True
+            self._lost(event, "queue_full", "queue_rejected")
             return False
         return True
 
@@ -468,10 +515,12 @@ class DiagnosticsRuntime:
         if self._thread is None:
             return
         self._stop.set()
+        self._shutdown_deadline = time.monotonic() + 2.0
         self._thread.join(timeout=2.0)
         if self._engine is not None and not self._thread.is_alive():
             self._engine.dispose()
-        self._thread = None
+        if not self._thread.is_alive():
+            self._thread = None
 
     def _maintenance(self, factory: Callable[[], Session]) -> None:
         try:
@@ -489,6 +538,50 @@ class DiagnosticsRuntime:
                 error_code="DIAGNOSTICS_MAINTENANCE_FAILED",
             )
 
+    def _write_batch(
+        self, factory: Callable[[], Session], items: list[tuple[EventInput, UUID | None]]
+    ) -> bool:
+        for attempt in range(3):
+            try:
+                with factory() as db:
+                    spans = []
+                    for event, user_id in items:
+                        if event.record_type == "span":
+                            spans.append((event, user_id))
+                        else:
+                            record_spans(db, spans)
+                            spans.clear()
+                            record_event(db, event, user_id=user_id)
+                    record_spans(db, spans)
+                    db.commit()
+                with self._health_lock:
+                    self._counts["persisted"] += len(items)
+                return True
+            except (IntegrityError, DataError, ValueError):
+                # One invalid row must not discard valid neighbours. A connection outage
+                # does not fan out into one retry loop per row.
+                if len(items) > 1:
+                    for item in items:
+                        self._write_batch(factory, [item])
+                    return False
+                break
+            except Exception:
+                if attempt == 2 or (
+                    self._shutdown_deadline is not None
+                    and time.monotonic() >= self._shutdown_deadline
+                ):
+                    break
+                with self._health_lock:
+                    self._counts["retried"] += len(items)
+                self._stop.wait(0.1 * (2**attempt))
+        for event, _ in items:
+            self._lost(event, "persistence_exhausted", "persistence_failed")
+        # Never include DB exception text/SQL, recurse through capture, or log every row.
+        log_event(
+            logger, "diagnostics batch persistence exhausted", error_code="DIAGNOSTICS_WRITE_FAILED"
+        )
+        return False
+
     def _run(self) -> None:
         factory = self._session_factory
         if factory is None:
@@ -496,6 +589,15 @@ class DiagnosticsRuntime:
         next_cleanup = time.monotonic()
         written = 0
         while not self._stop.is_set() or not self._queue.empty():
+            if self._shutdown_deadline is not None and time.monotonic() >= self._shutdown_deadline:
+                while True:
+                    try:
+                        event, _ = self._queue.get_nowait()
+                    except queue.Empty:
+                        break
+                    self._lost(event, "shutdown_budget_exhausted", "shutdown_discarded")
+                    self._queue.task_done()
+                break
             try:
                 item = self._queue.get(timeout=0.1)
             except queue.Empty:
@@ -503,22 +605,28 @@ class DiagnosticsRuntime:
                     self._maintenance(factory)
                     next_cleanup = time.monotonic() + 3600
                 continue
+            items = [item]
+            for _ in range(31):
+                try:
+                    items.append(self._queue.get_nowait())
+                except queue.Empty:
+                    break
+            with self._health_lock:
+                self._counts["in_flight"] = len(items)
             try:
-                with factory() as db:
-                    record_event(db, item[0], user_id=item[1])
-                    db.commit()
-                written += 1
+                self._write_batch(factory, items)
+                written += len(items)
                 if time.monotonic() >= next_cleanup or written >= 100:
                     self._maintenance(factory)
                     next_cleanup = time.monotonic() + 3600
-                    written = 0
-            except Exception:
-                self.dropped_count += 1
-                log_event(
-                    logger, "diagnostics persistence failed", error_code="DIAGNOSTICS_WRITE_FAILED"
-                )
+                    written %= 100
             finally:
-                self._queue.task_done()
+                with self._health_lock:
+                    self._counts["in_flight"] = 0
+                for _ in items:
+                    self._queue.task_done()
+        if self._engine is not None and self._stop.is_set():
+            self._engine.dispose()
 
 
 def should_record_request(request: Request) -> bool:

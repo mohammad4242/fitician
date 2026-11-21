@@ -637,6 +637,13 @@ function InfrastructurePanel({ search, setSearch }: { search: URLSearchParams; s
     {summary.data && <>
       <div className="diagnostics-generation-grid">{summary.data.signals.map((signal) => <article className="diagnostics-card" key={signal.component}><h3 dir="ltr">{signal.component.replaceAll("_", " ")}</h3><StatusBadge value={signal.status}/><p dir="ltr">{signal.evidence}</p><time>{dateTime(signal.observed_at, english)}</time></article>)}</div>
       <section className="diagnostics-card"><h3>{english ? "Durable job states" : "وضعیت پایدار کارها"}</h3>{Object.entries(summary.data.queues).map(([name, counts]) => <div key={name}><strong dir="ltr">{name}</strong><ul>{Object.entries(counts).map(([state, count]) => <li key={state}><span dir="ltr">{state}</span>: {number(count, english)}</li>)}</ul></div>)}</section>
+      {(summary.data.capture_losses?.length ?? 0) > 0 && <section className="diagnostics-card">
+        <h3>{english ? "Recent capture losses (this process)" : "آخرین ثبت‌های ازدست‌رفته در این پردازش"}</h3>
+        <p>{english ? "Bounded metadata, cleared on process restart. Event contents cannot be recovered here." : "فقط اطلاعات محدود نگهداری می‌شود و با شروع مجدد پردازش پاک می‌شود؛ محتوای رویداد از اینجا قابل بازیابی نیست."}</p>
+        <ul>{summary.data.capture_losses?.map((loss, index) => <li key={`${loss.event_id}-${index}`}>
+          <code dir="ltr">{loss.event_id}</code> · <span dir="ltr">{loss.reason}</span> · <time>{dateTime(loss.observed_at, english)}</time>
+        </li>)}</ul>
+      </section>}
     </>}
 
     <div className="diagnostics-card__heading"><h3>{c.latestInfraEvents}</h3></div>

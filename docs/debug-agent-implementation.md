@@ -9,6 +9,34 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ## Revalidated completion checklist — 2026-11-21
 
+### Writer reliability implementation — November 21 continuation
+
+The backlog prototype is now implemented in application code: batches contain at most
+32 observations, spans use PostgreSQL bulk UUID upserts, and actionable events retain
+the existing grouping/privacy/status path. UUIDs are assigned before enqueue so an
+unknown commit acknowledgement can retry without incrementing an issue twice. Three
+bounded attempts precede explicit failure accounting; invalid rows are isolated without
+turning a database outage into per-row retry fan-out. Queue size remains 256, successful
+trace sampling is unchanged, and existing failure-priority eviction remains.
+
+Admin infrastructure now exposes process-local persisted/retried/in-flight/loss counters
+and the last 32 failed observation IDs/reasons/timestamps, without SQL, exception messages
+or user content. This metadata is not a durable replay queue and is cleared on restart;
+abrupt process loss still has unknown unflushed observations. Shutdown is bounded and
+remaining queued observations are accounted for when its drain budget expires.
+Eight new PostgreSQL/runtime regressions passed after observed failures, plus the prior
+runtime/trace/diagnostics selection (72 tests before the final shutdown test was added).
+The diagnostics page's six tests, targeted frontend lint, TypeScript and the two writer
+modules' mypy passed. Whole-tree frontend lint also scanned pre-existing untracked
+`dist-standalone` output and failed there; that output was preserved. A constrained
+application load rerun and hosted CI remain subsequent gates. No production installation.
+
+The dedicated PAT now dispatched the reviewed main read-only regional workflow successfully:
+[44943052893](https://github.com/mohammad4242/fitician/actions/runs/44943052893), both jobs
+successful. Germany's mode-0600 credential matched the local credential without exporting
+either value; authenticated workflow read from Germany returned 200. The old Actions 403
+is no longer current. Production runtime and automation enrollment files are still absent.
+
 ### Current-VPS capacity reassessment — November 21
 
 The owner retained the current 2-vCPU/4-GB Iran application/data host and selected Germany

@@ -252,6 +252,26 @@ def record_event(
     return row
 
 
+def record_spans(db: Session, items: list[tuple[EventInput, UUID | None]]) -> None:
+    """Bulk append non-grouping spans; stable UUIDs make unknown-commit retries safe."""
+    if not items:
+        return
+    columns = set(DiagnosticEvent.__table__.columns.keys())
+    now = datetime.now(UTC)
+    rows = []
+    for event, user_id in items:
+        if event.record_type != "span" or event.event_id is None:
+            raise ValueError("stable_span_identity_required")
+        values = {key: value for key, value in event.model_dump().items() if key in columns}
+        values.update(id=event.event_id, user_id=user_id, issue_id=None, timestamp=now)
+        rows.append(values)
+    db.execute(
+        insert(DiagnosticEvent)
+        .values(rows)
+        .on_conflict_do_nothing(index_elements=[DiagnosticEvent.id])
+    )
+
+
 def safe_record(settings: Settings, event: EventInput, *, user_id: UUID | None = None) -> None:
     """Fail-open background writer, isolated from an owning request transaction."""
     try:
