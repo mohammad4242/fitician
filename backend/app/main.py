@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.access_management.exceptions import AccessManagementError
 from app.access_management.public_router import router as public_campaign_router
@@ -187,6 +188,10 @@ def create_app(
     app.state.apple_identity_provider = build_apple_identity_provider(active_settings)
     app.dependency_overrides[get_settings] = lambda: active_settings
 
+    def probe_database() -> None:
+        with Session(get_engine(active_settings)) as db:
+            db.execute(text("SELECT 1"))
+
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict[str, str]:
         if app.state.draining:
@@ -194,8 +199,7 @@ def create_app(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail={"code": "SERVICE_UNAVAILABLE"},
             )
-        with Session(get_engine(active_settings)) as db:
-            db.execute(text("SELECT 1"))
+        probe_database()
         return {"status": "ok"}
 
     @app.get("/livez", include_in_schema=False)
@@ -211,8 +215,9 @@ def create_app(
                 content={"status": "not_ready", "checks": {"draining": "true"}},
             )
         try:
-            with Session(get_engine(active_settings)) as db:
-                db.execute(text("SELECT 1"))
+            # Pool checkout is synchronous. Blocking here prevents other requests from
+            # finishing and returning the very connections the probe is waiting for.
+            await run_in_threadpool(probe_database)
             checks["database"] = "ok"
         except SQLAlchemyError:
             checks["database"] = "failed"

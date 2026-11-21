@@ -30,6 +30,18 @@ model execution and panel acceptance still require the separately approved rollo
 
 ### Writer reliability implementation — November 21 continuation
 
+The clock-based rerun still exposed burst failures (86/300 read timeouts at concurrency 20).
+A stack-only profiler, attached solely to the owned local load containers, identified an
+additional cause: `/readyz` synchronously waited for the application SQLAlchemy pool on the
+async event-loop thread. That prevented in-flight requests from finishing and returning
+connections. Its SELECT/session now executes in the existing framework thread pool, with
+the same connection limits/timeouts and session ownership inside that thread. A corrected
+regression failed on the prior code with `released == [False]`, then passed; all fourteen
+readiness/health/Redis tests passed. Earlier fixture setup failures were not treated as the
+regression proof. No production probe changed. A fresh constrained rerun remains required.
+Running mypy directly on `app/main.py` also traversed eight existing modules and reported
+58 errors there, none in main; that broader check is not claimed green.
+
 The existing scheduler now has opt-in shared Sentry synchronization and alert/receipt loops
 (`DIAGNOSTICS_MAINTENANCE_ENABLED=false` by default). One bounded tick runs at a time,
 using a one-connection, two-second-statement-timeout pool and separate Sentry/SMS HTTP
