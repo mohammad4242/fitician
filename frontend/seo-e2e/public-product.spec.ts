@@ -61,11 +61,14 @@ test("premium discovery, dedicated pages and public shell fit five widths", asyn
       // The heading is build-rendered before its live refresh finishes. Let the mock
       // response finish before the next navigation cancels it (WebKit reports that
       // cancellation as an access-control page error).
-      const detailRefresh = path === "/exercise-library/dumbbell-bench-press"
-        ? page.waitForResponse(response => response.url().endsWith("/api/v1/public/exercises/dumbbell-bench-press"))
-        : undefined;
+      const refreshPaths = path === "/exercise-library"
+        ? ["/api/v1/public/exercise-categories", "/api/v1/public/exercises?content_type=exercise&page=1"]
+        : path === "/exercise-library/dumbbell-bench-press"
+          ? ["/api/v1/public/exercises/dumbbell-bench-press"]
+          : [];
+      const refreshes = refreshPaths.map(path => page.waitForResponse(response => response.url().endsWith(path)));
       await page.goto(path);
-      if (detailRefresh) expect(await (await detailRefresh).finished()).toBeNull();
+      for (const response of refreshes) expect(await (await response).finished()).toBeNull();
       await expect(page.locator("h1")).toBeVisible();
       await expect(page.locator("footer")).toHaveCount(1);
       await expect(page.locator(".fitician-brand-logo").first()).toBeVisible();
