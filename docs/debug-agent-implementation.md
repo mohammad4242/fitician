@@ -9,6 +9,83 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ## Revalidated completion checklist — 2026-11-21
 
+### Current verification and remaining gates — November 21 UTC continuation
+
+Source `cdd2345d`: full local diagnostics/debug/Sentry selection passed 366 tests with one
+opt-in installed-CLI skip (two real Docker tests included). Agent suite passed 283; ops 383
+plus 211 subtests; core 148; selected frontend 53; mobile foundation 86 and TypeScript.
+Four Persian/English Chromium/WebKit admin cases passed, as did 60 public SEO checks.
+`npm run security:secrets` passed. A separate exact-value scan of 129 private logs found
+none of the known GitHub/Sentry/proxy credentials or actual alert recipient. The unrelated
+two documentation edits remain preserved.
+
+At 22:38 UTC, CI `44955669810` was still in progress. Its earlier successful ancestor
+`44914007967` took about 70 minutes for backend tests, 25 minutes for Android and 17 minutes
+for browser tests. No complete-CI success is asserted from partial jobs.
+Four real controlled-validation artifacts
+(agent/backend/frontend/migrations) were fetched using the actual broker implementation and
+dedicated mode-0600 credential. GitHub ZIP digests and passed reports matched tested PR
+merge commit `a854a64016c969146b68f0640b4ba39bfea32450`; its tree equals head `cdd2345d`.
+The real four-artifact client path also ran under 192 MiB / 0.1 CPU: 21 seconds, sampled
+maximum memory.current 33.1 MiB, no OOM. This measures the client, not the whole worker loop.
+This is PR-merge CI evidence, not a protected-main deployment artifact or an authorized PR
+publication. PR 41's managed description was updated with HTTP 200/readback and remains Draft.
+The connected GitHub integration's metadata PATCH returned 403; the dedicated PAT succeeded.
+Do not confuse that integration permission with the resolved Broker Actions permission.
+
+Real staging Sentry ingestion was also connected to the actual automatic alert iteration on
+the isolated DB: one mocked provider request, accepted state, no repeated dispatch. The provider
+was `httpx.MockTransport`; no physical SMS was sent or phone delivery established. Production
+SMS remains disabled. The existing owner-confirmed manual SMS remains historical evidence.
+
+Unfinished code: remote API-model orchestration and shared-mode release-policy wiring. The
+provider credential boundary awaits explicit owner selection (dedicated scoped Germany key
+versus Iran relay); no existing provider credential has been moved. Production permissions
+also block deployment/migration/restart/enrollment, main-policy installation and automatic SMS
+activation. Do not infer full production readiness from this checkpoint. Current Germany
+commissioning image is `4a70812f`, awaiting enrollment; live API image tag is `93413ad3`,
+scheduler `2bde2fa9`, generation Agent `0d5e6fbd`, database175. No production identity changed.
+Final read-only observations at 22:28 UTC still showed
+10/4 unchanged containers, database175, and 1491/1321 MiB available RAM (Iran/Germany).
+Owned local load/browser/PostgreSQL fixtures were removed; unrelated projects were preserved.
+
+### Browser telemetry batching — November 21 UTC continuation
+
+The combined Persian/English Chromium/WebKit check originally passed three cases, then the
+fourth correctly hit the unchanged 30-request/minute telemetry limit. Browser capture now
+coalesces arrivals for 250 ms before the existing bounded ten-event batches; the shared queue's
+other consumers retain immediate sending by default. Bounds, IDs, authentication clearing,
+retry behavior and server limits are preserved. The failed unit regression then passed;
+148 core and 53 selected frontend tests passed. The actual four-case browser rerun passed
+4/4, with 30 telemetry requests accepted and no 429 (previous: 39 requests, six rejected).
+This measured window does not promise lossless capture under arbitrary shared-IP load.
+Mobile TypeScript and all 86 foundation tests passed after the shared interface extension.
+
+### Phone conversation controls — November 21 UTC continuation
+
+The fresh 390px browser acceptance exposed a 203px message textarea using browser defaults.
+Conversation controls now reuse the existing diagnostics form/button styling, the occurrence
+selector uses the shared field styling, and message direction follows its content. The same
+browser check failed first, then passed with full-width controls, no overflow/page errors,
+real Sentry evidence and refresh. Forty-eight diagnostics UI tests, TypeScript and focused
+lint passed; the existing Persian/English browser regression now guards message width.
+This verifies the local panel, not the production panel or a new model run.
+
+### Verified constrained envelope — November 21 UTC continuation
+
+Source `21e647e9`, same two-CPU/ten-service limits, Redis AOF enabled, synthetic SDK endpoint:
+600/600 requests at 10 RPS returned 200, p95 530 ms, p99 757 ms; capture counters recorded
+13,246 acknowledgements and zero new drops. Three 300-request bursts at concurrency 5/10/20
+all returned 200 without the prior readiness timeouts, but p95 861/1310/1848 ms exceeded
+the 750-ms objective. The bursts rejected 971 low-priority observations explicitly; no
+persistence failure, OOM or restart was observed. No lossless/unlimited-capacity claim.
+
+The workload held a maximum 1558 MiB simultaneous container working set during sustained
+load. PostgreSQL used tmpfs and the laptop CPU differs from the VPS: durable storage latency,
+real image/model concurrency and peak business traffic remain unproven. The original
+capacity report preserves the earlier failed writer/backlog measurements and explains the
+updated limits. No production configuration, sampling or memory limit was reduced.
+
 ### SDK proxy authentication — November 21 UTC continuation
 
 A fresh real staging capture failed with HTTP 407 through the existing restricted egress,
@@ -21,8 +98,13 @@ required; provider HTTP clients and production secrets/configuration are unchang
 The new credential/percent-encoding regression failed first. All 87 Sentry/privacy/sync/
 delivery tests passed, including a real pinned SDK ProxyManager check that authentication
 is absent from origin headers; focused lint and mypy passed. The first live occurrence
-remains unconfirmed and is retained honestly. A fresh live capture after the fix is a
-separate acceptance gate. This operator probe does not prove business-flow or panel E2E.
+remains unconfirmed in the private evidence journal. Fresh staging capture
+`5cf27445f5614d8c8901e297917b211a` was authenticated-read back,
+linked to local occurrence `30f9920a-56bc-469c-a5e3-45cd267841e4`, group `7858366948`, and
+exact commit `020890fc`. The real admin evidence API returned observed/matching evidence;
+anonymous and non-admin requests were denied. Chromium at 390 px displayed the Persian
+explanation, selected occurrence, matching source link and Sentry link; refresh passed, no
+page error/overflow. This local operator probe does not prove production/business-flow/model E2E.
 
 ### Bounded repository fetch recovery — November 21 UTC continuation
 
@@ -55,8 +137,10 @@ credential placement awaits the owner's explicit selection; no provider key was 
 The hosted WebKit check failed when navigation canceled the public exercise detail refresh
 before its mocked response completed. The browser test now awaits that response, while
 retaining page-error/overflow assertions. Three WebKit repetitions and the complete
-Chromium/Firefox/WebKit selection passed (60 tests) against the locally built nginx release
-image. This is local browser evidence; the next hosted run remains a separate gate.
+Chromium desktop/mobile and WebKit selection passed (60 tests) against the locally built
+nginx release image. A later hosted run exposed catalogue refresh cancellation too; awaits
+now cover both catalogue calls and the detail call. Nine repeated WebKit product cases and
+60 local cases passed, then hosted Public SEO run `44955670082` passed for `cdd2345d`.
 
 ### Repair base and protected policy — November 21 UTC continuation
 
@@ -104,7 +188,7 @@ connections. Its SELECT/session now executes in the existing framework thread po
 the same connection limits/timeouts and session ownership inside that thread. A corrected
 regression failed on the prior code with `released == [False]`, then passed; all fourteen
 readiness/health/Redis tests passed. Earlier fixture setup failures were not treated as the
-regression proof. No production probe changed. A fresh constrained rerun remains required.
+regression proof. No production probe changed. The constrained rerun above records the resulting envelope.
 Running mypy directly on `app/main.py` also traversed eight existing modules and reported
 58 errors there, none in main; that broader check is not claimed green.
 
@@ -115,14 +199,13 @@ clients. Round-robin sync fetches one project/action per tick. Each role writes 
 heartbeat only after work succeeds; invalid configuration, external failure or heartbeat
 file failure does not terminate existing business loops. Seven scheduler/isolation tests
 and module mypy passed after observed failures. No model/repository execution moved into
-the scheduler. Remote debug dispatch and release-policy integration remain separate work;
+the scheduler. Remote API dispatch and release-policy integration remain separate work;
 this flag does not yet establish a complete shared-control-plane production rollout.
 
 Housekeeping is now bounded by a sixty-second clock instead of every hundred observations.
 The failing regression showed that capture volume itself multiplied retention/reconciliation
 work. Retention rules and the existing cleanup batch size remain unchanged. The queue,
-failure priority and successful-trace sampling remain unchanged. A constrained load rerun
-is still required for this cadence change. Production flags and resources remain untouched.
+failure priority and successful-trace sampling remain unchanged. The constrained rerun above records the resulting envelope. Production flags and resources remain untouched.
 
 The backlog prototype is now implemented in application code: batches contain at most
 32 observations, spans use PostgreSQL bulk UUID upserts, and actionable events retain
@@ -181,8 +264,10 @@ No production configuration, service, database, SMS activation or paid capacity 
   10/20 also exceeded the existing 750-ms latency SLO. These are not successful capture tests.
 - [x] Private batch prototype, same sampling/queue/limits: 600/600 HTTP 200 and zero new
   drops, p95 495 ms; PostgreSQL UUID/grouping invariants passed. This is not shipped code.
-- [ ] Shared scheduler control plane and remote API-model adapter remain implementation
-  work; the bounded mock capacity experiment does not establish production operation.
+- [x] Opt-in shared scheduler sync/alert control and Codex dispatch implemented/tested;
+  no additional Iran container activated.
+- [ ] Remote API-model adapter and shared-mode release-policy wiring remain incomplete;
+  provider credential placement awaits owner selection, and production operation is unproven.
 - [ ] Germany disk release gate still fails at about 2.27 GiB free. No image/log cleanup
   or guard reduction was performed. Real simultaneous debug/generation and durable disk-I/O
   peaks remain unverified; production enrollment and release approvals remain separate.
@@ -205,7 +290,7 @@ preserved. PR 42 remains a synthetic acceptance PR, never a main merge.
 | --- | --- | --- | --- | --- | --- |
 | SDK capture, exact-event sync, private web maps | committed | isolated SDK/DB/browser | server/GitHub secrets installed | new application release: no | backend/web staging: yes |
 | Issue chat, occurrence/model provenance, Codex connector | committed | API, browser, real Codex | staging enrollment only | no | staging only |
-| Independent Germany execution service | committed | CI image/protocol/isolation/restart; server limits | independent free-account login verified; production enrollment pending | commissioning service on Germany | temporary Germany tool execution yes; permanent updated image/panel pending |
+| Independent Germany execution service | committed | CI image/protocol/isolation/restart; server limits | historical independent login; current authentication/model execution unverified; enrollment absent | commissioning service on Germany | temporary Germany tool execution yes; permanent updated image/panel pending |
 | API model tool loop | committed | protocol tests and real selected-model panel/read-tool/refresh acceptance in isolated staging | encrypted credential configured in staging; production selection pending | no | OpenRouter gpt-4.1-mini staging: yes; production: no |
 | Isolated repair/test/PR | controlled CI profiles and separate durable publication broker committed | four CI profiles; occurrence/idempotency/PR transport tests; old synthetic PR 42 | dedicated token writes and Actions dispatch verified; trusted main workflow installation and server enrollment pending | no | transport acceptance PR 43 verified; no permanent broker repair PR proof |
 | FarazSMS aggregation/receipt worker | committed, migration 181 | isolated DB/provider protocol | recipient/key present; auto sending disabled | no | one operator SMS delivered; automatic path pending |
@@ -214,7 +299,7 @@ preserved. PR 42 remains a synthetic acceptance PR, never a main merge.
 
 Latest reviewed migration head is `20261121_187`; production remains `20261018_175`.
 Historical 185 rehearsal entries below retain their original scope. November 21's fresh
-snapshot was separately restored and rehearsed through 186: 155 source tables and 11 protected
+snapshot was separately restored and rehearsed through 187: 155 source tables and 11 protected
 fingerprints matched; 169 target tables and existing counts/FKs remained consistent. The owned
 networkless tmpfs restore container was removed. No production migration was performed.
 
