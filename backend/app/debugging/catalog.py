@@ -30,7 +30,19 @@ def tool_catalog(
     tools = [
         tool(
             "read_file",
-            "Read a bounded sanitized source excerpt from the exact release worktree.",
+            "Read bounded sanitized source from this worktree. Repairs use current protected "
+            "main; use read_release_file for the original failing release.",
+            {
+                "path": path,
+                "start": {"type": "integer", "minimum": 1, "maximum": 100000},
+                "count": {"type": "integer", "minimum": 1, "maximum": 200},
+            },
+            ["path"],
+        ),
+        tool(
+            "read_release_file",
+            "Read a bounded, read-only excerpt at the exact failing "
+            "release, independently of the repair's newer base commit.",
             {
                 "path": path,
                 "start": {"type": "integer", "minimum": 1, "maximum": 100000},
@@ -154,6 +166,8 @@ def tool_catalog(
                 )
             )
     unavailable = set()
+    if supports_ci:
+        unavailable.update({"fitician_commit", "fitician_create_pr"})
     if not supports_tests:
         unavailable.update({"fitician_run_tests", "fitician_commit", "fitician_create_pr"})
     if not supports_github:

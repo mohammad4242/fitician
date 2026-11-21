@@ -9,6 +9,23 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ## Revalidated completion checklist — 2026-11-21
 
+### Repair base and protected policy — November 21 UTC continuation
+
+Germany repairs now pin the trusted current main SHA once per run, preserving newer unrelated
+code. A separate bounded, sanitized `fitician_read_release_file` reads the exact failing
+commit without checking it out; progress records both SHAs. Existing repair workspaces stay
+intact. If main changes before candidate creation, a non-empty patch is rejected before any
+GitHub mutation and requires fresh validation. Historical read-only reproduction remains
+allowed. CI-enabled runtimes do not offer competing unverified local commit/PR tools.
+
+After observed regression failures, 88 repository/connector/catalog/broker tests passed;
+both additional Docker-only tests passed (seeded fail/fix/pass/commit and cancellation).
+Twelve conversation UI tests, TypeScript,
+focused Ruff and four source modules' mypy passed. These tests use synthetic evidence.
+The current main policy file remains absent; authenticated preflight accurately reports
+`github_workflow_not_installed`. No feature ref was substituted for reviewed main policy,
+no production runtime enrolled, and PR 41 remains Draft.
+
 ### Persistent Codex process — November 21 UTC continuation
 
 Germany's existing runtime configuration now forces one serialized persistent App Server

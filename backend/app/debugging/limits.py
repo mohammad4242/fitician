@@ -22,6 +22,7 @@ CONNECTOR_BLOCKERS = frozenset(
         "repository_capacity_reached",
         "exact_release_commit_required",
         "release_commit_not_available",
+        "trusted_main_unavailable",
         "workspace_identity_mismatch",
         "workspace_branch_mismatch",
         "workspace_release_mismatch",

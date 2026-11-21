@@ -393,3 +393,22 @@ def test_preflight_does_not_trust_workflow_registry_without_protected_main_file(
 
     asyncio.run(run())
     assert any("/contents/" in path for path in paths)
+
+
+def test_stale_patched_base_is_rejected_before_any_github_mutation():
+    calls = []
+
+    def handle(request):
+        calls.append(request.method)
+        assert request.method == "GET"
+        return httpx.Response(200, json={"object": {"sha": "f" * 40}})
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            with pytest.raises(ValueError, match="github_repair_requires_current_base"):
+                await GitHubAutomation(client, "synthetic").prepare_candidate(
+                    uuid4(), validation_request()["snapshot"], datetime.now(UTC)
+                )
+
+    asyncio.run(run())
+    assert calls == ["GET"]

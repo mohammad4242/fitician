@@ -41,6 +41,7 @@ def configuration(path: Path, state: Path) -> dict[str, Any]:
         fetch_missing_releases=True,
         evict_readonly=True,
         persistent_codex=True,
+        repair_on_current_main=True,
         test_image="",
         github_enabled=False,
         ci_enabled=True,

@@ -66,10 +66,18 @@ def _git(root: Path, *arguments: str) -> str:
 
 
 class RepositoryTools:
-    def __init__(self, workspace: Path, *, allow_write: bool, branch: str) -> None:
+    def __init__(
+        self,
+        workspace: Path,
+        *,
+        allow_write: bool,
+        branch: str,
+        evidence_commit: str | None = None,
+    ) -> None:
         self.workspace = workspace.resolve()
         self.allow_write = allow_write
         self.branch = branch
+        self.evidence_commit = evidence_commit
         journal = self.workspace.parent / (self.workspace.name + ".tests.json")
         self.test_evidence: dict[str, Any] | None = (
             json.loads(journal.read_text()) if journal.is_file() else None
@@ -87,9 +95,13 @@ class RepositoryTools:
         max_workspaces: int = 40,
         min_free_bytes: int = 2_147_483_648,
         evict_readonly: bool = False,
+        evidence_commit: str | None = None,
     ) -> RepositoryTools:
         from .workspaces import prepare_workspace
 
+        evidence = evidence_commit or commit
+        if not re.fullmatch(r"[a-f0-9]{40}", evidence):
+            raise ValueError("exact_release_commit_required")
         workspace, branch = prepare_workspace(
             repository,
             workspace_root,
@@ -100,7 +112,7 @@ class RepositoryTools:
             min_free_bytes=min_free_bytes,
             evict_readonly=evict_readonly,
         )
-        return cls(workspace, allow_write=allow_write, branch=branch)
+        return cls(workspace, allow_write=allow_write, branch=branch, evidence_commit=evidence)
 
     def safe_path(self, relative: str) -> Path:
         path = Path(relative)
@@ -143,6 +155,24 @@ class RepositoryTools:
         return sanitize_text(
             "\n".join(f"{index + start}: {line[:1000]}" for index, line in enumerate(lines))
         )
+
+    def read_release_file(self, path: str, start: int = 1, count: int = 120) -> str:
+        self.safe_path(path)
+        if self.evidence_commit is None:
+            raise ValueError("exact_release_commit_required")
+        if not 1 <= start <= 100000 or not 1 <= count <= 200:
+            raise ValueError("evidence_bound_exceeded")
+        entry = _git(self.workspace, "ls-tree", self.evidence_commit, "--", path).split()
+        if not entry or entry[0] not in {"100644", "100755"} or entry[1] != "blob":
+            raise ValueError("file_type_not_authorized")
+        object_id = entry[2]
+        if int(_git(self.workspace, "cat-file", "-s", object_id)) > 2_097_152:
+            raise ValueError("evidence_bound_exceeded")
+        lines = _git(self.workspace, "cat-file", "blob", object_id).splitlines()[
+            start - 1 : start - 1 + count
+        ]
+        excerpt = "\n".join(f"{index + start}: {line[:1000]}" for index, line in enumerate(lines))
+        return sanitize_text(f"release_commit={self.evidence_commit} path={path}\n{excerpt}")
 
     def search_code(self, query: str, prefix: str) -> str:
         if (

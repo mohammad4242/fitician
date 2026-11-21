@@ -31,7 +31,7 @@ from .limits import (
     validate_runtime_config,
 )
 from .privacy import sanitize_payload, sanitize_text
-from .runtime_storage import ensure_release
+from .runtime_storage import current_main_commit, ensure_release
 from .tools import RepositoryTools, _git
 
 
@@ -252,11 +252,31 @@ class LaptopConnector:
             commit = job.get("release_commit")
             if self.config.get("fetch_missing_releases"):
                 await asyncio.to_thread(ensure_release, self.repository, commit or "")
+            base = commit
+            if job["action"] == "prepare_fix" and self.config.get("repair_on_current_main"):
+                binding = self.root / ("repair-run-" + str(UUID(job["run_id"])) + ".json")
+                identity = {
+                    "repository": job["repository"],
+                    "environment": job["environment"],
+                    "release_commit": commit,
+                }
+                if binding.exists():
+                    saved = read_private_configuration(binding)
+                    if any(saved.get(key) != value for key, value in identity.items()):
+                        raise ValueError("workspace_identity_mismatch")
+                    base = saved["target_commit"]
+                else:
+                    base = await asyncio.to_thread(current_main_commit, self.repository)
+                    save_private(binding, {**identity, "target_commit": base})
+                await asyncio.to_thread(ensure_release, self.repository, base or "")
+            workspace_identity = [job["repository"], job["environment"], commit, job["action"]]
+            if base != commit:
+                workspace_identity.append(base)
             workspace_id = str(
                 uuid5(
                     UUID(job["thread_id"]),
                     json.dumps(
-                        [job["repository"], job["environment"], commit, job["action"]],
+                        workspace_identity,
                         separators=(",", ":"),
                     ),
                 )
@@ -266,11 +286,12 @@ class LaptopConnector:
                 self.repository,
                 self.root / "worktrees",
                 workspace_id,
-                commit or "",
+                base or "",
                 allow_write=job["action"] == "prepare_fix",
                 max_workspaces=self.config.get("max_workspaces", 40),
                 min_free_bytes=self.config.get("workspace_min_free_bytes", 2_147_483_648),
                 evict_readonly=self.config.get("evict_readonly", False),
+                evidence_commit=commit,
             )
             sequence = 0
             lock = asyncio.Lock()
@@ -293,6 +314,12 @@ class LaptopConnector:
 
             async def progress(kind: str, payload: dict[str, Any]) -> None:
                 await emit(kind, payload)
+
+            if job["action"] == "prepare_fix":
+                await progress(
+                    "tool_progress",
+                    {"release_commit": commit, "repair_base_commit": base},
+                )
 
             tool_count = 0
             catalog = {
@@ -318,6 +345,7 @@ class LaptopConnector:
                 await progress("tool_started", {"tool": name})
                 methods: dict[str, Callable[..., Any]] = {
                     "fitician_read_file": tools.read_file,
+                    "fitician_read_release_file": tools.read_release_file,
                     "fitician_search_code": tools.search_code,
                     "fitician_write_file": tools.write_file,
                     "fitician_diff": tools.diff,

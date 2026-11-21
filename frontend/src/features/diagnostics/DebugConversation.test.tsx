@@ -86,6 +86,7 @@ it("shows the retained execution target and an honest Persian offline state", as
 });
 
 it.each([
+  ["trusted_main_unavailable", "نسخهٔ فعلی main در دسترس نیست"],
   ["workspace_capacity_reached", "ظرفیت فضای اجرای ایجنت پر است"],
   ["exact_release_commit_required", "نسخهٔ دقیق خطادار برای بررسی آماده نیست"],
 ])("explains the %s blocker in Persian without claiming an investigation completed", async (code, explanation) => {

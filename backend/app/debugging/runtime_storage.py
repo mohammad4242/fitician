@@ -9,6 +9,36 @@ from .tools import _git
 ORIGIN = "https://github.com/mohammad4242/fitician.git"
 
 
+def current_main_commit(repository: Path) -> str:
+    """Fetch only the fixed trusted target; never change the primary worktree or HEAD."""
+    if shutil.disk_usage(repository).free < 1_610_612_736:
+        raise ValueError("repository_capacity_reached")
+    try:
+        _git(
+            repository,
+            "-c",
+            "credential.helper=",
+            "-c",
+            "protocol.file.allow=never",
+            "-c",
+            "protocol.ext.allow=never",
+            "-c",
+            "fetch.recurseSubmodules=false",
+            "fetch",
+            "--depth=1",
+            "--no-tags",
+            "--no-recurse-submodules",
+            ORIGIN,
+            "refs/heads/main",
+        )
+        commit = _git(repository, "rev-parse", "--verify", "FETCH_HEAD^{commit}").strip()
+        if not re.fullmatch(r"[a-f0-9]{40}", commit):
+            raise ValueError
+        return commit
+    except ValueError:
+        raise ValueError("trusted_main_unavailable") from None
+
+
 def ensure_release(repository: Path, commit: str) -> None:
     if not re.fullmatch(r"[a-f0-9]{40}", commit):
         raise ValueError("exact_release_commit_required")

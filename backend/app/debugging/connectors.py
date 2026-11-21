@@ -30,6 +30,7 @@ REPOSITORY = "mohammad4242/fitician"
 TOOLS = frozenset(
     {
         "fitician_read_file",
+        "fitician_read_release_file",
         "fitician_search_code",
         "fitician_write_file",
         "fitician_diff",

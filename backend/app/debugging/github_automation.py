@@ -291,6 +291,8 @@ class GitHubAutomation:
         identifier = str(UUID(str(operation_id)))
         base = sha(snapshot["base_commit"])
         policy = await self.main_commit()
+        if snapshot["files"] and base != policy:
+            raise ValueError("github_repair_requires_current_base")
         commit = await self._api("GET", "/git/commits/" + base)
         if commit.get("sha") != base:
             raise ValueError("github_invalid_identity")

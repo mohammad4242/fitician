@@ -1,6 +1,10 @@
 /** Fixed operational facts and next actions; unknown codes do not imply a cause. */
 export function explainDebugFailure(code: string | null, english: boolean): string | null {
   switch (code) {
+    case "trusted_main_unavailable":
+      return english ? "The current main release is unavailable. Check the trusted repository connection." : "نسخهٔ فعلی main در دسترس نیست. اتصال به مخزن مورداعتماد را بررسی کنید.";
+    case "github_repair_requires_current_base":
+      return english ? "The target branch changed. Start a new repair run and repeat validation." : "شاخهٔ مقصد تغییر کرده است. اجرای تعمیر جدیدی آغاز و آزمون‌ها را تکرار کنید.";
     case "execution_target_offline":
       return english ? "The selected execution target is offline. Check its connection." : "اتصال اجرای منتخب آفلاین است. اتصال آن را بررسی کنید.";
     case "workspace_capacity_reached":
