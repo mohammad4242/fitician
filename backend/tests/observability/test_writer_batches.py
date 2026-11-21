@@ -172,3 +172,23 @@ def test_exhausted_shutdown_budget_accounts_for_remaining_queue():
     assert runtime.health_snapshot()["shutdown_discarded"] == 40
     assert runtime.queued_count == 0
     assert runtime._queue.unfinished_tasks == 0
+
+
+def test_successful_stage_events_are_batched_without_creating_issues(db):
+    runtime = writer(factory_for(db))
+    statements = []
+    connection = db.connection()
+
+    def observe(_connection, _cursor, statement, *_args):
+        if statement.startswith("INSERT INTO diagnostic_events"):
+            statements.append(statement)
+
+    sqlalchemy_event.listen(connection, "before_cursor_execute", observe)
+    try:
+        for _ in range(64):
+            runtime.submit(observation().model_copy(update={"record_type": "event"}))
+        drain(runtime)
+        assert len(statements) == 2
+        assert db.scalar(select(func.count()).select_from(DiagnosticIssue)) == 0
+    finally:
+        sqlalchemy_event.remove(connection, "before_cursor_execute", observe)

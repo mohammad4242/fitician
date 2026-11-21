@@ -37,6 +37,18 @@ successful. Germany's mode-0600 credential matched the local credential without 
 either value; authenticated workflow read from Germany returned 200. The old Actions 403
 is no longer current. Production runtime and automation enrollment files are still absent.
 
+Follow-up writer regression: 64 successful stage events previously still made 64 inserts;
+the new test failed, then passed with two bounded bulk inserts. The grouping predicate is
+shared with single-event persistence, so expected business/auth/input outcomes remain
+non-actionable. The expanded writer/trace/API selection passed 74 tests, plus writer mypy
+and lint. Hosted CI caught the newly added infrastructure field missing from generated
+OpenAPI/shared contracts; these were regenerated and local contract checks passed. The
+first constrained application rerun at source `add64f05` (before this stage-event improvement)
+passed 600 requests at 10 RPS, p95 444 ms, with 13,246 acknowledged observations and zero
+new drops. A later concurrency-20 burst had 27 read timeouts and is a failed load gate,
+not proof of safe peak capacity. No OOM/restart was observed. Post-burst inspection was
+incomplete and its stale counter file must not be interpreted as a successful readback.
+
 ### Current-VPS capacity reassessment — November 21
 
 The owner retained the current 2-vCPU/4-GB Iran application/data host and selected Germany

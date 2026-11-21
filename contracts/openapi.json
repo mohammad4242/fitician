@@ -14787,6 +14787,17 @@
       "InfrastructureResponse": {
         "additionalProperties": false,
         "properties": {
+          "capture_losses": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "maxItems": 32,
+            "title": "Capture Losses",
+            "type": "array"
+          },
           "queues": {
             "additionalProperties": {
               "additionalProperties": {

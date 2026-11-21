@@ -66,6 +66,16 @@ def _fingerprint(event: EventInput) -> str:
     return hashlib.sha256(material.encode()).hexdigest()
 
 
+def is_actionable_event(event: EventInput) -> bool:
+    """Keep grouping policy identical for single and batched persistence."""
+    return (
+        event.record_type == "event"
+        and event.severity in {"error", "critical"}
+        and event.outcome in _ISSUE_OUTCOMES
+        and event.category not in _EXPECTED_CATEGORIES
+    )
+
+
 def record_event(
     db: Session,
     event: EventInput,
@@ -140,12 +150,7 @@ def record_event(
         assert existing is not None
         return existing
 
-    creates_issue = (
-        event.record_type == "event"
-        and event.severity in {"error", "critical"}
-        and event.outcome in _ISSUE_OUTCOMES
-        and event.category not in _EXPECTED_CATEGORIES
-    )
+    creates_issue = is_actionable_event(event)
     if not creates_issue:
         db.flush()
         row = db.get(DiagnosticEvent, event_id)
@@ -252,16 +257,16 @@ def record_event(
     return row
 
 
-def record_spans(db: Session, items: list[tuple[EventInput, UUID | None]]) -> None:
-    """Bulk append non-grouping spans; stable UUIDs make unknown-commit retries safe."""
+def record_observations(db: Session, items: list[tuple[EventInput, UUID | None]]) -> None:
+    """Bulk append non-grouping observations; stable UUIDs make unknown-commit retries safe."""
     if not items:
         return
     columns = set(DiagnosticEvent.__table__.columns.keys())
     now = datetime.now(UTC)
     rows = []
     for event, user_id in items:
-        if event.record_type != "span" or event.event_id is None:
-            raise ValueError("stable_span_identity_required")
+        if is_actionable_event(event) or event.event_id is None:
+            raise ValueError("stable_observation_identity_required")
         values = {key: value for key, value in event.model_dump().items() if key in columns}
         values.update(id=event.event_id, user_id=user_id, issue_id=None, timestamp=now)
         rows.append(values)

@@ -30,8 +30,9 @@ from app.observability.diagnostics_schemas import Category, EventInput, Severity
 from app.observability.diagnostics_service import (
     cleanup_retention,
     detect_abandoned_attempts,
+    is_actionable_event,
     record_event,
-    record_spans,
+    record_observations,
 )
 from app.observability.logging import log_event
 
@@ -546,13 +547,13 @@ class DiagnosticsRuntime:
                 with factory() as db:
                     spans = []
                     for event, user_id in items:
-                        if event.record_type == "span":
+                        if not is_actionable_event(event):
                             spans.append((event, user_id))
                         else:
-                            record_spans(db, spans)
+                            record_observations(db, spans)
                             spans.clear()
                             record_event(db, event, user_id=user_id)
-                    record_spans(db, spans)
+                    record_observations(db, spans)
                     db.commit()
                 with self._health_lock:
                     self._counts["persisted"] += len(items)

@@ -10070,6 +10070,10 @@ export type components = {
         ImpactLimit: "low" | "moderate" | "high";
         /** InfrastructureResponse */
         InfrastructureResponse: {
+            /** Capture Losses */
+            capture_losses?: {
+                [key: string]: string;
+            }[];
             /** Queues */
             queues: {
                 [key: string]: {
