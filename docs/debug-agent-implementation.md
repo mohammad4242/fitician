@@ -34,8 +34,9 @@ credential. Completed probes retain their credential-revision/configuration snap
 The API probe and normal API turn use the actual scoped repository tool implementation;
 provider requests in local acceptance use MockTransport, not real paid inference.
 
-Verification: 279 backend tests passed, 3 opt-in CLI/local-image tests skipped; the two added
-route/probe integration tests also passed. Thirty AI Settings tests, frontend TypeScript,
+Verification: the final debugging/settings selection passed282 tests, with3 opt-in
+CLI/local-image tests skipped. Four Persian/English Chromium/WebKit cases and236 business /
+quota / capture-privacy / alert regressions passed. Thirty AI Settings tests, frontend TypeScript,
 14 debugging-module mypy, provisioning regressions and regenerated OpenAPI passed. A new
 full-CI run must validate the resulting exact commit. Prior commit e6383c6f's CI44958031380
 was independently read back as successful; that is not CI proof for these new changes.
@@ -43,8 +44,36 @@ was independently read back as successful; that is not CI proof for these new ch
 Still blocked: dedicated key provisioning, actual selected-model inference on Germany,
 production enrollment and actual production-panel acceptance. The owner prohibits production
 migration/deployment/restarts and production SMS activation; these gates remain intact.
-The shared-mode release policy still needs integration before an approved rollout. Historical
-November21 notes below predate this dedicated-key decision and adapter implementation.
+Shared-mode release policy is now implemented and locally tested: host-owned private v2
+policy selects roles in the existing scheduler; only that container receives the separate
+raw-mode private env file. No three new Iran workers are started. Exact scheduler image,
+role heartbeats, configuration fingerprints, one additional bounded DB pool and real host /
+scheduler headroom are checked. Existing standalone policies and rollback snapshots remain
+supported; changing between modes with an active policy fails closed for reconciliation.
+408 ops tests passed, including real Compose rendering and shared-state/rollback checks.
+A broad-suite regression exposed an unintended new restriction on the existing base .env
+permissions; that was removed while retaining0600 for all new private diagnostics files.
+Shared flags in the base env cannot bypass the explicit host-owned activation policy.
+The tracked secret scan and an exact-value scan of53 private logs passed.
+No production policy/configuration was installed or changed.
+
+Fresh read-only observations at 05:28 UTC: Iran2CPU/3916MiB, available1493MiB, disk9872MiB;
+Germany1CPU/1967MiB, available1305MiB, disk2449MiB. All **running** healthchecked services
+were healthy; stopped historical rehearsal containers are not production health failures.
+The exact Germany GitHub credential still matches the local dedicated store (0600); its
+read-only workflow GET returned200. Both enrollment files remain absent. The reviewed
+validation and observation workflows were rechecked onmain and returned404; no policy bypass
+or merge was attempted.
+Iran DB remains20261018_175 with30 observed connections. Scheduler153.8/192MiB working
+set has insufficient 64MiB residual reserve; the new gate correctly blocks activation with
+that current container allocation. The earlier isolated256MiB scheduler test is not approval
+to change production. No VPS upgrade is established as necessary. Germany disk remains below
+its retained3GiB release gate. A refreshed read-only inventory identifies29 archived system
+journal files totaling1360MiB as review candidates; no file/image cleanup, restart or guard
+reduction occurred.
+
+Historical November21 notes below predate this dedicated-key decision and adapter/release
+policy implementation. Their unfinished-code notes are superseded by this checkpoint.
 
 ## Revalidated completion checklist — 2026-11-21
 
@@ -305,7 +334,7 @@ No production configuration, service, database, SMS activation or paid capacity 
   drops, p95 495 ms; PostgreSQL UUID/grouping invariants passed. This is not shipped code.
 - [x] Opt-in shared scheduler sync/alert control and Codex dispatch implemented/tested;
   no additional Iran container activated.
-- [ ] Remote API-model adapter and shared-mode release-policy wiring remain incomplete;
+- [x] Remote API-model adapter and shared-mode release-policy wiring implemented/tested;
   provider credential placement awaits owner selection, and production operation is unproven.
 - [ ] Germany disk release gate still fails at about 2.27 GiB free. No image/log cleanup
   or guard reduction was performed. Real simultaneous debug/generation and durable disk-I/O

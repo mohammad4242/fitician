@@ -94,7 +94,10 @@ class DiagnosticsReleaseTests(unittest.TestCase):
             ("", "2026-11-14T00:00:00+00:00"),
             ("http://localhost:5173", "2026-11-14T00:00:00+00:00"),
             ("https://user:secret@fitician.ir", "2026-11-14T00:00:00+00:00"),
-            ("https://fitician.ir/private?token=synthetic", "2026-11-14T00:00:00+00:00"),
+            (
+                "https://fitician.ir/private?token=synthetic",
+                "2026-11-14T00:00:00+00:00",
+            ),
             ("https://fitician.ir/#fragment", "2026-11-14T00:00:00+00:00"),
             ("https://fitician.ir", "not-a-time"),
             ("https://fitician.ir", "2026-11-14T00:00:00"),
@@ -123,7 +126,9 @@ class DiagnosticsReleaseTests(unittest.TestCase):
             helper.config_fingerprints(self.app, ["diagnostics-alert-worker"]),
         )
 
-    def test_database_budget_check_fails_before_any_capacity_or_container_inspection(self):
+    def test_database_budget_check_fails_before_any_capacity_or_container_inspection(
+        self,
+    ):
         helper = module()
         with (
             patch.object(helper, "command", side_effect=ValueError("unavailable")) as run,
@@ -308,3 +313,217 @@ class DiagnosticsReleaseTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SharedDiagnosticsTests(DiagnosticsReleaseTests):
+    def shared_policy(self, services):
+        path = self.policy(services)
+        path.write_text(json.dumps({"version": 2, "mode": "shared", "services": services}))
+        return path
+
+    def shared_secret(self, extra=""):
+        path = self.app / "diagnostics-shared.env"
+        path.write_text(
+            "DIAGNOSTICS_ENVIRONMENT=production-iran\n"
+            "DEBUG_REMOTE_DISPATCH_ENABLED=true\n"
+            "DIAGNOSTICS_MAINTENANCE_ENABLED=true\n"
+            "DIAGNOSTICS_ALERT_ENABLED=false\n"
+            "SENTRY_ORG=synthetic\nSENTRY_PROJECT=synthetic-backend\n"
+            "SENTRY_API_TOKEN=synthetic-read-only\n" + extra
+        )
+        path.chmod(0o600)
+        return path
+
+    def test_shared_policy_reuses_scheduler_without_dedicated_containers(self):
+        helper = module()
+        roles = ["debug-worker", "diagnostics-sync-worker"]
+        self.shared_policy(roles)
+        self.shared_secret()
+        self.assertEqual(helper.load_policy(self.app), sorted(roles))
+        state = helper.desired_state(self.app, "a" * 40)
+        self.assertEqual(state["mode"], "shared")
+        self.assertEqual(set(state["config_sha256"]), {"scheduler"})
+        helper.write_private(self.app / helper.ACTIVE, state)
+        self.assertEqual(helper.load_state(self.app), state)
+        self.assertEqual(
+            helper.scheduler_env_file(self.app),
+            str(self.app / "diagnostics-shared.env"),
+        )
+        with patch.object(helper, "command", return_value="d" * 12) as command:
+            helper.pause(self.app, "fitician-iran", state)
+        self.assertEqual(
+            command.call_args_list[-1].args[0],
+            ["docker", "stop", "--time", "30", "d" * 12],
+        )
+        self.assertIn(
+            "label=com.docker.compose.service=scheduler",
+            command.call_args_list[0].args[0],
+        )
+
+    def test_shared_credentials_cannot_activate_unapproved_alerts_or_export_model_secrets(
+        self,
+    ):
+        helper = module()
+        self.shared_policy(["debug-worker", "diagnostics-sync-worker"])
+        for extra in (
+            "FITICIAN_DEBUG_OPENROUTER_API_KEY=synthetic-model-secret\n",
+            "GITHUB_TOKEN=synthetic-github\n",
+            "DIAGNOSTICS_ALERT_PHONE=private\n",
+            "FARAZSMS_API_KEY=private\n",
+            "DIAGNOSTICS_ALERT_ENABLED=true\n",
+        ):
+            self.shared_secret(extra)
+            with self.assertRaises(ValueError):
+                helper.desired_state(self.app, "a" * 40)
+        self.shared_secret()
+        helper.desired_state(self.app, "a" * 40)
+
+    def test_shared_capacity_uses_available_memory_and_keeps_production_reserve(self):
+        helper = module()
+        helper.check_shared_capacity(
+            available_mib=1220,
+            load_average=0.6,
+            cpus=2,
+            scheduler_remaining_mib=80,
+            disk_free=9 * 1024**3,
+        )
+        for changes in (
+            {"available_mib": 900},
+            {"load_average": 1.9},
+            {"scheduler_remaining_mib": 20},
+            {"disk_free": 1024**3},
+        ):
+            kwargs = dict(
+                available_mib=1220,
+                load_average=0.6,
+                cpus=2,
+                scheduler_remaining_mib=80,
+                disk_free=9 * 1024**3,
+            )
+            kwargs.update(changes)
+            with self.assertRaisesRegex(ValueError, "diagnostics_capacity_exceeded"):
+                helper.check_shared_capacity(**kwargs)
+
+    def test_shared_readback_checks_scheduler_image_and_role_heartbeats(self):
+        helper = module()
+        self.shared_policy(["debug-worker", "diagnostics-sync-worker"])
+        self.shared_secret()
+        state = helper.desired_state(self.app, "a" * 40)
+        calls = []
+
+        def command(args, **kwargs):
+            calls.append(args)
+            if args[:3] == ["docker", "image", "inspect"]:
+                return "sha256:" + "b" * 64
+            if args[:2] == ["docker", "ps"]:
+                return "c" * 12
+            if args[:2] == ["docker", "inspect"]:
+                return "sha256:" + "b" * 64 + " running healthy"
+            return ""
+
+        with patch.object(helper, "command", side_effect=command):
+            helper.verify(self.app, "fitician-iran", state)
+        self.assertTrue(any("/run/fitician/debug-dispatch.json" in cmd for cmd in calls))
+        self.assertTrue(any("/run/fitician/diagnostics-sync-worker.json" in cmd for cmd in calls))
+        self.assertFalse(any("up" in cmd or "stop" in cmd for cmd in calls))
+
+    def test_shared_compose_and_release_path_load_extra_secrets_only_in_scheduler(self):
+        self.shared_policy(["debug-worker", "diagnostics-sync-worker"])
+        private = self.shared_secret()
+        env = {
+            **os.environ,
+            "DOCKERHUB_USERNAME": "synthetic",
+            "IMAGE_TAG": "a" * 40,
+            "DATABASE_URL": "postgresql+psycopg://synthetic:synthetic@db:5432/synthetic",
+            "POSTGRES_USER": "synthetic",
+            "POSTGRES_PASSWORD": "synthetic",
+            "POSTGRES_DB": "synthetic",
+            "REDIS_PASSWORD": "synthetic",
+            "FITICIAN_DOMAIN": "fitician.example",
+            "POSTGRES_VOLUME_NAME": "synthetic-pg",
+            "REDIS_VOLUME_NAME": "synthetic-redis",
+            "CADDY_DATA_VOLUME_NAME": "synthetic-caddy",
+            "CADDY_CONFIG_VOLUME_NAME": "synthetic-caddy-config",
+            "AGENT_SERVICE_BASE_URL": "http://100.64.0.2:8090",
+            "AGENT_SERVICE_TOKEN": "synthetic-agent",
+            "FITICIAN_ENV_FILE": "/dev/null",
+            "FITICIAN_DIAGNOSTICS_ENV_FILE": str(private),
+        }
+        result = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "--env-file",
+                "/dev/null",
+                "-f",
+                str(ROOT / "compose.prod.iran.yaml"),
+                "config",
+                "--format",
+                "json",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, "Synthetic Compose rendering failed")
+        services = json.loads(result.stdout)["services"]
+        self.assertEqual(
+            services["scheduler"]["environment"].get("SENTRY_API_TOKEN"),
+            "synthetic-read-only",
+        )
+        for name, service in services.items():
+            if name != "scheduler":
+                self.assertNotIn("SENTRY_API_TOKEN", service.get("environment", {}))
+        self.assertNotIn("debug-worker", services)
+        self.assertNotIn("diagnostics-sync-worker", services)
+        deploy = (ROOT / "ops/deploy-regional.sh").read_text()
+        self.assertIn("diagnostics env-file", deploy)
+        self.assertIn('FITICIAN_DIAGNOSTICS_ENV_FILE="$diagnostics_env_file"', deploy)
+
+    def test_shared_alert_role_requires_explicit_activation(
+        self,
+    ):
+        helper = module()
+        roles = ["debug-worker", "diagnostics-sync-worker", "diagnostics-alert-worker"]
+        self.shared_policy(roles)
+        secret = self.shared_secret(
+            "FARAZSMS_API_KEY=test-sms-only\nFARAZSMS_FROM_NUMBER=test-line\n"
+            "DIAGNOSTICS_ALERT_PHONE=test-recipient\nFRONTEND_ORIGIN=https://fitician.example\n"
+            "DIAGNOSTICS_ALERT_ENABLED_AT=2026-11-22T00:00:00+00:00\n"
+        )
+        with self.assertRaisesRegex(ValueError, "diagnostics_configuration_incomplete"):
+            helper.desired_state(self.app, "a" * 40)
+        secret.write_text(
+            secret.read_text().replace(
+                "DIAGNOSTICS_ALERT_ENABLED=false", "DIAGNOSTICS_ALERT_ENABLED=true"
+            )
+        )
+        self.assertEqual(helper.desired_state(self.app, "a" * 40)["services"], sorted(roles))
+
+    def test_shared_rollback_restores_previous_role_configuration_and_exact_release(self):
+        helper = module()
+        self.shared_policy(["debug-worker", "diagnostics-sync-worker"])
+        self.shared_secret()
+        previous = helper.desired_state(self.app, "a" * 40)
+        helper.write_private(self.app / helper.ACTIVE, previous)
+        helper.save_previous(self.app, "c" * 40)
+        helper.write_private(self.app / helper.ACTIVE, helper.desired_state(self.app, "c" * 40))
+        with patch.object(helper, "pause") as pause, patch.object(helper, "activate") as activate:
+            helper.rollback(self.app, "fitician-iran", "c" * 40)
+        activate.assert_called_once_with(self.app, "fitician-iran", previous)
+        pause.assert_called_once()
+        self.assertEqual(helper.load_state(self.app), previous)
+
+    def test_base_environment_cannot_enable_shared_dispatch_without_host_policy(self):
+        helper = module()
+        path = self.app / ".env"
+        path.write_text('DEBUG_REMOTE_DISPATCH_ENABLED="true"\n')
+        path.chmod(0o600)
+        with self.assertRaisesRegex(ValueError, "diagnostics_unapproved_shared_activation"):
+            helper.scheduler_env_file(self.app)
+
+    def test_shared_alerts_declare_sync_role_instead_of_inheriting_an_unapproved_loop(self):
+        helper = module()
+        self.shared_policy(["diagnostics-alert-worker"])
+        with self.assertRaisesRegex(ValueError, "diagnostics_policy_invalid"):
+            helper.load_policy(self.app)

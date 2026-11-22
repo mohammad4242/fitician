@@ -207,7 +207,7 @@ def test_debug_settings_never_use_or_replace_application_credentials(db, test_se
             task_type=AITaskType.DEBUG_AGENT,
             actor=actor,
             settings=test_settings,
-            payload=AITaskConfigUpdate(api_key="synthetic-key-never-use", replace_credential=True),
+            payload=AITaskConfigUpdate(api_key="test-key-never-use", replace_credential=True),
         )
     assert original.encrypted_api_key == "unchanged-production-ciphertext"
     assert original.key_last_four == "KEEP"

@@ -14,6 +14,7 @@ import re
 import shutil
 import stat
 import subprocess
+import time
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -83,15 +84,232 @@ def load_policy(app: Path) -> list[str]:
     value = json.loads(private_bytes(path, 4096))
     if (
         not isinstance(value, dict)
-        or set(value) != {"version", "services"}
-        or type(value["version"]) is not int
-        or value["version"] != 1
+        or not (
+            (
+                set(value) == {"version", "services"}
+                and type(value.get("version")) is int
+                and value["version"] == 1
+            )
+            or (
+                set(value) == {"version", "mode", "services"}
+                and type(value.get("version")) is int
+                and value["version"] == 2
+                and value["mode"] == "shared"
+            )
+        )
         or not isinstance(value["services"], list)
         or any(not isinstance(name, str) or name not in SERVICES for name in value["services"])
         or len(set(value["services"])) != len(value["services"])
+        or (
+            value.get("mode") == "shared"
+            and "diagnostics-alert-worker" in value["services"]
+            and "diagnostics-sync-worker" not in value["services"]
+        )
     ):
         raise ValueError("diagnostics_policy_invalid")
     return sorted(value["services"])
+
+
+def policy_mode(app: Path) -> str:
+    # Validate first, including file ownership boundary and the closed schema.
+    load_policy(app)
+    path = app / "diagnostics-workers.json"
+    if not path.exists():
+        return "standalone"
+    return json.loads(private_bytes(path, 4096)).get("mode", "standalone")
+
+
+def shared_fingerprints(app: Path, services: list[str]) -> dict[str, str]:
+    raw = private_bytes(app / "diagnostics-shared.env")
+    values = {}
+    allowed = {
+        "DIAGNOSTICS_ENVIRONMENT",
+        "DEBUG_REMOTE_DISPATCH_ENABLED",
+        "DIAGNOSTICS_MAINTENANCE_ENABLED",
+        "DIAGNOSTICS_ALERT_ENABLED",
+        "DIAGNOSTICS_ALERT_ENABLED_AT",
+        "DIAGNOSTICS_ALERT_PHONE",
+        "FRONTEND_ORIGIN",
+        "FARAZSMS_API_KEY",
+        "FARAZSMS_FROM_NUMBER",
+        "FARAZSMS_BASE_URL",
+        "SENTRY_ORG",
+        "SENTRY_PROJECT",
+        "SENTRY_WEB_PROJECT",
+        "SENTRY_MOBILE_PROJECT",
+        "SENTRY_API_TOKEN",
+        "SENTRY_HTTPS_PROXY",
+    }
+    for line in raw.decode().splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        key, separator, value = line.partition("=")
+        if not separator or key not in allowed or key in values or not value.strip():
+            raise ValueError("diagnostics_configuration_invalid")
+        values[key] = value
+    expected = {
+        "DIAGNOSTICS_ENVIRONMENT": "production-iran",
+        "DEBUG_REMOTE_DISPATCH_ENABLED": str("debug-worker" in services).lower(),
+        "DIAGNOSTICS_MAINTENANCE_ENABLED": str(bool(set(services) - {"debug-worker"})).lower(),
+        "DIAGNOSTICS_ALERT_ENABLED": str("diagnostics-alert-worker" in services).lower(),
+    }
+    if any(values.get(key) != value for key, value in expected.items()):
+        raise ValueError("diagnostics_configuration_incomplete")
+    if "diagnostics-sync-worker" in services:
+        if not all(values.get(key) for key in ("SENTRY_ORG", "SENTRY_PROJECT", "SENTRY_API_TOKEN")):
+            raise ValueError("diagnostics_configuration_incomplete")
+    elif any(values.get(key) for key in allowed if key.startswith("SENTRY_")):
+        raise ValueError("diagnostics_secret_scope_invalid")
+    if "diagnostics-alert-worker" in services:
+        if not all(
+            values.get(key)
+            for key in (
+                "FARAZSMS_API_KEY",
+                "FARAZSMS_FROM_NUMBER",
+                "DIAGNOSTICS_ALERT_PHONE",
+                "DIAGNOSTICS_ALERT_ENABLED_AT",
+                "FRONTEND_ORIGIN",
+            )
+        ):
+            raise ValueError("diagnostics_configuration_incomplete")
+        try:
+            origin = urlsplit(values["FRONTEND_ORIGIN"])
+            activation = datetime.fromisoformat(values["DIAGNOSTICS_ALERT_ENABLED_AT"])
+            valid = (
+                origin.scheme == "https"
+                and bool(origin.hostname)
+                and not origin.username
+                and not origin.password
+                and not origin.query
+                and not origin.fragment
+                and origin.path in {"", "/"}
+                and activation.tzinfo is not None
+            )
+        except ValueError:
+            valid = False
+        if not valid:
+            raise ValueError("diagnostics_configuration_incomplete")
+    elif any(
+        values.get(key)
+        for key in allowed
+        if key.startswith("FARAZSMS_")
+        or key in {"DIAGNOSTICS_ALERT_PHONE", "DIAGNOSTICS_ALERT_ENABLED_AT"}
+    ):
+        raise ValueError("diagnostics_secret_scope_invalid")
+    return {"scheduler": hashlib.sha256(raw).hexdigest()}
+
+
+def scheduler_env_file(app: Path) -> str:
+    if policy_mode(app) != "shared":
+        environment = app / ".env"
+        if environment.exists():
+            # The base env keeps its existing regional permission contract. Only the new
+            # diagnostics secret files require 0600. Never export or log base env values.
+            with environment.open("rb") as source:
+                raw = source.read(65537)
+            if len(raw) > 65536:
+                raise ValueError("diagnostics_configuration_invalid")
+            for line in raw.decode().splitlines():
+                key, separator, value = line.partition("=")
+                if separator and key in {
+                    "DEBUG_REMOTE_DISPATCH_ENABLED",
+                    "DIAGNOSTICS_MAINTENANCE_ENABLED",
+                }:
+                    flag = value.split("#", 1)[0].strip().strip("\"'").lower()
+                    if flag in {"1", "true", "yes", "on"}:
+                        raise ValueError("diagnostics_unapproved_shared_activation")
+        return "/dev/null"
+    shared_fingerprints(app, load_policy(app))
+    return str(app / "diagnostics-shared.env")
+
+
+def desired_state(app: Path, commit: str) -> dict:
+    services = load_policy(app)
+    if policy_mode(app) == "shared":
+        return {
+            "version": 2,
+            "mode": "shared",
+            "commit": commit,
+            "services": services,
+            "config_sha256": shared_fingerprints(app, services),
+        }
+    return {
+        "version": 1,
+        "commit": commit,
+        "services": services,
+        "config_sha256": config_fingerprints(app, services),
+    }
+
+
+def state_fingerprints(app: Path, state: dict) -> dict[str, str]:
+    return (
+        shared_fingerprints(app, state["services"])
+        if state.get("mode") == "shared"
+        else config_fingerprints(app, state["services"])
+    )
+
+
+def check_shared_capacity(
+    *,
+    available_mib: float,
+    load_average: float,
+    cpus: int,
+    scheduler_remaining_mib: float,
+    disk_free: int,
+) -> None:
+    # Actual availability and measured cgroup consumption, not summed reservation limits.
+    # Preserve 750MiB host reserve plus 256MiB uncertainty and 64MiB within the scheduler.
+    if (
+        available_mib < 1006
+        or load_average > cpus * 0.85
+        or scheduler_remaining_mib < 64
+        or disk_free < 2 * 1024**3
+    ):
+        raise ValueError("diagnostics_capacity_exceeded")
+
+
+def shared_capacity(app: Path, release: Path, project: str) -> None:
+    command(
+        [
+            "python3",
+            str(release / "ops/check-db-connection-budget.py"),
+            "--compose-file",
+            str(release / "compose.prod.iran.yaml"),
+            "--env-file",
+            str(app / ".env"),
+            "--additional-worker-connections",
+            "1",
+        ],
+        env={
+            **os.environ,
+            "IMAGE_TAG": release.name,
+            "FITICIAN_ENV_FILE": str(app / ".env"),
+            "FITICIAN_DIAGNOSTICS_ENV_FILE": scheduler_env_file(app),
+        },
+    )
+    ids = command(
+        [
+            "docker",
+            "ps",
+            "-q",
+            "--filter",
+            "label=com.docker.compose.project=" + project,
+            "--filter",
+            "label=com.docker.compose.service=scheduler",
+        ]
+    ).splitlines()
+    if len(ids) != 1 or not re.fullmatch("[a-f0-9]{12,64}", ids[0]):
+        raise ValueError("diagnostics_service_missing_or_ambiguous")
+    maximum = int(command(["docker", "inspect", "--format", "{{.HostConfig.Memory}}", ids[0]]))
+    current = int(command(["docker", "exec", ids[0], "cat", "/sys/fs/cgroup/memory.current"]))
+    mem = dict(line.split(":", 1) for line in Path("/proc/meminfo").read_text().splitlines())
+    check_shared_capacity(
+        available_mib=int(mem["MemAvailable"].split()[0]) / 1024,
+        load_average=os.getloadavg()[0],
+        cpus=len(os.sched_getaffinity(0)),
+        scheduler_remaining_mib=(maximum - current) / 1024**2,
+        disk_free=shutil.disk_usage(app).free,
+    )
 
 
 def config_fingerprints(app: Path, services: list[str]) -> dict[str, str]:
@@ -265,7 +483,8 @@ def capacity(app: Path, release: Path, project: str, services: list[str]) -> Non
                 "docker",
                 "inspect",
                 "--format",
-                '{{json .HostConfig.Memory}} {{json .HostConfig.NanoCpus}} {{json (index .Config.Labels "com.docker.compose.project")}}',
+                "{{json .HostConfig.Memory}} {{json .HostConfig.NanoCpus}} "
+                '{{json (index .Config.Labels "com.docker.compose.project")}}',
                 *ids,
             ]
         )
@@ -295,14 +514,24 @@ def load_state(app: Path, path: Path | None = None) -> dict | None:
     value = json.loads(private_bytes(path))
     if (
         not isinstance(value, dict)
-        or set(value) != {"version", "commit", "services", "config_sha256"}
-        or value["version"] != 1
+        or not (
+            (
+                set(value) == {"version", "commit", "services", "config_sha256"}
+                and value.get("version") == 1
+            )
+            or (
+                set(value) == {"version", "mode", "commit", "services", "config_sha256"}
+                and value.get("version") == 2
+                and value["mode"] == "shared"
+            )
+        )
         or not isinstance(value["commit"], str)
         or not re.fullmatch("[a-f0-9]{40}", value["commit"])
         or not isinstance(value["services"], list)
         or any(name not in SERVICES for name in value["services"])
         or len(set(value["services"])) != len(value["services"])
-        or set(value["config_sha256"]) != set(value["services"])
+        or set(value["config_sha256"])
+        != ({"scheduler"} if value.get("mode") == "shared" else set(value["services"]))
     ):
         raise ValueError("diagnostics_state_invalid")
     return value
@@ -317,14 +546,18 @@ def save_previous(app: Path, commit: str) -> None:
 
 def pause(app: Path, project: str, state: dict | None) -> None:
     if state and state["services"]:
-        for name in state["services"]:
+        shared = state.get("mode") == "shared"
+        # Called only inside the explicitly authorized full release transaction.
+        # Quiesce shared loops before schema changes; core rollback owns restart.
+        for name in ["scheduler"] if shared else state["services"]:
             ids = command(
                 [
                     "docker",
                     "ps",
                     "-q",
                     "--filter",
-                    "label=com.docker.compose.project=" + project + "-diagnostics",
+                    "label=com.docker.compose.project="
+                    + (project if shared else project + "-diagnostics"),
                     "--filter",
                     "label=com.docker.compose.service=" + name,
                 ]
@@ -336,20 +569,22 @@ def pause(app: Path, project: str, state: dict | None) -> None:
 
 
 def verify(app: Path, project: str, state: dict) -> None:
-    if config_fingerprints(app, state["services"]) != state["config_sha256"]:
+    if state_fingerprints(app, state) != state["config_sha256"]:
         raise ValueError("diagnostics_configuration_changed")
     if not state["services"]:
         return
     image = "mohammad4242/fitician-backend:" + state["commit"]
     image_id = command(["docker", "image", "inspect", "--format", "{{.Id}}", image])
-    for name in state["services"]:
+    shared = state.get("mode") == "shared"
+    for name in ["scheduler"] if shared else state["services"]:
         ids = command(
             [
                 "docker",
                 "ps",
                 "-q",
                 "--filter",
-                "label=com.docker.compose.project=" + project + "-diagnostics",
+                "label=com.docker.compose.project="
+                + (project if shared else project + "-diagnostics"),
                 "--filter",
                 "label=com.docker.compose.service=" + name,
             ]
@@ -361,18 +596,51 @@ def verify(app: Path, project: str, state: dict) -> None:
                 "docker",
                 "inspect",
                 "--format",
-                "{{.Image}} {{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}",
+                "{{.Image}} {{.State.Status}} "
+                "{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}",
                 ids[0],
             ]
         )
         if observed != image_id + " running healthy":
             raise ValueError("diagnostics_running_release_unverified")
 
+    if shared:
+        for role in state["services"]:
+            heartbeat = "debug-dispatch" if role == "debug-worker" else role
+            command(
+                [
+                    "docker",
+                    "exec",
+                    ids[0],
+                    "python",
+                    "-m",
+                    "app.jobs.heartbeat",
+                    "--path",
+                    "/run/fitician/" + heartbeat + ".json",
+                    "--service",
+                    heartbeat,
+                    "--max-age-seconds",
+                    "45",
+                ]
+            )
+
 
 def activate(app: Path, project: str, state: dict) -> None:
-    if config_fingerprints(app, state["services"]) != state["config_sha256"]:
+    if state_fingerprints(app, state) != state["config_sha256"]:
         raise ValueError("diagnostics_configuration_changed")
     if not state["services"]:
+        return
+    if state.get("mode") == "shared":
+        # Core regional deployment already started the exact scheduler image.
+        # Allow bounded startup without ever starting independent diagnostics services.
+        for attempt in range(30):
+            try:
+                verify(app, project, state)
+                return
+            except ValueError:
+                if attempt == 29:
+                    raise
+                time.sleep(1)
         return
     release = app / "releases" / state["commit"]
     manifest = json.loads((release / "manifest.json").read_bytes())
@@ -426,7 +694,16 @@ def rollback(app: Path, project: str, commit: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "mode", choices=("preflight", "pause", "start", "rollback", "quiesce", "verify")
+        "mode",
+        choices=(
+            "preflight",
+            "pause",
+            "start",
+            "rollback",
+            "quiesce",
+            "verify",
+            "env-file",
+        ),
     )
     parser.add_argument("--app-dir", type=Path, required=True)
     parser.add_argument("--commit", required=True)
@@ -440,6 +717,9 @@ def main() -> int:
         ):
             raise ValueError("diagnostics_target_invalid")
         app = args.app_dir
+        if args.mode == "env-file":
+            print(scheduler_env_file(app))
+            return 0
         if args.mode == "quiesce":
             pause(app, args.project, load_state(app))
             return 0
@@ -455,14 +735,15 @@ def main() -> int:
         if not services and not (app / ACTIVE).exists():
             print("Diagnostics workers disabled; no explicit activation policy")
             return 0
-        state = {
-            "version": 1,
-            "commit": args.commit,
-            "services": services,
-            "config_sha256": config_fingerprints(app, services),
-        }
+        state = desired_state(app, args.commit)
+        previous = load_state(app)
+        if previous and previous.get("mode", "standalone") != state.get("mode", "standalone"):
+            raise ValueError("diagnostics_mode_transition_requires_reconciliation")
         if args.mode == "preflight":
-            capacity(app, app / "releases" / args.commit, args.project, services)
+            if state.get("mode") == "shared":
+                shared_capacity(app, app / "releases" / args.commit, args.project)
+            else:
+                capacity(app, app / "releases" / args.commit, args.project, services)
         elif args.mode == "pause":
             save_previous(app, args.commit)
             pause(app, args.project, load_state(app))

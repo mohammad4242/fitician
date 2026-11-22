@@ -133,7 +133,12 @@ esac
 compose() {
   local contract=$1 frontend=$2 api=$3 worker=$4 agent=$5
   shift 5
+  local diagnostics_env_file=/dev/null
+  if [[ "$region" == iran ]]; then
+    diagnostics_env_file=$(diagnostics env-file) || fail 'Diagnostics scheduler configuration is invalid'
+  fi
   COMPOSE_PROJECT_NAME="$project" FITICIAN_ENV_FILE="$env_file" \
+    FITICIAN_DIAGNOSTICS_ENV_FILE="$diagnostics_env_file" \
     IMAGE_TAG="$image_tag" FRONTEND_IMAGE_TAG="$frontend" \
     BACKEND_API_IMAGE_TAG="$api" WORKER_IMAGE_TAG="$worker" AGENT_IMAGE_TAG="$agent" \
     docker compose -p "$project" --env-file "$env_file" -f "$contract" "$@"

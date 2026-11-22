@@ -18,7 +18,9 @@ def module():
 
 
 class ReleaseImageGuardTests(unittest.TestCase):
-    def test_diagnostics_readback_requires_current_private_activation_state_and_configuration(self):
+    def test_diagnostics_readback_requires_current_private_activation_state_and_configuration(
+        self,
+    ):
         guard = module()
         with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as folder:
             app = Path(folder)
@@ -51,6 +53,56 @@ class ReleaseImageGuardTests(unittest.TestCase):
             policy.chmod(0o644)
             with self.assertRaisesRegex(ValueError, "diagnostics_private_file_required"):
                 guard.diagnostics_workers(app, "c" * 40)
+
+    def test_shared_roles_are_verified_as_scheduler_not_duplicate_containers(self):
+        import hashlib
+
+        guard = module()
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as folder:
+            app = Path(folder)
+            policy = app / "diagnostics-workers.json"
+            policy.write_text(
+                json.dumps({"version": 2, "mode": "shared", "services": ["debug-worker"]})
+            )
+            policy.chmod(0o600)
+            secret = app / "diagnostics-shared.env"
+            secret.write_text(
+                "DIAGNOSTICS_ENVIRONMENT=production-iran\nDEBUG_REMOTE_DISPATCH_ENABLED=true\nDIAGNOSTICS_MAINTENANCE_ENABLED=false\nDIAGNOSTICS_ALERT_ENABLED=false\n"
+            )
+            secret.chmod(0o600)
+            active = app / ".diagnostics-active.json"
+            active.write_text(
+                json.dumps(
+                    {
+                        "version": 2,
+                        "mode": "shared",
+                        "commit": "c" * 40,
+                        "services": ["debug-worker"],
+                        "config_sha256": {
+                            "scheduler": hashlib.sha256(secret.read_bytes()).hexdigest()
+                        },
+                    }
+                )
+            )
+            active.chmod(0o600)
+            import subprocess
+
+            calls = []
+
+            def run(args, **kwargs):
+                calls.append(args)
+                out = ""
+                if args[:3] == ["docker", "image", "inspect"]:
+                    out = "sha256:" + "b" * 64
+                elif args[:2] == ["docker", "ps"]:
+                    out = "d" * 12
+                elif args[:2] == ["docker", "inspect"]:
+                    out = "sha256:" + "b" * 64 + " running healthy"
+                return subprocess.CompletedProcess(args, 0, out, "")
+
+            with patch("subprocess.run", side_effect=run):
+                self.assertEqual(guard.diagnostics_workers(app, "c" * 40), [])
+            self.assertTrue(any("/run/fitician/debug-dispatch.json" in args for args in calls))
 
     def test_readback_includes_only_explicit_diagnostics_workers_in_their_own_project(
         self,

@@ -74,7 +74,7 @@ def service_project(project: str, service: str) -> str:
     return project + "-diagnostics" if service in DIAGNOSTICS else project
 
 
-def diagnostics_workers(app: Path, commit: str) -> list[str]:
+def diagnostics_workers(app: Path, commit: str, project: str = "fitician-iran") -> list[str]:
     spec = importlib.util.spec_from_file_location(
         "fixed_diagnostics_lifecycle",
         Path(__file__).with_name("diagnostics-release.py"),
@@ -85,14 +85,13 @@ def diagnostics_workers(app: Path, commit: str) -> list[str]:
     active = module.load_state(app)
     if not names and active is None:
         return []
-    expected = {
-        "version": 1,
-        "commit": commit,
-        "services": names,
-        "config_sha256": module.config_fingerprints(app, names),
-    }
+    expected = module.desired_state(app, commit)
     if active != expected:
         raise ValueError("release_diagnostics_state_mismatch")
+    # Shared roles use the core scheduler image and require their own fresh heartbeats.
+    if expected.get("mode") == "shared":
+        module.verify(app, project, expected)
+        return []
     return names
 
 
@@ -195,7 +194,7 @@ def main() -> None:
     if args.mode == "verify-running" and args.target == "iran":
         if args.app_dir is None or not args.app_dir.is_absolute():
             raise ValueError("release_application_directory_required")
-        diagnostics = diagnostics_workers(args.app_dir, args.commit)
+        diagnostics = diagnostics_workers(args.app_dir, args.commit, args.project)
     services = selected_services(args.target, args.kind, diagnostics)
     local_identifiers = {}
     for role in sorted(set(services.values())):

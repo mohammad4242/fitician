@@ -36,7 +36,8 @@ TARGETS = {
 FORMAT = (
     '{"container_id":{{json .Id}},"image_id":{{json .Image}},'
     '"status":{{json .State.Status}},"restart_count":{{json .RestartCount}},'
-    '"health":{{if index .State "Health"}}{{json (index (index .State "Health") "Status")}}{{else}}null{{end}}}'
+    '"health":{{if index .State "Health"}}'
+    '{{json (index (index .State "Health") "Status")}}{{else}}null{{end}}}'
 )
 WORKERS = {"debug-worker", "diagnostics-sync-worker", "diagnostics-alert-worker"}
 
@@ -47,26 +48,32 @@ def optional_workers(
     if not path.exists() and not path.is_symlink():
         return []
     try:
-        if (
-            path.is_symlink()
-            or not path.is_file()
-            or stat.S_IMODE(path.stat().st_mode) != 0o600
-        ):
+        if path.is_symlink() or not path.is_file() or stat.S_IMODE(path.stat().st_mode) != 0o600:
             raise ValueError
         if path.stat().st_size > 4096:
             raise ValueError
         value = json.loads(path.read_bytes())
         names = value["services"]
         if (
-            set(value) != {"version", "services"}
-            or type(value["version"]) is not int
-            or value["version"] != 1
+            not (
+                (
+                    set(value) == {"version", "services"}
+                    and type(value.get("version")) is int
+                    and value["version"] == 1
+                )
+                or (
+                    set(value) == {"version", "mode", "services"}
+                    and type(value.get("version")) is int
+                    and value["version"] == 2
+                    and value["mode"] == "shared"
+                )
+            )
             or not isinstance(names, list)
             or any(not isinstance(name, str) or name not in WORKERS for name in names)
             or len(set(names)) != len(names)
         ):
             raise ValueError
-        return sorted(names)
+        return [] if value.get("mode") == "shared" else sorted(names)
     except (ValueError, KeyError, TypeError, OSError):
         raise ValueError("observation_worker_policy_invalid") from None
 
@@ -129,16 +136,12 @@ def baseline(services: list[dict], revision: list[str]) -> str:
     ]
     identity.sort(key=lambda row: row["service"])
     return hashlib.sha256(
-        json.dumps(
-            [identity, sorted(revision)], sort_keys=True, separators=(",", ":")
-        ).encode()
+        json.dumps([identity, sorted(revision)], sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
 
 
 def observe(target: str, trace: str | None = None) -> dict:
-    if target not in TARGETS or (
-        trace is not None and not re.fullmatch("[a-f0-9]{32}", trace)
-    ):
+    if target not in TARGETS or (trace is not None and not re.fullmatch("[a-f0-9]{32}", trace)):
         raise ValueError("observation_target_or_trace_invalid")
     project, names = TARGETS[target]
     if target == "iran":
@@ -169,14 +172,10 @@ def observe(target: str, trace: str | None = None) -> dict:
                     "{{.ID}}",
                 ]
             ).splitlines()
-            if len(identifiers) != 1 or not re.fullmatch(
-                "[a-f0-9]{12,64}", identifiers[0]
-            ):
+            if len(identifiers) != 1 or not re.fullmatch("[a-f0-9]{12,64}", identifiers[0]):
                 raise ValueError("observation_service_missing_or_ambiguous")
             identifier = identifiers[0]
-            metadata = json.loads(
-                command(["docker", "inspect", "--format", FORMAT, identifier])
-            )
+            metadata = json.loads(command(["docker", "inspect", "--format", FORMAT, identifier]))
             if not re.fullmatch(
                 "sha256:[a-f0-9]{64}", metadata.get("image_id", "")
             ) or not re.fullmatch("[a-f0-9]{64}", metadata.get("container_id", "")):
@@ -205,21 +204,20 @@ def observe(target: str, trace: str | None = None) -> dict:
                         identifier,
                         "sh",
                         "-c",
-                        'exec psql -X -qAt -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version_num FROM alembic_version ORDER BY version_num"',
+                        'exec psql -X -qAt -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" '
+                        '-d "$POSTGRES_DB" '
+                        '-c "SELECT version_num FROM alembic_version ORDER BY version_num"',
                     ]
                 )
                 revision = text.splitlines()
                 if not revision or any(
-                    not re.fullmatch("[A-Za-z0-9_]{1,64}", version)
-                    for version in revision
+                    not re.fullmatch("[A-Za-z0-9_]{1,64}", version) for version in revision
                 ):
                     raise ValueError("observation_database_revision_invalid")
             if trace is not None and service not in ("db", "redis", "caddy"):
                 try:
                     row["logs"] = correlated_logs(
-                        command(
-                            ["docker", "logs", "--since=15m", "--tail=60", identifier]
-                        ),
+                        command(["docker", "logs", "--since=15m", "--tail=60", identifier]),
                         trace,
                     )
                     row["logs"] = row["logs"][:remaining_log_events]
@@ -253,7 +251,8 @@ def observe(target: str, trace: str | None = None) -> dict:
         "business_outcome_verified": False,
         "limitations": [
             "Image labels are not registry-digest verification.",
-            "Only correlated allowlisted JSON log fields are exported; unstructured logs are omitted.",
+            "Only correlated allowlisted JSON log fields are exported; "
+            "unstructured logs are omitted.",
             "Service health does not prove a business workflow succeeded.",
         ],
     }
