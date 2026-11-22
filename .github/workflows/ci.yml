@@ -633,6 +633,17 @@ jobs:
           docker buildx stop "${{ steps.runtime_builder.outputs.name }}"
           python3 ops/smoke-debug-runtime-release.py --directory .ci-evidence/debug-runtime \
             --commit ${{ github.sha }} --output .ci-evidence/debug-runtime/release-smoke.json
+      - name: Bind independent runtime manifest to tested image and CI run
+        run: >-
+          python3 ops/runtime-release-manifest.py --directory .ci-evidence/debug-runtime
+          --output .ci-evidence/debug-runtime/manifest.json --commit ${{ github.sha }}
+          --ci-run-id ${{ github.run_id }} --run-attempt ${{ github.run_attempt }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fitician-debug-runtime-manifest-${{ github.sha }}
+          path: .ci-evidence/debug-runtime/manifest.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Retain bounded runtime health failure evidence
         if: failure()
         uses: actions/upload-artifact@v4

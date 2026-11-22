@@ -13,6 +13,42 @@ def _digest(value: Any) -> bool:
     return isinstance(value, str) and bool(re.fullmatch(r"sha256:[a-f0-9]{64}", value))
 
 
+def validate_runtime_release(value: Any, *, commit: str, ci_run_id: int) -> dict[str, Any]:
+    """Independent runtime identity; never substitutes for an application release manifest."""
+    if (
+        not isinstance(value, dict)
+        or set(value)
+        != {"version", "kind", "repository", "commit", "ci_run_id", "run_attempt", "debug_runtime"}
+        or len(json.dumps(value).encode()) > 16384
+        or type(value["version"]) is not int
+        or value["version"] != 1
+        or value["kind"] != "debug-runtime"
+        or value["repository"] != REPOSITORY
+        or not isinstance(commit, str)
+        or not re.fullmatch(r"[a-f0-9]{40}", commit)
+        or value["commit"] != commit
+        or type(ci_run_id) is not int
+        or ci_run_id < 1
+        or type(value["ci_run_id"]) is not int
+        or value["ci_run_id"] != ci_run_id
+        or type(value["run_attempt"]) is not int
+        or not 1 <= value["run_attempt"] <= 1000
+    ):
+        raise ValueError("runtime_manifest_invalid")
+    runtime = value["debug_runtime"]
+    if (
+        not isinstance(runtime, dict)
+        or set(runtime) != {"artifact_name", "archive_sha256", "image_id", "cli_version"}
+        or runtime["artifact_name"] != "fitician-debug-runtime-" + commit
+        or not isinstance(runtime["archive_sha256"], str)
+        or not re.fullmatch(r"[a-f0-9]{64}", runtime["archive_sha256"])
+        or not _digest(runtime["image_id"])
+        or runtime["cli_version"] != "0.167.2"
+    ):
+        raise ValueError("runtime_manifest_invalid")
+    return cast(dict[str, Any], value)
+
+
 def validate_release(value: Any, *, commit: str, ci_run_id: int) -> dict[str, Any]:
     def reject() -> None:
         raise ValueError("release_manifest_invalid")

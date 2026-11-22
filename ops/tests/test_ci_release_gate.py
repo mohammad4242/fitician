@@ -15,6 +15,59 @@ def success(*names):
 
 
 class ReleaseGateTests(unittest.TestCase):
+    def test_runtime_scope_cannot_be_satisfied_by_selective_baseline_verification(self):
+        from unittest.mock import patch
+
+        with patch.object(module.sys, "argv", [
+            "gate", "--verify-selective-plan", "unused.json", "--sha", SHA, "--require-runtime"
+        ]), self.assertRaises(SystemExit):
+            module.main()
+
+    def test_runtime_release_requires_complete_checks_without_publishing_application_images(
+        self,
+    ):
+        required = (
+            "Secret scan",
+            "Dependency audit",
+            "Shared core and contract checks",
+            "Backend tests",
+            "Agent complete suite",
+            "Frontend verification",
+            "Frontend browser regression (Chromium and WebKit)",
+            "Production Compose and deployment checks",
+            "Scalability foundation contract checks",
+            "Isolated Iran and Germany HTTP smoke",
+            "Short two-replica runtime smoke",
+        )
+        plan = {"sha": SHA, "full_ci_required": True, "release_requested": False}
+        self.assertEqual(
+            module.runtime_release_path(plan, success(*required), SHA), "debug-runtime"
+        )
+        for missing in required:
+            with self.subTest(missing=missing), self.assertRaises(ValueError):
+                module.runtime_release_path(
+                    plan, success(*(n for n in required if n != missing)), SHA
+                )
+        for patch in [
+            {"sha": "a" * 40},
+            {"full_ci_required": False},
+            {"run_mobile": True},
+            {"run_android": True},
+        ]:
+            with self.subTest(patch=patch), self.assertRaises(ValueError):
+                module.runtime_release_path({**plan, **patch}, success(*required), SHA)
+        self.assertEqual(
+            module.runtime_release_path(
+                {**plan, "run_mobile": True, "run_android": True},
+                success(
+                    *required, "Mobile tests and validation", "Android debug build"
+                ),
+                SHA,
+            ),
+            "debug-runtime",
+        )
+
+
     def test_selective_gate_reverifies_api_evidence_and_actual_tree(self):
         from unittest.mock import patch
 

@@ -7,6 +7,67 @@ environment gate and automatic delivery is limited to eligible main CI/component
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
+## Permanent enrollment readiness — November22 continuation
+
+Continued from3a6e1b99, preserving unrelated work. Its
+[CI45048482967](https://github.com/mohammad4242/fitician/actions/runs/45048482967) and
+[SEO45048482742](https://github.com/mohammad4242/fitician/actions/runs/45048482742) completed
+successfully. No failing job was hidden or weakened. The runtime artifact14764562495
+(242625920bytes) matched GitHub SHA256
+`1213141d276c11b0758395f612c627e2110dc46fe7f78710c240ed89f7ba8d66`.
+It contains tested image`sha256:62e25b19321a1708d6a2fbe84baf76a5497b35d1e2a0b3cc916dfc34ba2add3f`,
+CLI0.167.2, and actual isolated rollout/restart/idempotency/rollback evidence. Its exact build
+commit is the PR merge commit54d333c7; GitHub readback confirms its source tree is identical
+to3a6e1b99. Neither commit nor image is claimed deployed.
+
+Implemented a scoped `debug-runtime` manifest: `ops/runtime-release-manifest.py` validates
+real smoke/rollback proofs, archive checksum and canonical image identity. CI emits the
+manifest with the runtime bundle and as a small separate artifact. The existing regional
+`germany:debug_runtime` path now requires complete exact-main-SHA validation and this bound
+runtime manifest, without requiring publication of unrelated application images. Required
+backend/frontend/Agent/security/topology checks, protected-main provenance, manual owner and
+Germany Environment gates, deployment concurrency, host verification, disk/RAM/CPU limits,
+state preservation and rollback remain enforced. Application release validators reject this
+manifest kind. No release workflow was dispatched. The prepared old tested bundle has manifest
+SHA256`6bf6d6521b87b91b0cb03ec1e4dc31cace1cc02808c85f2e862923ae61cdd1a0`;
+the updated host verifier accepted it without Docker/service mutation.
+
+Added actual application-route integration coverage: admin enrollment, one injected network
+failure, automatic reconnect/heartbeat, reloading the same0600 configuration after process
+restart, and exactly one retained server registration.46 API/connector/remote-model tests
+passed against a newly owned isolated PostgreSQL fixture;37 separate provider/tool/persistent
+runtime tests passed. These include mocked provider transport and are not live panel/Agent
+acceptance. Manifest/CI-gate tests fail first for missing implementation and invalid mixed
+scope; archive tampering, false rollback proofs, incorrect commits/CI IDs and application-scope
+confusion are rejected. Mypy and workflow YAML parsing passed. Two pre-existing gate style
+findings and eight pre-existing gate-test style findings remain unchanged; new diagnostics0.
+The complete ops suite passed421 tests; the final focused release/gate replay passed27.
+
+Fresh live observations, not file-existence claims:
+
+| Component | Actual observed state |
+| --- | --- |
+| Permanent Germany runtime | Existing4a70812f image; healthy liveness pulse aged3s; `awaiting_enrollment`; connector.json absent; current image has neither GermanyProvider nor automation_client |
+| Germany capacity | 1vCPU,1967MiB RAM,1314–1324MiB available; runtime145MiB actual/512MiB limit;2436MiB free disk versus3072MiB rollout reserve, plus archive transfer space |
+| Germany GitHub credential | Exact server store read as UID10001; repository, Actions and main-ref reads200; reviewed debug-validation policy on main404; worker.json absent |
+| Iran panel/control plane | Production database20261018_175; debug_threads/debug_connectors absent; Tailscale online100.107.212.79; no private HTTPS Serve endpoint configured |
+| Protected policy | Main7c03e50d lacks both debug-validation.yml and debug-server-observation.yml; no feature-policy substitution performed |
+| Actual end-to-end acceptance | Not passed: no new permanent enrollment, panel-issued model/tool run, synthetic Sentry-to-Agent repair, tested repair PR or laptop-offline acceptance |
+
+The next live step needs an explicitly authorized non-production control plane on Iran and
+replacement of only the commissioning Germany runtime with a verified image, after disk
+capacity passes. Production application changes, migrations and automatic SMS remain unauthorized. Docker reports
+1.579GB reclaimable images, but the unused image is an older generation release, not disposable
+debug data: nothing was deleted; recoverable rollback evidence must be preserved before any
+owner-approved cleanup. No VPS upgrade is proposed. Reviewed-main CI policy installation
+still needs its normal human review/merge gate; PR41 remains Draft.
+Evidence is under the ignored `.codex-tmp/germany-key-20261122/` directory, including
+runtime-enrollment-audit, production-schema-preflight, broker-credential-preflight-result,
+iran-panel-route-audit, tested-runtime-source-identity, runtime-tested-artifact-proof and
+enrollment-integration JSON/log files. No production deployment, migration, service restart,
+secret replacement, SMS activation or merge occurred, and no model inference was purchased
+in this continuation.
+
 ## Standard-credit model acceptance — November22
 
 The owner clarified that this dedicated key uses ordinary OpenRouter credits and explicitly

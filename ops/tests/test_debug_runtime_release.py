@@ -63,6 +63,50 @@ def bundle(folder):
 
 
 class RuntimeReleaseTests(unittest.TestCase):
+    def test_independent_runtime_bundle_needs_no_application_images_or_web_artifacts(
+        self,
+    ):
+        release = module()
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as name:
+            directory = Path(name)
+            full, _ = bundle(directory)
+            manifest = {
+                k: full[k]
+                for k in (
+                    "version",
+                    "repository",
+                    "commit",
+                    "ci_run_id",
+                    "run_attempt",
+                    "debug_runtime",
+                )
+            }
+            manifest["kind"] = "debug-runtime"
+            raw = json.dumps(manifest).encode()
+            (directory / "manifest.json").write_bytes(raw)
+            observed = release.verify_bundle(
+                directory, hashlib.sha256(raw).hexdigest(), "c" * 40, 42
+            )
+            self.assertEqual(observed, manifest)
+            from app.debugging.release_contract import validate_release
+
+            with self.assertRaises(ValueError):
+                validate_release(manifest, commit="c" * 40, ci_run_id=42)
+            for field, replacement in [
+                ("kind", "application"),
+                ("commit", "d" * 40),
+                ("ci_run_id", 43),
+                ("run_attempt", True),
+                ("version", True),
+            ]:
+                changed = {**manifest, field: replacement}
+                raw = json.dumps(changed).encode()
+                (directory / "manifest.json").write_bytes(raw)
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    release.verify_bundle(
+                        directory, hashlib.sha256(raw).hexdigest(), "c" * 40, 42
+                    )
+
     def test_fixture_cleanup_does_not_follow_runtime_symlinks_outside_the_fixture(self):
         spec = importlib.util.spec_from_file_location(
             "runtime_smoke", ROOT / "ops/smoke-debug-runtime-release.py"

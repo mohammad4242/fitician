@@ -24,10 +24,13 @@ try:
         canonical_config_digest,
         config_digest_for_image,
     )
-    from app.debugging.release_contract import validate_release
+    from app.debugging.release_contract import (
+        validate_release,
+        validate_runtime_release,
+    )
 except ModuleNotFoundError:
     from image_identity import canonical_config_digest, config_digest_for_image
-    from release_contract import validate_release
+    from release_contract import validate_release, validate_runtime_release
 
 PROJECT = "fitician-debug-runtime"
 MAX_UNPACKED = 2147483648
@@ -64,7 +67,13 @@ def verify_bundle(
         or hashlib.sha256(raw).hexdigest() != expected
     ):
         raise ValueError("runtime_manifest_mismatch")
-    manifest = validate_release(json.loads(raw), commit=commit, ci_run_id=run_id)
+    value = json.loads(raw)
+    validator = (
+        validate_runtime_release
+        if isinstance(value, dict) and value.get("kind") == "debug-runtime"
+        else validate_release
+    )
+    manifest = validator(value, commit=commit, ci_run_id=run_id)
     archive = directory / "image.tar.gz"
     if archive.is_symlink() or not 0 < archive.stat().st_size <= 536870912:
         raise ValueError("runtime_archive_size_limit")

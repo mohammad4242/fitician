@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
-from app.debugging.release_contract import validate_release
+from app.debugging.release_contract import validate_release, validate_runtime_release
 
 SPEC = importlib.util.spec_from_file_location(
     "classifier", Path(__file__).with_name("ci-classify.py")
@@ -112,6 +112,34 @@ def release_path(plan: dict, jobs: list[dict], sha: str) -> str:
     return "component"
 
 
+def runtime_release_path(plan: dict, jobs: list[dict], sha: str) -> str:
+    """Full exact-source validation for the independent runtime, without application publication."""
+    if plan.get("sha") != sha or plan.get("full_ci_required") is not True:
+        raise ValueError("Independent runtime requires complete exact-SHA CI")
+    required = [
+        "Secret scan",
+        "Dependency audit",
+        "Shared core and contract checks",
+        "Backend tests",
+        "Agent complete suite",
+        "Frontend verification",
+        "Frontend browser regression (Chromium and WebKit)",
+        "Production Compose and deployment checks",
+        "Scalability foundation contract checks",
+        "Isolated Iran and Germany HTTP smoke",
+        "Short two-replica runtime smoke",
+    ]
+    if plan.get("run_mobile"):
+        required.append("Mobile tests and validation")
+    if plan.get("run_android"):
+        required.append("Android debug build")
+    for name in required:
+        matches = [j for j in jobs if j["name"].split(" / ")[-1] == name]
+        if len(matches) != 1 or matches[0]["conclusion"] != "success":
+            raise ValueError("Missing successful runtime check: " + name)
+    return "debug-runtime"
+
+
 def require_selective_evidence(
     repository: str, plan: dict, sha: str, directory: Path
 ) -> None:
@@ -130,7 +158,12 @@ def require_selective_evidence(
 
 
 def require_release_manifest(
-    repository: str, run_id: int, sha: str, directory: Path
+    repository: str,
+    run_id: int,
+    sha: str,
+    directory: Path,
+    *,
+    runtime_only: bool = False,
 ) -> str:
     result = subprocess.run(
         [
@@ -141,7 +174,12 @@ def require_release_manifest(
             "--repo",
             repository,
             "--name",
-            "fitician-release-manifest-" + sha,
+            (
+                "fitician-debug-runtime-manifest-"
+                if runtime_only
+                else "fitician-release-manifest-"
+            )
+            + sha,
             "--dir",
             str(directory),
         ],
@@ -151,10 +189,11 @@ def require_release_manifest(
     if result.returncode:
         raise ValueError("Exact CI release manifest is unavailable")
     path = directory / "manifest.json"
-    if path.stat().st_size > 16384:
+    if path.is_symlink() or path.stat().st_size > 16384:
         raise ValueError("Release manifest exceeds limit")
     content = path.read_bytes()
-    validate_release(json.loads(content), commit=sha, ci_run_id=run_id)
+    validator = validate_runtime_release if runtime_only else validate_release
+    validator(json.loads(content), commit=sha, ci_run_id=run_id)
     digest = hashlib.sha256(content).hexdigest()
     expected = os.environ.get("EXPECTED_MANIFEST_SHA256", "")
     if expected and (not re.fullmatch(r"[a-f0-9]{64}", expected) or expected != digest):
@@ -169,9 +208,14 @@ def main() -> None:
     source.add_argument("--verify-selective-plan", type=Path)
     parser.add_argument("--sha", required=True)
     parser.add_argument("--require-full", action="store_true")
+    parser.add_argument("--require-runtime", action="store_true")
     parser.add_argument("--require-frontend-full", action="store_true")
     parser.add_argument("--directory", type=Path, default=Path(".ci-evidence"))
     args = parser.parse_args()
+    if args.require_runtime and (
+        args.require_full or args.require_frontend_full or args.verify_selective_plan
+    ):
+        raise SystemExit("Runtime scope cannot authorize an application release")
     repository = os.environ["GITHUB_REPOSITORY"]
     if args.verify_selective_plan:
         plan = json.loads(args.verify_selective_plan.read_text())
@@ -200,7 +244,11 @@ def main() -> None:
     )
     plan = json.loads((args.directory / "release-plan.json").read_text())
     jobs = classifier.baseline.api_jobs(endpoint)
-    path = release_path(plan, jobs, args.sha)
+    path = (
+        runtime_release_path(plan, jobs, args.sha)
+        if args.require_runtime
+        else release_path(plan, jobs, args.sha)
+    )
     if path == "selective":
         require_selective_evidence(repository, plan, args.sha, args.directory)
     if args.require_frontend_full and path != "frontend-full":
@@ -211,9 +259,13 @@ def main() -> None:
         raise SystemExit(
             "Full image release requires complete or verified selective CI and published images"
         )
-    if args.require_full:
+    if args.require_full or args.require_runtime:
         digest = require_release_manifest(
-            repository, int(args.run_id), args.sha, args.directory
+            repository,
+            int(args.run_id),
+            args.sha,
+            args.directory,
+            runtime_only=args.require_runtime,
         )
         if os.environ.get("GITHUB_OUTPUT"):
             with open(os.environ["GITHUB_OUTPUT"], "a") as stream:

@@ -263,7 +263,7 @@ jobs:
               os.environ["IMAGE_TAG"],
           )
           PY
-      - name: Require successful exact-SHA CI evidence and published images
+      - name: Require successful exact-SHA CI and scoped release artifacts
         id: release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -281,8 +281,10 @@ jobs:
               --require-full --directory .ci-evidence/regional
           else
           case "$DEPLOY_KIND" in
-            full|agent|debug_runtime) python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG" \
+            full|agent) python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG" \
               --require-full --directory .ci-evidence/regional ;;
+            debug_runtime) python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG" \
+              --require-runtime --directory .ci-evidence/regional ;;
             frontend|backend) python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG" \
               --directory .ci-evidence/regional ;;
           esac
@@ -317,7 +319,7 @@ jobs:
           ) or (
               target == "germany"
               and kind == "debug_runtime"
-              and path == "full"
+              and path == "debug-runtime"
           )
           if not allowed:
               raise SystemExit("Exact CI release evidence does not authorize this regional component")
@@ -674,7 +676,7 @@ jobs:
       - name: Revalidate exact completed CI and reviewed manifest
         run: >-
           python3 ops/ci-release-gate.py --run-id "$CI_RUN_ID" --sha "$IMAGE_TAG"
-          --require-full --directory .ci-evidence/runtime-policy
+          --require-runtime --directory .ci-evidence/runtime-policy
       - name: Download the already tested independent runtime
         uses: actions/download-artifact@v4
         with:
