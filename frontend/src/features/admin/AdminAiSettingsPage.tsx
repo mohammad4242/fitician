@@ -356,7 +356,9 @@ export function AdminAiSettingsPage() {
       })
       .then(() => {
         if (isActiveOperation(taskAtStart, epochAtStart, operation)) {
-          setMessage(t("admin.aiSettings.refreshed"));
+          setMessage(taskAtStart === "debug_agent"
+            ? (i18n.resolvedLanguage === "en" ? "Cached model catalog reloaded. Test the selected runtime to verify availability." : "فهرست ذخیره‌شده دوباره خوانده شد؛ برای بررسی دسترسی واقعی، مدل را روی runtime منتخب تست کنید.")
+            : t("admin.aiSettings.refreshed"));
         }
       })
       .catch((requestError: unknown) => {
@@ -515,7 +517,7 @@ export function AdminAiSettingsPage() {
           </dl>
           {!agentMode && <div className="admin-ai-settings-actions">
             <button type="button" disabled={busy !== null} onClick={handleConnectionTest}>{t("admin.aiSettings.test")}</button>
-            <button type="button" disabled={busy !== null || !config.credential.configured} onClick={handleRefresh}>{t("admin.aiSettings.refresh")}</button>
+            <button type="button" disabled={busy !== null || (selectedTask !== "debug_agent" && !config.credential.configured)} onClick={handleRefresh}>{selectedTask === "debug_agent" ? (i18n.resolvedLanguage === "en" ? "Reload cached model catalog" : "خواندن دوبارهٔ فهرست ذخیره‌شدهٔ مدل‌ها") : t("admin.aiSettings.refresh")}</button>
           </div>}
           {feedbackOperation !== "save" && message && <p className="admin-ai-provider-feedback admin-ai-settings-message" role="status">{message}</p>}
           {feedbackOperation !== "save" && error !== null && <AppErrorNotice audience="admin" context="generic" error={error} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}

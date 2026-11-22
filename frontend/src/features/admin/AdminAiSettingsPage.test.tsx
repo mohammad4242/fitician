@@ -1016,3 +1016,16 @@ it("keeps debug model secrets off the application form and tests the explicit re
   ));
   expect(api.testAdminAiProvider).not.toHaveBeenCalled();
 });
+
+it("reloads public cached debug model metadata without borrowing an application credential", async () => {
+  api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig, { ...bodyConfig, task_type: "debug_agent" }]);
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Debug agent" }));
+  const reload = screen.getByRole("button", { name: "Reload cached model catalog" });
+  expect(reload).toBeEnabled();
+  await user.click(reload);
+  await screen.findByText("Cached model catalog reloaded. Test the selected runtime to verify availability.");
+  expect(api.refreshAdminAiModels).not.toHaveBeenCalled();
+  expect(api.testAdminAiProvider).not.toHaveBeenCalled();
+});
