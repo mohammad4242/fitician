@@ -29,6 +29,7 @@ APISetupError = Literal[
 ]
 API_SETUP_ERRORS = frozenset(get_args(APISetupError))
 API_RUN_ERRORS = API_SETUP_ERRORS | {
+    "provider_billing_mode_unverified",
     "selected_model_not_available",
     "model_not_configured",
     "provider_timeout",

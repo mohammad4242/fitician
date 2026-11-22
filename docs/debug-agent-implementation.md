@@ -7,6 +7,50 @@ environment gate and automatic delivery is limited to eligible main CI/component
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
+## Standard-credit model acceptance — November22
+
+The owner clarified that this dedicated key uses ordinary OpenRouter credits and explicitly
+authorized testing without requiring `include_byok_in_limit=true`. A fresh Germany
+`GET /api/v1/key` returned200 in394ms: limitUSD1, resetdaily, remainingUSD1, usage0,
+and `include_byok_in_limit=false`. A private in-container comparison confirmed the existing
+Germany runtime sees the identical key as the saved0600/10001:10001 host credential.
+No value or hash was returned. There is no observed key/workspace mismatch.
+
+The debug adapter now retains the positive maximumUSD1/day and rate guards while accepting
+this standard-credit configuration. Both Germany analysis and tool paths explicitly request
+usage accounting and require `usage.is_byok=false` before accepting output or invoking a
+model-requested tool. Unknown or BYOK billing returns `provider_billing_mode_unverified`
+without retry. This is response verification, not an invented provider-side BYOK-off switch.
+OpenRouter's current routing documentation applies BYOK at workspace scope; the ordinary
+inference credential cannot enumerate workspace BYOK keys (`GET /byok`:401, management
+authorization required). No management key or upstream provider credential was requested,
+supplied, modified or transferred.
+
+**Real execution:** an isolated read-only128MiB/0.1CPU Germany container loaded the exact
+updated GermanyProvider source and exact saved credential. Its selected model was
+`openai/gpt-4.1-mini`; capability discovery returned200 and advertised tools. Exactly one
+`POST /api/v1/chat/completions` returned **200**, actual content **OK**, in **1262ms**.
+The provider returned the exact selected model and `usage.is_byok=false`; usage was49 input,
+3 output,52 total tokens, with reported cost **USD0.0000244**. Total adapter turn3361ms
+includes authentication and capability discovery. No model tool was invoked, and no second
+paid request or retry occurred. This proves this adapter/model/key on Germany, not permanent
+enrollment, panel-issued tool execution, repair, PR publication or production readiness.
+
+Tests were observed failing before the policy change (9 failures), then64 focused provider/
+tool/connector/runtime cases passed. Related transport fixtures were updated to include the
+real provider's billing flag. The full focused replay used a newly owned tmpfs PostgreSQL
+container on127.0.0.1:55486 and ran all72 cases, including database-backed remote API, admin
+authorization, model probes, credential isolation and migration setup: **72 passed**.
+The fixture was removed afterward; no existing database or production service was touched.
+Command: `TEST_DATABASE_URL=postgresql+psycopg://fitician:fitician@127.0.0.1:55486/fitician_test backend/.venv/bin/python -m pytest backend/tests/test_debug_germany_provider.py backend/tests/test_debug_api_tools.py backend/tests/test_debug_server_runtime.py backend/tests/test_debug_connector_client.py backend/tests/test_debug_remote_api.py --basetemp=.codex-tmp/germany-key-20261122/credits-postgres -q`.
+Focused Ruff and diff checks passed. Evidence is private in the ignored setup directory:
+`key-credit-recheck-result.json`, `standard-credit-probe-result.json`, `credits-postgres.log`
+and `standard-credit-privacy-runtime.json`. The model key never left Germany.
+
+No production runtime activation, deployment, migration, service restart, SMS activation or
+merge was performed. PR41 remains Draft. Older budget/BYOK blockers below are historical;
+this successful standard-credit request supersedes them.
+
 ## Approved same-key conversion and real authentication — November22
 
 The owner explicitly approved the existing format-repair helper and selected

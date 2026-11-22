@@ -137,7 +137,6 @@ class GermanyProvider:
                 or not math.isfinite(remaining)
                 or not 0 < remaining <= limit
                 or data.get("limit_reset") != "daily"
-                or data.get("include_byok_in_limit") is not True
                 or data.get("is_management_key") is True
                 or data.get("is_provisioning_key") is True
             ):
@@ -194,6 +193,7 @@ class GermanyProvider:
                     handler=handler,
                     progress=progress,
                     before_request=before_request,
+                    require_openrouter_credits=True,
                 )
             else:
                 if allow_write:
@@ -205,6 +205,7 @@ class GermanyProvider:
                     config=config,
                     messages=messages,
                     before_request=before_request,
+                    require_openrouter_credits=True,
                 )
             return {"output": content, "model": model, "mode": mode}
         except httpx.HTTPError:

@@ -7,6 +7,74 @@ import pytest
 from app.debugging.api_runtime import run_api_tools
 
 
+@pytest.mark.parametrize("tool_mode", [False, True])
+@pytest.mark.parametrize("byok", [None, True, False])
+def test_credit_only_runtime_requires_non_byok_billing_before_accepting_output(tool_mode, byok):
+    from app.debugging.api_runtime import request_analysis
+
+    calls = []
+
+    def handle(request):
+        body = json.loads(request.content)
+        calls.append(body)
+        assert body["usage"] == {"include": True}
+        assert "keys" not in body and "api_key" not in body
+        message = {"content": "OK"}
+        if tool_mode and byok is not False:
+            message["tool_calls"] = [
+                {
+                    "id": "denied",
+                    "type": "function",
+                    "function": {"name": "forbidden", "arguments": "{}"},
+                }
+            ]
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": message}],
+                "usage": {"completion_tokens": 1, "is_byok": byok},
+            },
+        )
+
+    async def forbidden(name, arguments):
+        raise AssertionError("Connectivity probe cannot execute tools")
+
+    async def progress(kind, payload):
+        pass
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            options = dict(
+                base_url="https://openrouter.ai/api/v1",
+                api_key="synthetic",
+                config={"primary_model_id": "selected/model", "max_output_tokens": 128},
+                messages=[{"role": "user", "content": "Reply OK"}],
+                require_openrouter_credits=True,
+            )
+            if tool_mode:
+                return await run_api_tools(
+                    client,
+                    **options,
+                    tools=[
+                        {
+                            "name": "forbidden",
+                            "description": "unused",
+                            "inputSchema": {"type": "object"},
+                        }
+                    ],
+                    handler=forbidden,
+                    progress=progress,
+                )
+            return await request_analysis(client, **options)
+
+    if byok is False:
+        assert asyncio.run(run()) == "OK"
+    else:
+        with pytest.raises(ValueError, match="^provider_billing_mode_unverified$"):
+            asyncio.run(run())
+    assert len(calls) == 1
+
+
 @pytest.mark.parametrize(
     "status,expected",
     [(429, "provider_rate_limited"), (401, "provider_rejected"), (503, "provider_rejected")],

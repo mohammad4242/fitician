@@ -58,7 +58,6 @@ def test_missing_file_never_falls_back_to_any_application_or_github_key(tmp_path
         {"limit_reset": "monthly"},
         {"limit_remaining": 0},
         {"is_management_key": True},
-        {"include_byok_in_limit": False},
     ],
 )
 def test_provider_spending_policy_fails_closed_before_inference(tmp_path, patch):
@@ -161,7 +160,11 @@ def test_selected_model_and_real_tool_dispatch_use_only_the_dedicated_key(tmp_pa
             else {"role": "assistant", "content": "مدرک ثبت شد."}
         )
         return httpx.Response(
-            200, json={"choices": [{"message": message}], "usage": {"completion_tokens": 50}}
+            200,
+            json={
+                "choices": [{"message": message}],
+                "usage": {"completion_tokens": 50, "is_byok": False},
+            },
         )
 
     async def tool(name, args):
@@ -202,7 +205,37 @@ def test_selected_model_and_real_tool_dispatch_use_only_the_dedicated_key(tmp_pa
     assert result["model"] == "chosen/model" and result["mode"] == "api_tools"
     assert calls == [("fitician_read_file", {"path": "bug.py"})]
     assert len(requests) == 2 and all(r["model"] == "chosen/model" for r in requests)
+    assert all(r["usage"] == {"include": True} for r in requests)
     assert KEY not in json.dumps(events) + json.dumps(result)
+
+
+@pytest.mark.parametrize("included", [False, None])
+def test_standard_credit_key_accepts_daily_limit_without_byok_inclusion(tmp_path, included):
+    from app.debugging.germany_provider import GermanyProvider
+
+    path = tmp_path / "model-api.json"
+    saved = credential(path)
+
+    def handle(request):
+        assert request.url.path == "/api/v1/key"
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "limit": 1,
+                    "limit_remaining": 1,
+                    "limit_reset": "daily",
+                    "include_byok_in_limit": included,
+                }
+            },
+        )
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            result = await GermanyProvider(path, tmp_path / "state", client).verify()
+            assert result.revision == saved["revision"]
+
+    asyncio.run(run())
 
 
 @pytest.mark.parametrize(

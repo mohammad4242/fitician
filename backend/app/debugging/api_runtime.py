@@ -22,6 +22,7 @@ async def request_analysis(
     config: dict[str, Any],
     messages: list[dict[str, str]],
     before_request: Callable[[], Awaitable[None]] | None = None,
+    require_openrouter_credits: bool = False,
 ) -> str:
     model = config.get("primary_model_id")
     if not isinstance(model, str) or not model:
@@ -45,6 +46,7 @@ async def request_analysis(
             "messages": messages,
             "max_tokens": int(config.get("max_output_tokens", 4096)),
             "provider": provider,
+            **({"usage": {"include": True}} if require_openrouter_credits else {}),
         },
     ) as response:
         if response.status_code == 429:
@@ -57,6 +59,10 @@ async def request_analysis(
             if len(payload) > 1_048_576:
                 raise ValueError("provider_response_too_large")
         body = json.loads(payload)
+    if require_openrouter_credits and (
+        not isinstance(body.get("usage"), dict) or body["usage"].get("is_byok") is not False
+    ):
+        raise ValueError("provider_billing_mode_unverified")
     content = body.get("choices", [{}])[0].get("message", {}).get("content")
     if not isinstance(content, str) or not content.strip():
         raise ValueError("provider_invalid_response")
@@ -95,6 +101,7 @@ async def run_api_tools(
     handler: ToolHandler,
     progress: ProgressHandler,
     before_request: Callable[[], Awaitable[None]] | None = None,
+    require_openrouter_credits: bool = False,
 ) -> str:
     model = config.get("primary_model_id")
     if not isinstance(model, str) or not model:
@@ -124,6 +131,7 @@ async def run_api_tools(
                 "messages": history,
                 "max_tokens": allocation,
                 "provider": provider,
+                **({"usage": {"include": True}} if require_openrouter_credits else {}),
                 "tools": [
                     {
                         "type": "function",
@@ -148,6 +156,10 @@ async def run_api_tools(
                 if len(payload) > 1_048_576:
                     raise ValueError("provider_response_too_large")
             body = json.loads(payload)
+        if require_openrouter_credits and (
+            not isinstance(body.get("usage"), dict) or body["usage"].get("is_byok") is not False
+        ):
+            raise ValueError("provider_billing_mode_unverified")
         message = body["choices"][0]["message"]
         usage = body.get("usage")
         used = usage.get("completion_tokens") if isinstance(usage, dict) else None

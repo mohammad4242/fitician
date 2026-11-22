@@ -92,7 +92,7 @@ def test_connector_runs_the_api_model_and_repository_tool_with_separate_auth(tmp
                         "limit": 1,
                         "limit_remaining": 1,
                         "limit_reset": "daily",
-                        "include_byok_in_limit": True,
+                        "include_byok_in_limit": False,
                     }
                 },
             )
@@ -125,7 +125,11 @@ def test_connector_runs_the_api_model_and_repository_tool_with_separate_auth(tmp
             assert "return a - b" in p["messages"][-1]["content"]
             message = {"role": "assistant", "content": "مدرک بررسی شد."}
         return httpx.Response(
-            200, json={"choices": [{"message": message}], "usage": {"completion_tokens": 50}}
+            200,
+            json={
+                "choices": [{"message": message}],
+                "usage": {"completion_tokens": 50, "is_byok": False},
+            },
         )
 
     async def run():
@@ -169,6 +173,7 @@ def test_connector_runs_the_api_model_and_repository_tool_with_separate_auth(tmp
 
     asyncio.run(run())
     assert len(model_posts) == 2
+    assert all(p["usage"] == {"include": True} for p in model_posts)
     assert any(
         e["kind"] == "tool_completed" and "return a - b" in e["payload"].get("output", "")
         for e in submitted
@@ -364,7 +369,11 @@ def test_api_probe_runs_a_real_scoped_read_without_codex_and_replays_no_paid_req
             assert "controlled fixture" in payload["messages"][-1]["content"]
             message = {"role": "assistant", "content": "فایل آزمایش کنترل‌شده خوانده شد."}
         return httpx.Response(
-            200, json={"choices": [{"message": message}], "usage": {"completion_tokens": 10}}
+            200,
+            json={
+                "choices": [{"message": message}],
+                "usage": {"completion_tokens": 10, "is_byok": False},
+            },
         )
 
     async def run():
