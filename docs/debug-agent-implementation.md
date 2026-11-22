@@ -56,6 +56,26 @@ server-hosted panel/repair/PR path. Reviewed-main policy and production activati
 No paid inference, production deploy/migration/restart/SMS activation or VPS change occurred.
 The following November22 checkpoint predates this fresh credential inspection.
 
+### Subsequent CI regression — prerendered pagination
+
+Fresh headf4c11c9c [Public SEO45011378656](https://github.com/mohammad4242/fitician/actions/runs/45011378656)
+failed one of60 browser tests;59 passed. The downloaded failure artifact's SHA256 matched
+GitHub's digest. Its trace shows the pagination click beginning at1803ms, before the
+PublicExerciseApp/ExerciseCatalog scripts finished loading at approximately1825ms. The URL
+never changed. This was a real interactive-readiness race, not a model/provider failure.
+
+Public prerendered pagination now stays disabled until React attaches its handlers. Member
+catalogue behavior is unchanged. The added server-render test failed before the fix, and a
+deliberately delayed-JavaScript browser test failed against the previous image in all three
+projects. After the fix:29 catalogue unit tests and the complete63-test SEO suite passed
+(desktop Chromium, mobile Chromium, WebKit); the frontend Docker build passed. Neither
+timeouts nor assertions were weakened. Source lint passed with one pre-existing dependency
+warning. The unrestricted local lint command still fails on pre-existing, untracked
+`frontend/dist-standalone` bundles; those user artifacts were preserved, not lint-suppressed.
+Evidence: `seo-red.log`, `seo-browser-red.log`, `seo-green.log`, `seo-browser-green.log`,
+`seo-build.log` and `seo-source-lint.log` under the same ignored private evidence directory.
+No application version was deployed. Provider/enrollment gates above remain unchanged.
+
 ## Germany dedicated model key — approved November 22 continuation
 
 The owner selected a separate Germany-only OpenRouter key and then confirmed it is **not
