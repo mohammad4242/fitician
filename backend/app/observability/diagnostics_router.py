@@ -60,6 +60,7 @@ from .diagnostics_service import (
     quota_integrity,
     record_event,
 )
+from .synthetic_router import router as synthetic_router
 from .trace_router import router as trace_router
 
 router = APIRouter(
@@ -976,6 +977,7 @@ async def infrastructure(
 
 
 router.include_router(trace_router)
+router.include_router(synthetic_router)
 
 
 @router.get("/issues/{issue_id}/evidence")

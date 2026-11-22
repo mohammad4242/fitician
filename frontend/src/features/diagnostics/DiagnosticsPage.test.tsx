@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DiagnosticsPage } from "./DiagnosticsPage";
@@ -31,8 +31,10 @@ const detail: DiagnosticIssueDetail = {
   issue, events: [event], status_history: [{ id: "history-1", issue_id: issue.id, actor_user_id: "admin-1", previous_status: "new", new_status: "investigating", note: "Reviewed safely", created_at: "2026-10-16T09:10:00Z" }],
 };
 
+function LocationProbe() { const location = useLocation(); return <span data-testid="location">{location.search}</span>; }
+
 function renderAt(path = "/admin/diagnostics") {
-  return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/admin/diagnostics" element={<DiagnosticsPage />} /></Routes></MemoryRouter>);
+  return render(<MemoryRouter initialEntries={[path]}><LocationProbe /><Routes><Route path="/admin/diagnostics" element={<DiagnosticsPage />} /></Routes></MemoryRouter>);
 }
 
 beforeEach(async () => {
@@ -108,4 +110,21 @@ it("shows bounded process-local capture losses without claiming a durable dead l
   expect(await screen.findByText("Recent capture losses (this process)")).toBeInTheDocument();
   expect(screen.getByText("persistence_exhausted")).toBeInTheDocument();
   expect(screen.getByText("00000000-0000-4000-8000-000000000001")).toBeInTheDocument();
+});
+
+it("honors an occurrence deep link and clears it when returning to the issue list", async () => {
+  renderAt("/admin/diagnostics?tab=issues&issue=issue-1&occurrence=event-1");
+  expect(await screen.findByRole("combobox", { name: "Occurrence" })).toHaveValue("event-1");
+  fireEvent.click(screen.getByRole("button", { name: /Back to issues/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /PLAN_INVALID/ }));
+  await waitFor(() => expect(screen.getByRole("combobox", { name: "Occurrence" })).toHaveValue(""));
+});
+
+
+it("persists a manually selected occurrence in the issue deep link", async () => {
+  renderAt("/admin/diagnostics?tab=issues&issue=issue-1&hours=168");
+  const occurrence = await screen.findByRole("combobox", { name: "Occurrence" });
+  fireEvent.change(occurrence, { target: { value: "event-1" } });
+  await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("occurrence=event-1"));
+  expect(screen.getByTestId("location")).toHaveTextContent("hours=168");
 });

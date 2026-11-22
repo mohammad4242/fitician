@@ -48,6 +48,7 @@ export function IssueEvidence({ issueId, events, english, occurrenceId: occurren
     <h3>{english ? "Technical evidence" : "شواهد فنی"}</h3>
     <label className="diagnostics-field">{english ? "Occurrence" : "رخداد منتخب"}<select value={occurrence} onChange={event => onOccurrenceChange(event.target.value)}>
       <option value="">{english ? "Latest available evidence" : "آخرین شواهد موجود"}</option>
+      {occurrence && !events.some(event => event.event_id === occurrence) && <option value={occurrence}>{english ? "Selected occurrence" : "رخداد منتخب"} · {occurrence}</option>}
       {events.map(event => <option key={event.event_id} value={event.event_id}>{event.timestamp} · {event.stage}</option>)}
     </select></label>
     {failure && <p role="alert">{failure}</p>}

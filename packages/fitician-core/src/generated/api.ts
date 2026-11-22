@@ -1270,6 +1270,24 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/synthetic-probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Policy */
+        get: operations["policy_api_v1_admin_diagnostics_synthetic_probe_get"];
+        put?: never;
+        /** Capture */
+        post: operations["capture_api_v1_admin_diagnostics_synthetic_probe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/diagnostics/trace-analytics": {
         parameters: {
             query?: never;
@@ -8353,6 +8371,30 @@ export type components = {
              */
             supports_tests: boolean;
         };
+        /** CaptureResult */
+        CaptureResult: {
+            /** Build */
+            build: string;
+            /**
+             * Delivery
+             * @enum {string}
+             */
+            delivery: "unconfirmed" | "not_configured" | "unknown";
+            /** Environment */
+            environment: string;
+            /**
+             * Event Id
+             * Format: uuid
+             */
+            event_id: string;
+            /**
+             * Issue Id
+             * Format: uuid
+             */
+            issue_id: string;
+            /** Sentry Event Id */
+            sentry_event_id: string | null;
+        };
         /** CatalogueConsumptionInput */
         CatalogueConsumptionInput: {
             /**
@@ -13169,6 +13211,11 @@ export type components = {
             model: string;
             /** Release Commit */
             release_commit: string;
+        };
+        /** ProbePolicy */
+        ProbePolicy: {
+            /** Enabled */
+            enabled: boolean;
         };
         /** ProbePollResponse */
         ProbePollResponse: {
@@ -19429,6 +19476,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SentryHealthResponse"];
+                };
+            };
+        };
+    };
+    policy_api_v1_admin_diagnostics_synthetic_probe_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProbePolicy"];
+                };
+            };
+        };
+    };
+    capture_api_v1_admin_diagnostics_synthetic_probe_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "idempotency-key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaptureResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

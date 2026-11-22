@@ -75,6 +75,21 @@ reduction occurred.
 Historical November21 notes below predate this dedicated-key decision and adapter/release
 policy implementation. Their unfinished-code notes are superseded by this checkpoint.
 
+### Controlled panel capture — November22
+
+The existing panel now offers a fixed synthetic exception action only when the host explicitly
+sets `DIAGNOSTICS_SYNTHETIC_PROBE_ENABLED=true` and its exact release commit is known. Default
+is off, including production. Admin/origin checks, actor/environment-scoped idempotency,
+cross-process PostgreSQL locking, six-captures/hour budget and stale-release rejection are
+implemented. Requests accept no custom exception text or business payload. Capture retains
+the original stack and correlation ID; local persistence never asserts Sentry/SMS delivery.
+The exact occurrence opens in the same workspace and stays in the URL across selection and
+refresh, while existing filters are retained. Returning to the list clears stale occurrence
+selection. Unknown external delivery is preserved as unknown.66 capture/privacy tests and83
+settings/diagnostics UI tests passed; focused mypy, TypeScript and secret checks passed.
+Live ingestion through this new action is a separate verification gate. No production flag
+was enabled and no new mobile build or physical SMS was sent.
+
 ## Revalidated completion checklist — 2026-11-21
 
 ### Current verification and remaining gates — November 21 UTC continuation

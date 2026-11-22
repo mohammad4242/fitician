@@ -9525,6 +9525,59 @@
         "title": "Capabilities",
         "type": "object"
       },
+      "CaptureResult": {
+        "additionalProperties": false,
+        "properties": {
+          "build": {
+            "title": "Build",
+            "type": "string"
+          },
+          "delivery": {
+            "enum": [
+              "unconfirmed",
+              "not_configured",
+              "unknown"
+            ],
+            "title": "Delivery",
+            "type": "string"
+          },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "issue_id": {
+            "format": "uuid",
+            "title": "Issue Id",
+            "type": "string"
+          },
+          "sentry_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sentry Event Id"
+          }
+        },
+        "required": [
+          "event_id",
+          "issue_id",
+          "sentry_event_id",
+          "build",
+          "environment",
+          "delivery"
+        ],
+        "title": "CaptureResult",
+        "type": "object"
+      },
       "CatalogueConsumptionInput": {
         "properties": {
           "entry_date": {
@@ -23262,6 +23315,20 @@
           "lease_token"
         ],
         "title": "ProbeJob",
+        "type": "object"
+      },
+      "ProbePolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "ProbePolicy",
         "type": "object"
       },
       "ProbePollResponse": {
@@ -39087,6 +39154,80 @@
           }
         ],
         "summary": "Sentry Health",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/synthetic-probe": {
+      "get": {
+        "operationId": "policy_api_v1_admin_diagnostics_synthetic_probe_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProbePolicy"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Policy",
+        "tags": [
+          "admin-diagnostics"
+        ]
+      },
+      "post": {
+        "operationId": "capture_api_v1_admin_diagnostics_synthetic_probe_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 80,
+              "minLength": 8,
+              "pattern": "^[A-Za-z0-9_.:-]+$",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Capture",
         "tags": [
           "admin-diagnostics"
         ]

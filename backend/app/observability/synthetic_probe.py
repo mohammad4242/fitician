@@ -1,4 +1,4 @@
-"""Operator-only synthetic capture; no route, user fixture or business mutation."""
+"""Fixed synthetic exception capture; no user payload or business mutation."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 import os
 import re
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from sqlalchemy.orm import Session
 
@@ -21,12 +21,15 @@ def raise_synthetic_failure() -> None:
     raise RuntimeError("FITICIAN_DIAGNOSTIC_SYNTHETIC_FAILURE")
 
 
-def record_synthetic_failure(db: Session, build: str) -> dict[str, Any]:
+def record_synthetic_failure(
+    db: Session, build: str, *, event_id: UUID | None = None, request_id: str | None = None
+) -> dict[str, Any]:
     if not re.fullmatch(r"[a-f0-9]{40}", build):
         raise ValueError("exact_release_commit_required")
     configured = initialize_sentry("backend")
     event = EventInput(
-        event_id=uuid4(),
+        event_id=event_id or uuid4(),
+        request_id=request_id,
         component="diagnostics",
         operation="sentry_verification",
         stage="synthetic_probe",

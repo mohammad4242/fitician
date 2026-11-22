@@ -1,3 +1,4 @@
+import { SyntheticProbe } from "./SyntheticProbe";
 import { DebugOperations } from "./DebugAutomation";
 import { DebugConversation } from "./DebugConversation";
 import { NotificationDeliveries } from "./NotificationDeliveries";
@@ -197,6 +198,7 @@ export function DiagnosticsPage() {
           )}
         </header>
 
+        <SyntheticProbe english={english} onCaptured={(issueId, occurrenceId) => { const next = new URLSearchParams(search); next.set("tab", "issues"); next.set("issue", issueId); next.set("occurrence", occurrenceId); setSearch(next); }} />
         <div className="diagnostics-tabs" role="tablist" aria-label={c.title}>
           {tabs.map((name, index) => (
             <button
@@ -351,10 +353,11 @@ function IssuesPanel({ search, setSearch }: { search: URLSearchParams; setSearch
   const list = useRemote<DiagnosticIssue[]>(loadIssues, JSON.stringify(filters));
   const [detailRetry, setDetailRetry] = useState(0);
   const loadDetail = useCallback(() => issueId ? getDiagnosticIssue(issueId) : Promise.resolve(null), [issueId]);
-  const detail = useRemote<DiagnosticIssueDetail | null>(loadDetail, `issue-${issueId ?? "none"}-${detailRetry}`);
+  const detail = useRemote<DiagnosticIssueDetail | null>(loadDetail, `issue-${issueId ?? "none"}-${search.get("occurrence") ?? "latest"}-${detailRetry}`);
   const changeSearch = (patch: Record<string, string | null>, clearIssue = false) => {
     const next = new URLSearchParams(search);
     next.set("tab", "issues");
+    if (clearIssue || (patch.issue && patch.issue !== issueId)) next.delete("occurrence");
     if (clearIssue) next.delete("issue");
     for (const [key, value] of Object.entries(patch)) {
       if (value === null || value === "") next.delete(key); else next.set(key, value);
@@ -365,7 +368,7 @@ function IssuesPanel({ search, setSearch }: { search: URLSearchParams; setSearch
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const next = new URLSearchParams(search);
-    next.set("tab", "issues"); next.delete("issue"); next.delete("offset");
+    next.set("tab", "issues"); next.delete("issue"); next.delete("occurrence"); next.delete("offset");
     for (const key of ["q", "platform", "component", "severity", "category", "status", "error_code", "user_id", "request_id", "version", "sort"]) {
       const value = String(form.get(key) ?? "").trim();
       if (value && !(key === "sort" && value === "last_seen")) next.set(key, value); else next.delete(key);
@@ -379,7 +382,7 @@ function IssuesPanel({ search, setSearch }: { search: URLSearchParams; setSearch
         <>
           <button className="diagnostics-button diagnostics-button--quiet diagnostics-back" onClick={() => changeSearch({}, true)} type="button">← {c.backToIssues}</button>
           <StatusMessage loading={detail.loading} error={detail.error} retry={detail.retry} />
-          {detail.data && <IssueDetail detail={detail.data} onSaved={() => setDetailRetry((value) => value + 1)} />}
+          {detail.data && <IssueDetail key={detail.data.issue.id} initialOccurrenceId={search.get("occurrence")} onOccurrenceSelected={value => changeSearch({ occurrence: value || null })} detail={detail.data} onSaved={() => setDetailRetry((value) => value + 1)} />}
         </>
       ) : (
         <>
@@ -427,12 +430,12 @@ function IssueTable({ issues, onOpen }: { issues: readonly DiagnosticIssue[]; on
   );
 }
 
-function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSaved: () => void }) {
+function IssueDetail({ detail, onSaved, initialOccurrenceId, onOccurrenceSelected }: { detail: DiagnosticIssueDetail; onSaved: () => void; initialOccurrenceId?: string | null; onOccurrenceSelected: (value: string) => void }) {
   const { c, english, locale } = useCopy();
   const { issue, events, status_history: history } = detail;
   const explanation = explainIssueCode(issue.error_code, english);
-  const [occurrenceId, setOccurrenceId] = useState("");
-  useEffect(() => { setOccurrenceId(""); }, [issue.id]);
+  const [occurrenceId, setOccurrenceId] = useState(initialOccurrenceId ?? "");
+  useEffect(() => { setOccurrenceId(initialOccurrenceId ?? ""); }, [issue.id, initialOccurrenceId]);
   const [status, setStatus] = useState<DiagnosticStatus>(issue.status);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -460,7 +463,7 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
         <p>{english ? "Cause assessments and their verification appear in the selected occurrence's investigation findings." : "فرضیه‌ها و نتیجهٔ بررسی علت، همراه با مدرک در یافته‌های رخداد منتخب نمایش داده می‌شوند."}</p>
         <p>{english ? "Next check" : "بررسی بعدی"}: {explanation.next}</p>
       </section>
-      <IssueEvidence key={issue.id} issueId={issue.id} events={events} english={english} occurrenceId={occurrenceId} onOccurrenceChange={setOccurrenceId} />
+      <IssueEvidence key={issue.id} issueId={issue.id} events={events} english={english} occurrenceId={occurrenceId} onOccurrenceChange={value => { setOccurrenceId(value); onOccurrenceSelected(value); }} />
       <IssueFindings key={`findings-${issue.id}-${occurrenceId}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
       <div className="diagnostics-detail-grid">
         <section className="diagnostics-card diagnostics-classification">
