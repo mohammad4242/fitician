@@ -7,6 +7,55 @@ environment gate and automatic delivery is limited to eligible main CI/component
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
+## Credential revalidation — November22 follow-up
+
+The owner reported the dedicated key saved. Fresh strict-host SSH inspection confirmed Germany
+host `fastcreate-560543` and the exact file `private/model-api.json`. It contained a bare
+OpenRouter-shaped key, not JSON (`Expecting value`, line1/column1). Its initial metadata was
+0644/root:root. Permissions and ownership were tightened to0600/10001:10001; byte-for-byte
+content equality was verified. No credential value was printed, copied to Iran, or replaced.
+
+The actual current GermanyProvider source was then exercised in a temporary128MiB /0.1CPU,
+read-only, network-none container on Germany. It mounted the exact credential file read-only
+and returned `dedicated_model_credential_invalid` with **zero provider requests**. This proves
+the format blocker, not invalid OpenRouter authentication. Provider-side daily budget,
+actual model latency and model execution remain unverified. The local policy is maximumUSD1/day
+with BYOK included and six inference requests/minute; it has not been weakened.
+
+Production AI Settings was read without mutation: no `debug_agent` configuration/model exists.
+The commissioning runtime remains image4a70812f/awaiting_enrollment; CLI0.167.2 and its ChatGPT
+login cache were rechecked without claiming network authentication. No runtime enrollment or
+production configuration was written. Non-production model selection is pending owner input.
+
+`ops/repair-debug-model-format.py` is prepared, tested and installed root-only in the existing
+Germany setup directory. Its `--preview` produced a private review bound to the existing file's
+identity/digest, without changing credential content. `--apply --owner-approved` is intentionally
+**not run**: the owner's explicit no-overwrite instruction requires approval for this content
+format change. It preserves the exact original root-private in the same credential store,
+keeps the same actual key, atomically publishes the purpose-bound JSON with a new revision,
+and rejects rotation/races or unexpected formats. No new key or secret in chat is needed.
+
+Verification:8 focused provisioning/repair tests and the complete414-test ops suite passed;
+focused Ruff and the tracked secret scan passed. New tests cover dry-run, original recovery,
+permissions, symlinks, concurrent key changes and refusal to echo secret-like CLI arguments.
+Private metadata-only evidence is in `.codex-tmp/germany-key-20261122/`.
+
+The prior exact head36f4c154 now has fully successful
+[CI44994019081](https://github.com/mohammad4242/fitician/actions/runs/44994019081) and Public SEO.
+Logs confirm4818 backend tests passed; the sole backend skip is the pre-existing opt-in
+`tests/ai/test_zen_live.py:14` requiring `ZEN_LIVE_TEST=true`. It was not enabled with the debug
+key or replaced with another provider. Agent283, mobile Jest407 and browser172 passed.
+Skipped jobs/steps are intentional: full-backend replaces component validation; PRs do not
+publish/deploy production images; manual scope is not requested; reused core artifacts avoid
+rebuilding; frontend/Agent profiles need no PostgreSQL pull; failure-evidence upload runs only
+on failure. No genuine failed CI test was found and no check was weakened.
+
+Remaining gates: authorized same-key format conversion, explicit test model selection,
+provider authentication/budget validation, non-production enrollment/execution and the real
+server-hosted panel/repair/PR path. Reviewed-main policy and production activation gates remain.
+No paid inference, production deploy/migration/restart/SMS activation or VPS change occurred.
+The following November22 checkpoint predates this fresh credential inspection.
+
 ## Germany dedicated model key — approved November 22 continuation
 
 The owner selected a separate Germany-only OpenRouter key and then confirmed it is **not
