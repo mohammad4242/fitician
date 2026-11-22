@@ -62,6 +62,7 @@ COPY backend/app/debugging/__init__.py backend/app/debugging/appserver.py \
      backend/app/debugging/privacy.py backend/app/debugging/runtime_storage.py \
      backend/app/debugging/server_runtime.py backend/app/debugging/tools.py \
      backend/app/debugging/workspaces.py backend/app/debugging/ci_contract.py \
+     backend/app/debugging/laptop_validation.py \
      backend/app/debugging/github_automation.py backend/app/debugging/automation_client.py \
      backend/app/debugging/host_broker.py backend/app/debugging/deployment_broker.py \
      backend/app/debugging/github_deployment.py backend/app/debugging/release_contract.py \

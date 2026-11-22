@@ -139,7 +139,11 @@ Final local checks for Option A (November23):
 - Frontend: `npm run test --workspace frontend -- --run src/features/diagnostics
   src/features/admin/AdminAiSettingsPage.test.tsx src/features/admin/AgentServicePanel.test.tsx`
   — **88 passed**; full `npm run build --workspace frontend` passed (351 prerendered pages).
-- `python3 -m unittest ops/tests/test_debug_validation.py -q` — **9 passed**.
+- `python3 -m unittest ops/tests/test_debug_validation.py -q` — **9 passed**;
+  `python3 -m unittest discover -s ops/tests -q` — **421 passed**. Initial hosted
+  CI45081230138 found the missing transitive `laptop_validation` module in the legacy runtime
+  image copy list. Its existing dependency test failed locally before the one-line packaging
+  correction and the full ops suite passed afterward; the check was not changed or bypassed.
 - Mypy: all35 Agent Service modules and14 changed backend modules passed. Source-scoped Ruff,
   frontend `oxlint src`, OpenAPI consistency and whitespace checks passed. Broad local lint also
   scans pre-existing untracked standalone bundles/test scratch directories and reports findings
