@@ -64,9 +64,9 @@ class AgentGenerationInput(BaseModel):
     timeout_seconds: float = Field(gt=0, le=600)
     web_access: Literal["disabled", "live"] = "disabled"
     # Multipart transport metadata. Backend task semantics remain in the fields above.
-    image_labels: tuple[
-        Annotated[str, StringConstraints(min_length=1, max_length=40)], ...
-    ] | None = Field(
+    image_labels: (
+        tuple[Annotated[str, StringConstraints(min_length=1, max_length=40)], ...] | None
+    ) = Field(
         default=None,
         max_length=5,
     )
@@ -134,6 +134,16 @@ class RunnerModelCapabilities(BaseModel):
 class RunnerCapabilities(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    debug_status: (
+        Literal[
+            "available",
+            "not_installed",
+            "authentication_required",
+            "models_unavailable",
+            "native_tool_isolation_unavailable",
+        ]
+        | None
+    ) = Field(default=None, exclude_if=lambda value: value is None)
     agent: AgentName
     installed: bool
     version: str | None = None

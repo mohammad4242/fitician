@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.body_analysis.admin_config.enums import AITaskType
-from app.body_analysis.admin_config.models import AITaskConfig
+from app.body_analysis.admin_config.models import AIAgentProfileVerification, AITaskConfig
 from app.observability.diagnostics_models import DiagnosticEvent, DiagnosticIssue
 from app.observability.environment import diagnostics_environment
 from app.observability.evidence import evidence_package
@@ -137,6 +137,18 @@ def submit_message(
     from .runtime_profiles import execution_capabilities, snapshot_connector
 
     snapshot["connector_id"] = snapshot_connector(db, snapshot)
+    verification = db.scalar(
+        select(AIAgentProfileVerification).where(
+            AIAgentProfileVerification.task_type == AITaskType.DEBUG_AGENT,
+            AIAgentProfileVerification.profile_id == snapshot.get("agent_profile_id"),
+            AIAgentProfileVerification.status == "passed",
+        )
+    )
+    snapshot["agent_profile_fingerprint"] = (
+        verification.profile_fingerprint if verification else None
+    )
+    snapshot["architecture"] = "agent_service_laptop_v1"
+    snapshot["authorized_action"] = action
     # JSON provenance cannot contain a native UUID or credentials.
     snapshot["debug_connector_id"] = (
         str(snapshot["debug_connector_id"]) if snapshot.get("debug_connector_id") else None

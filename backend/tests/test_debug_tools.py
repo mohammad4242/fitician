@@ -271,3 +271,17 @@ def test_cancellation_stops_own_test_container_without_successful_test_evidence(
         ["docker", "ps", "-aq", "--filter", "name=^/" + name + "$"], text=True
     ).strip()
     assert tools.test_evidence is None
+
+
+def test_review_diff_includes_new_regression_files_without_staging_them(tmp_path):
+    original = tmp_path / "original"
+    commit = repository(original)
+    tools = RepositoryTools.create(
+        original, tmp_path / "worktrees", str(uuid4()), commit, allow_write=True
+    )
+    tools.write_file("test_regression.py", "def test_regression():\n    assert 2 + 3 == 5\n")
+    assert "test_regression.py" in tools.diff()
+    assert "+def test_regression():" in tools.diff()
+    assert not subprocess.check_output(
+        ["git", "-C", str(tools.workspace), "diff", "--cached"], text=True
+    )

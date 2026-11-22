@@ -35,6 +35,7 @@ TOOLS = frozenset(
         "fitician_write_file",
         "fitician_diff",
         "fitician_run_tests",
+        "fitician_validate",
         "fitician_commit",
         "fitician_create_pr",
         "fitician_codex_turn",
@@ -110,6 +111,12 @@ def enqueue_call(
     arguments: dict[str, Any],
 ) -> DebugConnectorCall:
     _authorize_run(db, run)
+    if run.config_snapshot.get("architecture") == "agent_service_laptop_v1" and tool in {
+        "fitician_commit",
+        "fitician_create_pr",
+        "fitician_ci_publish_pr",
+    }:
+        raise ValueError("publication_authorization_required")
     thread = db.get(DebugThread, run.thread_id)
     if (
         connector.revoked
@@ -312,7 +319,7 @@ def update_call(
             raise ValueError("invalid_progress_sequence")
         row.progress_sequence = sequence
         if kind == "tool_started":
-            if payload.get("tool") == "fitician_run_tests":
+            if payload.get("tool") in {"fitician_run_tests", "fitician_validate"}:
                 run.state = "testing"
             elif payload.get("tool") in MUTATIONS:
                 run.state = "editing"

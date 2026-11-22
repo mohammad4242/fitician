@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import hashlib
 import json
 import os
@@ -74,11 +75,20 @@ def _git(root: Path, *arguments: str, timeout_seconds: float = 30) -> str:
         try:
             process.communicate(timeout=5)
         except subprocess.TimeoutExpired:
+            pass
+        finally:
+            # Parent completion does not prove HTTPS/credential helpers exited.
             try:
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
-            process.communicate()
+        try:
+            process.communicate(timeout=1)
+        except subprocess.TimeoutExpired:
+            if process.stdout:
+                process.stdout.close()
+            if process.stderr:
+                process.stderr.close()
         raise ValueError("repository_operation_timed_out") from None
     if process.returncode:
         raise ValueError("repository_operation_failed")
@@ -234,7 +244,34 @@ class RepositoryTools:
         return "file_written"
 
     def diff(self) -> str:
-        return sanitize_text(_git(self.workspace, "diff", "--no-ext-diff", "--no-textconv", "HEAD"))
+        patch = _git(self.workspace, "diff", "--no-ext-diff", "--no-textconv", "HEAD")
+        for name in sorted(
+            filter(
+                None,
+                _git(self.workspace, "ls-files", "--others", "--exclude-standard", "-z").split(
+                    "\0"
+                ),
+            )
+        ):
+            path = self.safe_path(name)
+            if not path.is_file() or path.stat().st_size > 131072:
+                raise ValueError("evidence_bound_exceeded")
+            patch += f"diff --git a/{name} b/{name}\nnew file mode 100644\n"
+            patch += "".join(
+                difflib.unified_diff(
+                    [],
+                    path.read_text().splitlines(keepends=True),
+                    fromfile="/dev/null",
+                    tofile="b/" + name,
+                )
+            )
+        value = sanitize_text(patch)
+        if len(patch) > 32000:
+            value = (
+                "[diff excerpt truncated; inspect the immutable candidate for the full patch]\n"
+                + value
+            )
+        return value
 
     def tree_digest(self) -> str:
         digest = hashlib.sha256(

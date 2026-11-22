@@ -11,6 +11,8 @@ def tool_catalog(
     supports_tests: bool = True,
     supports_github: bool = True,
     supports_ci: bool = False,
+    supports_validation: bool = False,
+    validation_profiles: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     def tool(
         name: str, description: str, properties: dict[str, Any], required: list[str]
@@ -92,6 +94,25 @@ def tool_catalog(
             ["path"],
         ),
     ]
+    if supports_validation:
+        tools.append(
+            tool(
+                "validate",
+                "Run a fixed backend, PostgreSQL migration, frontend or "
+                "Agent Service validation profile on the selected laptop in the credential-free CI "
+                "sandbox. No arbitrary commands or production database access.",
+                {
+                    "profile": {
+                        "type": "string",
+                        "enum": validation_profiles
+                        if validation_profiles is not None
+                        else ["backend", "migrations", "frontend", "frontend_build", "agent"],
+                    },
+                    "tests": {"type": "array", "maxItems": 16, "items": path},
+                },
+                ["profile", "tests"],
+            )
+        )
     if allow_write:
         tools += [
             tool(

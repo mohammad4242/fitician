@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import time
 from pathlib import Path
 from uuid import uuid4
@@ -126,6 +127,7 @@ def run(
     tests: list[str],
     output: Path,
     policy_sha: str,
+    *, cancelled: threading.Event | None = None,
 ) -> dict:
     spec = validation_spec(profile, tests)
     metadata = json.loads(command("docker", "image", "inspect", image))[0]
@@ -215,7 +217,8 @@ def run(
                 try:
                     while process.poll() is None:
                         if (
-                            time.monotonic() > deadline
+                            (cancelled is not None and cancelled.is_set())
+                            or time.monotonic() > deadline
                             or os.fstat(log.fileno()).st_size > 1048576
                         ):
                             raise ValueError("validation_time_or_output_limit")

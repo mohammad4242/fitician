@@ -82,9 +82,7 @@ def test_api_execution_target_persists_only_in_debug_agent_settings(db, test_set
         )
 
 
-def test_selected_codex_profile_keeps_its_offline_target_in_run_provenance(db):
-    from app.debugging.runtime_profiles import profile_id
-
+def test_selected_agent_profile_keeps_independent_offline_target_in_run_provenance(db):
     _, target = target_fixture(db)
     target.last_seen = None
     target.capabilities = {"cli_version": "0.167.2", "supports_codex": True, "models": ["chosen"]}
@@ -94,7 +92,8 @@ def test_selected_codex_profile_keeps_its_offline_target_in_run_provenance(db):
         {
             "execution_backend": "agent_service",
             "agent_model_id": "chosen",
-            "agent_profile_id": profile_id(target, "chosen"),
+            "agent_profile_id": "agent-service-profile",
+            "debug_connector_id": str(target.id),
         },
     ) == str(target.id)
 
@@ -153,11 +152,24 @@ def test_debug_settings_require_current_online_verified_profile_without_touching
     connector, _ = enroll_connector(db, actor.id, "Laptop")
     connector.last_seen = datetime.now(UTC)
     connector.capabilities = {
+        "execution_role": "repository_worker",
         "cli_version": "0.167.2",
         "supports_codex": True,
         "models": ["selected-model"],
     }
-    profile = capabilities(db).runners[0].profiles[0]
+    from app.body_analysis.admin_config.schemas import AgentServiceModelProfile
+
+    profile = AgentServiceModelProfile(
+        profile_id="codex-selected-model-low",
+        agent="codex",
+        model_id="selected-model",
+        display_name="Selected account model",
+        task_kinds=[AITaskType.DEBUG_AGENT],
+        supports_text_input=True,
+        supports_image_input=False,
+        supports_structured_output=True,
+        fingerprint="a" * 16,
+    )
     assert profile.task_kinds == [AITaskType.DEBUG_AGENT]
     payload = AITaskConfigUpdate(
         execution_backend="agent_service",
@@ -165,6 +177,7 @@ def test_debug_settings_require_current_online_verified_profile_without_touching
         agent_model_id=profile.model_id,
         agent_profile_id=profile.profile_id,
         enabled=True,
+        debug_connector_id=connector.id,
     )
     with pytest.raises(AIConfigError, match="must pass"):
         save_task_config(
@@ -190,7 +203,7 @@ def test_debug_settings_require_current_online_verified_profile_without_touching
     assert saved.agent_model_id == "selected-model"
     connector.revoked = True
     db.flush()
-    with pytest.raises(AIConfigError, match="must be online"):
+    with pytest.raises((AIConfigError, ValueError), match="not authorized"):
         save_task_config(
             db,
             task_type=AITaskType.DEBUG_AGENT,

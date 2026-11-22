@@ -6,6 +6,7 @@ const agentNames: AdminAiAgentName[] = ["antigravity", "codex", "claude"];
 
 export type AgentServicePanelProps = {
   runners: AdminAiAgentRunnerCapability[];
+  debugMode?: boolean;
   loading: boolean;
   unavailable: boolean;
   selectedAgent: AdminAiAgentName | null;
@@ -21,6 +22,7 @@ export type AgentServicePanelProps = {
 
 export function AgentServicePanel({
   runners,
+  debugMode = false,
   loading,
   unavailable,
   selectedAgent,
@@ -33,7 +35,7 @@ export function AgentServicePanel({
   onTest,
   testDisabled,
 }: AgentServicePanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const runnerByAgent = new Map(runners.map((runner) => [runner.agent, runner]));
   const selectedLabel = selectedAgent
     ? t(`admin.aiSettings.agents.${selectedAgent}`)
@@ -87,6 +89,7 @@ export function AgentServicePanel({
                 <span>{t("admin.aiSettings.agentService.selectAgent", { agent: label })}</span>
                 <strong>{label}</strong>
               </button>
+              {debugMode && <p role="status">{debugStatusLabel(runner.debug_status, i18n.resolvedLanguage === "en")}</p>}
               <dl className="admin-agent-card__details">
                 <div>
                   <dt>{t("admin.aiSettings.agentService.installation")}</dt>
@@ -172,4 +175,16 @@ function unavailableRunner(agent: AdminAiAgentName): AdminAiAgentRunnerCapabilit
     auth_mode: "unknown",
     models: [],
   };
+}
+
+function debugStatusLabel(status: AdminAiAgentRunnerCapability["debug_status"], english: boolean) {
+  const labels: Record<string, [string, string]> = {
+    available: ["Debug profile available; test before enabling.", "پروفایل دیباگ در دسترس است؛ پیش از فعال‌سازی تست کنید."],
+    not_installed: ["CLI is not installed.", "CLI نصب نشده است."],
+    authentication_required: ["Agent login is required in Agent Service.", "ورود ایجنت در Agent Service لازم است."],
+    models_unavailable: ["No model was discovered or explicitly configured in the CLI.", "مدلی از CLI کشف یا صریحاً تنظیم نشده است."],
+    native_tool_isolation_unavailable: ["This CLI version cannot safely restrict native tools for debugging.", "جداسازی امن ابزارهای داخلی برای دیباگ در این نسخهٔ CLI تأیید نشده است."],
+    unknown: ["Debug capability is unverified.", "قابلیت دیباگ هنوز تأیید نشده است."],
+  };
+  return (labels[status ?? "unknown"] ?? labels.unknown)[english ? 0 : 1];
 }

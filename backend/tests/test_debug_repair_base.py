@@ -168,7 +168,7 @@ def test_timed_out_git_fetch_reaps_its_helper_process(tmp_path, monkeypatch):
     binary.write_text(
         "#!"
         + sys.executable
-        + '\nimport subprocess,sys,time\n'
+        + "\nimport subprocess,sys,time\n"
         + 'p=subprocess.Popen([sys.executable,"-c","import time;time.sleep(60)"])\nopen('
         + repr(str(child))
         + ',"w").write(str(p.pid))\ntime.sleep(60)\n'
@@ -182,6 +182,65 @@ def test_timed_out_git_fetch_reaps_its_helper_process(tmp_path, monkeypatch):
         if child.exists():
             pid = int(child.read_text())
             status = Path("/proc") / str(pid) / "stat"
-            if status.exists() and status.read_text().split()[2] != "Z":
-                os.kill(pid, 9)
-                pytest.fail("Git helper survived timeout")
+            import time
+
+            deadline = time.monotonic() + 1
+            while time.monotonic() < deadline:
+                try:
+                    if status.read_text().split()[2] == "Z":
+                        break
+                except (FileNotFoundError, ProcessLookupError):
+                    break
+                time.sleep(0.01)
+            else:
+                try:
+                    os.kill(pid, 9)
+                except ProcessLookupError:
+                    pass
+                else:
+                    pytest.fail("Git helper survived timeout")
+
+
+def test_git_timeout_kills_a_helper_that_ignores_termination(tmp_path, monkeypatch):
+    import os
+    import sys
+    import time
+
+    from app.debugging.tools import _git
+
+    child = tmp_path / "ignoring.pid"
+    binary = tmp_path / "git"
+    program = (
+        "import signal,time,pathlib,os;signal.signal(signal.SIGTERM,signal.SIG_IGN);"
+        f"pathlib.Path({str(child)!r}).write_text(str(os.getpid()));time.sleep(60)"
+    )
+    binary.write_text(
+        "#!"
+        + sys.executable
+        + "\nimport subprocess,sys,time\n"
+        + f'subprocess.Popen([sys.executable,"-c",{program!r}],'
+        + "stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\ntime.sleep(60)\n"
+    )
+    binary.chmod(0o700)
+    monkeypatch.setenv("PATH", str(tmp_path))
+    try:
+        with pytest.raises(ValueError, match="repository_operation_timed_out"):
+            _git(tmp_path, "fetch", timeout_seconds=0.5)
+        assert child.exists()
+        status = __import__("pathlib").Path("/proc") / child.read_text() / "stat"
+        deadline = time.monotonic() + 1
+        while time.monotonic() < deadline:
+            try:
+                if status.read_text().split()[2] == "Z":
+                    break
+            except (FileNotFoundError, ProcessLookupError):
+                break
+            time.sleep(0.01)
+        else:
+            pytest.fail("Git helper ignored termination and survived group cleanup")
+    finally:
+        if child.exists():
+            try:
+                os.kill(int(child.read_text()), 9)
+            except ProcessLookupError:
+                pass

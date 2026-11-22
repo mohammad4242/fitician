@@ -68,6 +68,17 @@ def validate_configuration(config: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("repository_scope_mismatch")
     if not re.fullmatch(r"[A-Za-z0-9_-]{32,100}", config["token"]):
         raise ValueError("invalid_connector_credential")
+    if config.get("execution_role") == "repository_worker":
+        images = config.get("validation_images", {})
+        if not isinstance(images, dict) or any(
+            key not in {"backend", "migrations", "frontend", "frontend_build", "agent"}
+            or not isinstance(value, str)
+            or not re.fullmatch(r"sha256:[a-f0-9]{64}", value)
+            for key, value in images.items()
+        ):
+            raise ValueError("pinned_validation_policy_required")
+        if images and not re.fullmatch(r"[a-f0-9]{40}", config.get("validation_policy_commit", "")):
+            raise ValueError("pinned_validation_policy_required")
     if config.get("codex_home"):
         binary = Path(config.get("codex_executable", ""))
         if (
@@ -105,6 +116,19 @@ class LaptopConnector:
         self.root = Path(config["workspace_root"]).resolve()
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.repository = Path(config["repository"]).resolve(strict=True)
+        if config.get("execution_role") == "repository_worker":
+            try:
+                origin = _git(self.repository, "remote", "get-url", "origin").strip()
+                top = Path(_git(self.repository, "rev-parse", "--show-toplevel").strip()).resolve()
+                if top != self.repository or origin not in {
+                    "git@github.com:mohammad4242/fitician.git",
+                    "https://github.com/mohammad4242/fitician.git",
+                    "https://github.com/mohammad4242/fitician",
+                    "ssh://git@github.com/mohammad4242/fitician.git",
+                }:
+                    raise ValueError("repository_identity_mismatch")
+            except ValueError:
+                raise ValueError("repository_identity_mismatch") from None
         self.prefix = config["server"].rstrip("/") + "/api/v1/debug-connectors/" + config["id"]
         self.models: list[str] = []
         self.cli_version: str | None = None
@@ -114,7 +138,9 @@ class LaptopConnector:
         self.runtime_error_code: RuntimeSetupError | None = None
         self.github_available = bool(self.config.get("github_enabled", True) and shutil.which("gh"))
         self.ci_available = False
-        self.model_provider = model_provider
+        self.model_provider = (
+            None if config.get("execution_role") == "repository_worker" else model_provider
+        )
         self.api_revision: str | None = None
         self.api_error: str | None = None
         self._codex: AppServer | None = None
@@ -189,6 +215,11 @@ class LaptopConnector:
             return value
 
     async def discover(self) -> None:
+        if self.config.get("execution_role") == "repository_worker":
+            self.models = []
+            self.cli_version = None
+            self.runtime_error_code = None
+            return
         self.api_revision = None
         self.api_error = None
         if self.model_provider is not None:
@@ -233,10 +264,21 @@ class LaptopConnector:
         response = await self.request(
             "/heartbeat",
             {
+                "execution_role": self.config.get("execution_role", "legacy_runtime"),
+                "repository_branch": (
+                    await asyncio.to_thread(_git, self.repository, "branch", "--show-current")
+                ).strip()[:200],
                 "cli_version": self.cli_version,
                 "models": self.models,
                 "supports_codex": bool(self.models),
                 "supports_tests": bool(self.config.get("test_image")),
+                "supports_validation": bool(
+                    self.config.get("validation_images")
+                    and self.config.get("validation_policy_commit")
+                ),
+                "validation_profiles": sorted(self.config.get("validation_images", {})),
+                "validation_images": self.config.get("validation_images", {}),
+                "validation_policy_commit": self.config.get("validation_policy_commit"),
                 "supports_github": self.github_available,
                 "supports_ci": bool(self.config.get("ci_enabled")),
                 "api_provider": "openrouter" if self.model_provider is not None else None,
@@ -257,6 +299,11 @@ class LaptopConnector:
         self.ci_available = bool(response.get("ci_available"))
 
     async def execute(self, job: dict[str, Any]) -> dict[str, Any]:
+        if self.config.get("execution_role") == "repository_worker" and job["tool"] in {
+            "fitician_codex_turn",
+            "fitician_api_turn",
+        }:
+            return {"error_code": "laptop_model_execution_forbidden"}
         if (
             job["repository"] != self.config["repository_name"]
             or job["environment"] != self.config["environment"]
@@ -352,6 +399,11 @@ class LaptopConnector:
                 for item in tool_catalog(
                     allow_write=tools.allow_write,
                     supports_tests=bool(self.config.get("test_image")),
+                    supports_validation=bool(
+                        self.config.get("validation_images")
+                        and self.config.get("validation_policy_commit")
+                    ),
+                    validation_profiles=sorted(self.config.get("validation_images", {})),
                     supports_github=self.github_available,
                     supports_ci=bool(
                         self.config.get("ci_enabled") and job["config"].get("automation_worker_id")
@@ -432,6 +484,27 @@ class LaptopConnector:
                             "snapshot_digest": snapshot["snapshot_digest"],
                         },
                     )
+                elif name == "fitician_validate":
+                    from .laptop_validation import run_validation
+
+                    cancelled = threading.Event()
+                    validation_task = asyncio.create_task(
+                        asyncio.to_thread(
+                            run_validation,
+                            tools,
+                            arguments["profile"],
+                            arguments["tests"],
+                            self.config.get("validation_images", {}).get(arguments["profile"], ""),
+                            self.config.get("validation_policy_commit", ""),
+                            cancelled=cancelled,
+                        )
+                    )
+                    try:
+                        value = await asyncio.shield(validation_task)
+                    except asyncio.CancelledError:
+                        cancelled.set()
+                        await asyncio.gather(validation_task, return_exceptions=True)
+                        raise
                 elif name == "fitician_run_tests":
                     cancelled = threading.Event()
                     test_task = asyncio.create_task(
@@ -559,10 +632,15 @@ class LaptopConnector:
     async def execute_probe(self, job: dict[str, Any]) -> dict[str, Any]:
         model = job["model"]
         result: dict[str, Any] = {"model": model, "read_tool_executed": False}
+        repository_probe = job.get("execution_backend") == "repository"
         api = job.get("execution_backend") == "api"
         if api and not self.model_provider:
             return {**result, "error_code": "dedicated_model_credential_required"}
-        if not api and (model not in self.models or not self.config.get("codex_home")):
+        if (
+            not repository_probe
+            and not api
+            and (model not in self.models or not self.config.get("codex_home"))
+        ):
             return {**result, "error_code": "selected_model_not_available"}
         journal = self.root / ("probe-" + str(UUID(job["id"])) + ".json")
         if journal.is_file():
@@ -609,7 +687,21 @@ class LaptopConnector:
             )
 
             async def execute() -> None:
-                if api:
+                if repository_probe:
+                    result.update(
+                        output=await asyncio.to_thread(
+                            tools.read_file,
+                            self.config.get(
+                                "repository_probe_path",
+                                "backend/app/observability/synthetic_probe.py",
+                            ),
+                            count=12,
+                        ),
+                        read_tool_executed=True,
+                        repository_head=job["release_commit"],
+                        execution_role="repository_worker",
+                    )
+                elif api:
                     assert self.model_provider is not None
                     value = await self.model_provider.execute(
                         config=job["config"],

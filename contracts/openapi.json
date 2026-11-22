@@ -4586,6 +4586,24 @@
             "title": "Auth State",
             "type": "string"
           },
+          "debug_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "available",
+                  "not_installed",
+                  "authentication_required",
+                  "models_unavailable",
+                  "native_tool_isolation_unavailable"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Debug Status"
+          },
           "installed": {
             "title": "Installed",
             "type": "boolean"
@@ -9448,6 +9466,15 @@
             ],
             "title": "Cli Version"
           },
+          "execution_role": {
+            "default": "legacy_runtime",
+            "enum": [
+              "repository_worker",
+              "legacy_runtime"
+            ],
+            "title": "Execution Role",
+            "type": "string"
+          },
           "models": {
             "items": {
               "type": "string"
@@ -9455,6 +9482,18 @@
             "maxItems": 100,
             "title": "Models",
             "type": "array"
+          },
+          "repository_branch": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repository Branch"
           },
           "repository_head": {
             "pattern": "^[a-f0-9]{40}$",
@@ -9517,6 +9556,46 @@
             "default": false,
             "title": "Supports Tests",
             "type": "boolean"
+          },
+          "supports_validation": {
+            "default": false,
+            "title": "Supports Validation",
+            "type": "boolean"
+          },
+          "validation_images": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 5,
+            "title": "Validation Images",
+            "type": "object"
+          },
+          "validation_policy_commit": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{40}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Policy Commit"
+          },
+          "validation_profiles": {
+            "items": {
+              "enum": [
+                "backend",
+                "migrations",
+                "frontend",
+                "frontend_build",
+                "agent"
+              ],
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Validation Profiles",
+            "type": "array"
           }
         },
         "required": [
@@ -23283,7 +23362,8 @@
             "default": "agent_service",
             "enum": [
               "api",
-              "agent_service"
+              "agent_service",
+              "repository"
             ],
             "title": "Execution Backend",
             "type": "string"
@@ -25873,6 +25953,28 @@
           "show_on_register"
         ],
         "title": "PublicSignupCampaignResponse",
+        "type": "object"
+      },
+      "PublicationApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "snapshot_digest": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Snapshot Digest",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 140,
+            "minLength": 10,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "snapshot_digest"
+        ],
+        "title": "PublicationApproval",
         "type": "object"
       },
       "PublicationRequest": {
@@ -37280,6 +37382,112 @@
         ]
       }
     },
+    "/api/v1/admin/diagnostics/connectors/{connector_id}/repository-probes": {
+      "post": {
+        "operationId": "start_repository_probe_api_v1_admin_diagnostics_connectors__connector_id__repository_probes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProbeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Repository Probe",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/connectors/{connector_id}/repository-probes/{probe_id}": {
+      "get": {
+        "operationId": "read_api_probe_api_v1_admin_diagnostics_connectors__connector_id__repository_probes__probe_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "probe_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Probe Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProbeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Api Probe",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
     "/api/v1/admin/diagnostics/connectors/{connector_id}/revoke": {
       "post": {
         "operationId": "revoke_laptop_api_v1_admin_diagnostics_connectors__connector_id__revoke_post",
@@ -38730,6 +38938,74 @@
           }
         ],
         "summary": "Cancel Operation",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/issues/{issue_id}/operations/{validation_id}/publish": {
+      "post": {
+        "operationId": "approve_publication_api_v1_admin_diagnostics_issues__issue_id__operations__validation_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issue_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Issue Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "validation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Validation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicationApproval"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Approve Publication",
         "tags": [
           "admin-debugging"
         ]

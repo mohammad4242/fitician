@@ -3,8 +3,9 @@ import pytest
 from app.debugging.connectors import authenticate_connector, enroll_connector
 
 
+@pytest.mark.parametrize("execution_role", [None, "repository_worker"])
 def test_enrolled_runtime_reconnects_to_real_routes_and_reuses_registration_after_restart(
-    client, db, tmp_path
+    client, db, tmp_path, execution_role
 ):
     import asyncio
     import json
@@ -27,10 +28,15 @@ def test_enrolled_runtime_reconnects_to_real_routes_and_reuses_registration_afte
     enrollment = response.json()
     source = tmp_path / "repository"
     repository(source)
+    if execution_role:
+        from app.debugging.tools import _git
+
+        _git(source, "remote", "add", "origin", "git@github.com:mohammad4242/fitician.git")
     config_path = tmp_path / "connector.json"
     config_path.write_text(
         json.dumps(
             {
+                **({"execution_role": execution_role} if execution_role else {}),
                 "id": enrollment["id"],
                 "token": enrollment["token"],
                 "server": "http://127.0.0.1",

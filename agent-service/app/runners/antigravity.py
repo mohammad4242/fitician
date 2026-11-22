@@ -166,6 +166,8 @@ class AntigravityRunner(AgentRunner):
         return shutil.which(self.executable) is not None
 
     async def run(self, request: RunnerRequest) -> RunnerResult:
+        if request.external_tools_only:
+            raise RunnerError("invalid_request", "native tool isolation unavailable")
         if request.effort is not None and request.effort not in {
             "low",
             "medium",

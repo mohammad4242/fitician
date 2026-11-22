@@ -408,6 +408,7 @@ export type AdminAiAgentModelProfile = {
 };
 
 export type AdminAiAgentRunnerCapability = {
+  debug_status?: "available" | "not_installed" | "authentication_required" | "models_unavailable" | "native_tool_isolation_unavailable" | null;
   agent: AdminAiAgentName;
   installed: boolean;
   version: string | null;

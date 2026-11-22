@@ -101,6 +101,42 @@ def queue_api_probe(
     return row
 
 
+def queue_repository_probe(
+    db: Session, connector: DebugConnector, actor_id: UUID
+) -> DebugConnectorProbe:
+    from .runtime_profiles import authorized_target
+
+    authorized_target(db, connector.id)
+    actor = db.get(User, actor_id)
+    if not actor or not actor.is_admin:
+        raise ValueError("probe_not_authorized")
+    now = datetime.now(UTC)
+    if not connector.last_seen or connector.last_seen < now - timedelta(seconds=30):
+        raise ValueError("local_connector_offline")
+    if connector.capabilities.get("execution_role") != "repository_worker":
+        raise ValueError("repository_worker_required")
+    for previous in db.scalars(
+        select(DebugConnectorProbe).where(
+            DebugConnectorProbe.connector_id == connector.id,
+            DebugConnectorProbe.state.in_(["queued", "running"]),
+        )
+    ):
+        if previous.created_at < now - timedelta(seconds=150):
+            previous.state = "failed"
+        else:
+            raise ValueError("runtime_probe_already_active")
+    row = DebugConnectorProbe(
+        connector_id=connector.id,
+        actor_id=actor_id,
+        model="repository",
+        release_commit=connector.capabilities["repository_head"],
+        result={"request_config": {"execution_backend": "repository"}},
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
 def claim_probe(db: Session, connector: DebugConnector) -> dict[str, Any] | None:
     row = db.scalar(
         select(DebugConnectorProbe)

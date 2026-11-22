@@ -11,7 +11,7 @@ it("shows independent runtime login failure separately from its panel connection
   expect(screen.getByText("متصل")).toBeInTheDocument();
 });
 it("shows never connected honestly and scopes revocation to the selected connector", async () => {
-  vi.mocked(request).mockResolvedValueOnce([{ id: "connector-1", name: "Laptop", environment: "staging", revoked: false, last_seen: null, capabilities: {} }]).mockResolvedValueOnce({ revoked: true }).mockResolvedValue([]);
+  vi.mocked(request).mockResolvedValueOnce([{ id: "connector-1", name: "Laptop", environment: "staging", revoked: false, last_seen: null, capabilities: { execution_role: "repository_worker" } }]).mockResolvedValueOnce({ revoked: true }).mockResolvedValue([]);
   render(<DebugConnectors english />);
   await screen.findByText("Never connected");
   fireEvent.click(screen.getByRole("button", { name: "Revoke connector" }));
@@ -34,8 +34,8 @@ it("downloads the once-returned credential without displaying it or using browse
 it("retains the explicitly selected offline server while a laptop is online", async () => {
   const change = vi.fn();
   vi.mocked(request).mockResolvedValue([
-    { id: "germany", name: "Germany", environment: "production", revoked: false, last_seen: null, capabilities: {} },
-    { id: "laptop", name: "Laptop", environment: "production", revoked: false, last_seen: new Date().toISOString(), capabilities: {} },
+    { id: "germany", name: "Germany", environment: "production", revoked: false, last_seen: null, capabilities: { execution_role: "repository_worker" } },
+    { id: "laptop", name: "Laptop", environment: "production", revoked: false, last_seen: new Date().toISOString(), capabilities: { execution_role: "repository_worker" } },
   ]);
   render(<DebugConnectors english showExecutionTarget selectedTarget="germany" onSelectTarget={change} />);
   await screen.findByRole("option", { name: /Germany/ });
@@ -52,13 +52,13 @@ it("keeps an unavailable saved target visible instead of clearing it", async () 
   expect(screen.getByRole("combobox", { name: "Tool execution target" })).toHaveValue("missing-target");
 });
 
-it("enrolls the Germany runtime separately from the optional laptop", async () => {
+it("enrolls a repository worker without requiring AI authentication", async () => {
   vi.mocked(request).mockResolvedValueOnce([]).mockResolvedValueOnce({ id: "connector-1", token: "private-fixture", environment: "production", repository: "mohammad4242/fitician" }).mockResolvedValue([]);
   URL.createObjectURL = vi.fn(() => "blob:private-config");
   const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
   render(<DebugConnectors english />);
-  expect(screen.getByRole("combobox", { name: "New connector location" })).toHaveValue("server");
+  expect(screen.getByRole("combobox", { name: "New connector location" })).toHaveValue("laptop");
   fireEvent.click(screen.getByRole("button", { name: "Enroll and download private configuration" }));
-  await waitFor(() => expect(request).toHaveBeenCalledWith("/api/v1/admin/diagnostics/connectors", { method: "POST", body: JSON.stringify({ name: "Germany debug runtime" }) }));
+  await waitFor(() => expect(request).toHaveBeenCalledWith("/api/v1/admin/diagnostics/connectors", { method: "POST", body: JSON.stringify({ name: "Laptop" }) }));
   click.mockRestore();
 });

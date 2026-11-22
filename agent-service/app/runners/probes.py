@@ -23,6 +23,8 @@ class CliMetadataProbe:
     environment: EnvironmentProvider
     auth_status_args: Sequence[str] | None = None
     auth_status_parser: AuthStatusParser | None = None
+    version_timeout_seconds: float = 2
+    auth_timeout_seconds: float = 3
     _version_checked: bool = field(default=False, init=False, repr=False)
     _version: str | None = field(default=None, init=False, repr=False)
     _version_lock: asyncio.Lock = field(default_factory=asyncio.Lock, init=False, repr=False)
@@ -37,7 +39,7 @@ class CliMetadataProbe:
                 result = await run_process(
                     [self.executable, "--version"],
                     workspace=self.workspace,
-                    timeout_seconds=2,
+                    timeout_seconds=self.version_timeout_seconds,
                     env=self._environment(),
                     inherit_environment=False,
                 )
@@ -56,7 +58,7 @@ class CliMetadataProbe:
             result = await run_process(
                 [self.executable, *self.auth_status_args],
                 workspace=self.workspace,
-                timeout_seconds=3,
+                timeout_seconds=self.auth_timeout_seconds,
                 env=self._environment(),
                 inherit_environment=False,
             )

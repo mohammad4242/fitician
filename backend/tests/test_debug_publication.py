@@ -8,6 +8,8 @@ from tests.test_debug_automation import broker_for, request, setup_case
 
 
 def successful_validation(db, run):
+    # Legacy automatic publication remains covered; unified runs require a human action.
+    run.config_snapshot = {k: v for k, v in run.config_snapshot.items() if k != "architecture"}
     row = automation.queue_validation(db, run.id, "validation", request())
     row.state = "succeeded"
     row.result = {
@@ -143,3 +145,33 @@ def test_publication_ack_replay_never_authorizes_a_second_post_or_marks_issue_re
         == completed
     )
     assert db.get(DiagnosticIssue, occurrence.issue_id).status == "new"
+
+
+def test_unified_model_cannot_publish_without_separate_snapshot_bound_human_action(db):
+    actor, _, run, _ = setup_case(db)
+    run.action = "prepare_fix"
+    run.config_snapshot = {**run.config_snapshot, "architecture": "agent_service_laptop_v1"}
+    validation = successful_validation(db, run)
+    run.config_snapshot = {**run.config_snapshot, "architecture": "agent_service_laptop_v1"}
+    with pytest.raises(ValueError, match="publication_authorization_required"):
+        queue_publication(
+            db,
+            run.id,
+            "unapproved",
+            validation.id,
+            "fix(debug-agent): repair seeded behavior",
+            request()["snapshot"]["snapshot_digest"],
+        )
+    run.state = "completed"
+    publication = queue_publication(
+        db,
+        run.id,
+        "human-approved",
+        validation.id,
+        "fix(debug-agent): repair seeded behavior",
+        request()["snapshot"]["snapshot_digest"],
+        approved_by=actor.id,
+    )
+    assert publication.request["approved_by"] == str(actor.id)
+    assert publication.request["snapshot"] == validation.request["snapshot"]
+    assert run.state == "completed"

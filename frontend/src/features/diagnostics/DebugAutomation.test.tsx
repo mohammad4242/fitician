@@ -67,3 +67,18 @@ it("explains absent GitHub credentials in Persian alongside the exact code", asy
   expect(await screen.findByText(/دسترسی مستقل GitHub تنظیم نشده/)).toBeInTheDocument();
   expect(screen.getByText('github_credential_not_configured')).toBeInTheDocument();
 });
+
+it("requires an explicit human action for an exact validated snapshot Draft PR", async () => {
+  const { fireEvent, waitFor } = await import("@testing-library/react");
+  vi.mocked(request).mockImplementation(async path => path.endsWith('/automation-status') ? { connected: true, configured: true } as never : path.endsWith('/publish') ? {} as never : {
+    operations: [{ id: 'validated', run_id: 'run', kind: 'validate', state: 'succeeded', profile: 'backend', purpose: 'repair_validation', environment: 'test', occurrence_id: 'selected', snapshot_digest: 'a'.repeat(64), result: { artifact_verified: true, validation: { passed: true } } }],
+  } as never);
+  render(<DebugOperations issueId="ci-issue" occurrenceId="selected" english />);
+  const title = await screen.findByRole('textbox', { name: 'Draft PR title' });
+  fireEvent.change(title, { target: { value: 'fix(debug-agent): repair seeded behavior' } });
+  expect(request).not.toHaveBeenCalledWith(expect.stringContaining('/publish'), expect.anything());
+  fireEvent.click(screen.getByRole('button', { name: 'Authorize tested Draft PR' }));
+  await waitFor(() => expect(request).toHaveBeenCalledWith('/api/v1/admin/diagnostics/issues/ci-issue/operations/validated/publish', {
+    method: 'POST', body: JSON.stringify({ title: 'fix(debug-agent): repair seeded behavior', snapshot_digest: 'a'.repeat(64) }),
+  }));
+});

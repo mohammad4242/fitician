@@ -161,6 +161,16 @@ class AgentServiceModelCapability(BaseModel):
 class AgentServiceRunnerCapability(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    debug_status: (
+        Literal[
+            "available",
+            "not_installed",
+            "authentication_required",
+            "models_unavailable",
+            "native_tool_isolation_unavailable",
+        ]
+        | None
+    ) = Field(default=None, exclude_if=lambda value: value is None)
     agent: AIAgentName
     installed: bool
     version: str | None = Field(default=None, max_length=120)

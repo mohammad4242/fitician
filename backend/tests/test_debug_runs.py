@@ -277,12 +277,14 @@ def test_runtime_setup_failure_is_a_specific_blocked_run_without_a_fabricated_re
 
     _, run, connector, _ = setup_run(db)
     run.config_snapshot = {
+        "architecture": "agent_service_laptop_v1",
         "enabled": True,
         "execution_backend": "agent_service",
         "agent_name": "codex",
         "agent_model_id": "selected-model",
         "connector_id": str(connector.id),
     }
+    connector.capabilities = {**connector.capabilities, "execution_role": "repository_worker"}
     connector.last_seen = datetime.now(UTC)
     db.flush()
 
@@ -290,7 +292,7 @@ def test_runtime_setup_failure_is_a_specific_blocked_run_without_a_fabricated_re
         raise ValueError(code)
 
     monkeypatch.setattr(worker, "get_engine", lambda _: db.connection())
-    monkeypatch.setattr(worker, "call_connector", unavailable)
+    monkeypatch.setattr("app.debugging.agent_runtime.run_agent", unavailable)
     asyncio.run(worker.execute_run(test_settings, run.id, run.lease_token))
     db.expire_all()
     assert run.state == "blocked"
@@ -522,8 +524,10 @@ def test_completed_worker_atomically_links_one_reply_to_its_run(db, test_setting
     _, run, connector, _ = setup_run(db)
     from datetime import UTC, datetime
 
+    connector.capabilities = {**connector.capabilities, "execution_role": "repository_worker"}
     connector.last_seen = datetime.now(UTC)
     run.config_snapshot = {
+        "architecture": "agent_service_laptop_v1",
         "enabled": True,
         "execution_backend": "agent_service",
         "agent_name": "codex",
@@ -533,10 +537,10 @@ def test_completed_worker_atomically_links_one_reply_to_its_run(db, test_setting
     db.flush()
 
     async def completed(*args, **kwargs):
-        return {"output": "Observed synthetic evidence"}
+        return "Observed synthetic evidence"
 
     monkeypatch.setattr(worker, "get_engine", lambda _: db.connection())
-    monkeypatch.setattr(worker, "call_connector", completed)
+    monkeypatch.setattr("app.debugging.agent_runtime.run_agent", completed)
     lease = run.lease_token
     asyncio.run(worker.execute_run(test_settings, run.id, lease))
     db.expire_all()

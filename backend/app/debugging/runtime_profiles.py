@@ -111,11 +111,6 @@ def capabilities(db: Session) -> AgentServiceCapabilitiesResponse:
 
 
 def snapshot_connector(db: Session, config: dict[str, Any]) -> str | None:
-    if config.get("execution_backend") == "agent_service":
-        connector = connector_for_profile(
-            db, config.get("agent_profile_id"), config.get("agent_model_id"), include_offline=True
-        )
-        return str(connector.id) if connector else None
     identifier = config.get("debug_connector_id")
     return str(authorized_target(db, identifier).id) if identifier else None
 
@@ -143,9 +138,14 @@ def execution_capabilities(
     connector: DebugConnector, *, backend: str | None = None
 ) -> dict[str, Any]:
     result = {
+        "execution_role": connector.capabilities.get("execution_role", "legacy_runtime"),
         "cli_version": connector.capabilities.get("cli_version"),
         "runtime_revision": connector.capabilities.get("runtime_revision"),
         "supports_tests": bool(connector.capabilities.get("supports_tests")),
+        "supports_validation": bool(connector.capabilities.get("supports_validation")),
+        "validation_profiles": connector.capabilities.get("validation_profiles", []),
+        "validation_images": connector.capabilities.get("validation_images", {}),
+        "validation_policy_commit": connector.capabilities.get("validation_policy_commit"),
         "supports_github": bool(connector.capabilities.get("supports_github")),
         "supports_ci": bool(connector.capabilities.get("supports_ci")),
     }

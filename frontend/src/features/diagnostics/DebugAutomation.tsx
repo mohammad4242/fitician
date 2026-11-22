@@ -11,6 +11,28 @@ const root = "/api/v1/admin/diagnostics";
 const active = new Set(["queued", "preparing", "dispatching", "uncertain", "running", "awaiting_authorization", "deploying", "verifying"]);
 const codeStyle = { overflowWrap: "anywhere", whiteSpace: "normal" } as const;
 
+function PublicationApproval({ issueId, operation, english, onUpdated }: { issueId: string; operation: Operation; english: boolean; onUpdated: () => void }) {
+  const [title, setTitle] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  async function approve() {
+    setBusy(true); setFailed(false);
+    try {
+      await request(`${root}/issues/${encodeURIComponent(issueId)}/operations/${encodeURIComponent(operation.id)}/publish`, {
+        method: "POST", body: JSON.stringify({ title, snapshot_digest: operation.snapshot_digest }),
+      });
+      onUpdated();
+    } catch { setFailed(true); } finally { setBusy(false); }
+  }
+  return <div>
+    <p>{english ? "Review the diff and CI evidence before authorizing this exact tested snapshot. This creates a Draft PR; it does not merge or deploy." : "پیش از تأیید، diff و نتیجهٔ CI این نسخه را بررسی کنید. این اقدام فقط PR پیش‌نویس می‌سازد؛ ادغام یا استقرار انجام نمی‌شود."}</p>
+    <code dir="ltr" style={codeStyle}>{operation.snapshot_digest}</code>
+    <label>{english ? "Draft PR title" : "عنوان PR پیش‌نویس"}<input dir="ltr" value={title} maxLength={140} onChange={event => setTitle(event.target.value)} /></label>
+    <button type="button" disabled={busy || title.length < 10} onClick={() => void approve()}>{english ? "Authorize tested Draft PR" : "تأیید ساخت PR برای نسخهٔ آزموده‌شده"}</button>
+    {failed && <p role="alert">{english ? "Publication was not authorized or failed. Refresh the recorded operation before retrying." : "ساخت PR تأیید نشد یا ناموفق بود؛ پیش از تکرار، وضعیت ثبت‌شده را بررسی کنید."}</p>}
+  </div>;
+}
+
 export function DebugAutomationSetup({ english }: { english: boolean }) {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [busy, setBusy] = useState(false);
@@ -137,6 +159,7 @@ export function DebugOperations({ issueId, occurrenceId, english }: { issueId: s
           <p>{english ? "This PR does not mean deployed or verified resolved." : "این PR به معنی انتشار یا رفع تأییدشدهٔ خطا نیست."}</p>
         </>}
         {row.error_code && <p>{explainDebugFailure(row.error_code, english)} <code dir="ltr" style={codeStyle}>{row.error_code}</code></p>}
+        {row.kind === "validate" && row.state === "succeeded" && row.purpose === "repair_validation" && row.occurrence_id === occurrenceId && row.result.artifact_verified === true && row.snapshot_digest && !rows.some(other => other.kind === "publish_pr" && other.snapshot_digest === row.snapshot_digest) && <PublicationApproval issueId={issueId} operation={row} english={english} onUpdated={reloadOperations} />}
         {row.kind === "publish_pr" && row.state === "succeeded" && row.occurrence_id === occurrenceId && <DeploymentRequest publication={row} observations={rows} issueId={issueId} english={english} onUpdated={reloadOperations} />}
         {row.kind === "deploy" && <DeploymentReview operation={row} issueId={issueId} english={english} onUpdated={reloadOperations} />}
         {row.kind === "deploy" && row.occurrence_id === occurrenceId && <ReleaseReplayRequest deployment={row} observations={rows} issueId={issueId} english={english} onUpdated={reloadOperations} />}

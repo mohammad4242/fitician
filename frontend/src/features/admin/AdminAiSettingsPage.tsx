@@ -1,5 +1,3 @@
-import { request } from "../../shared/apiClient";
-import { explainDebugFailure } from "../diagnostics/debugFailure";
 import { DebugAutomationSetup } from "../diagnostics/DebugAutomation";
 import { DebugConnectors } from "../diagnostics/DebugConnectors";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -286,34 +284,8 @@ export function AdminAiSettingsPage() {
       return;
     }
     if (taskAtStart === "debug_agent") {
-      if (!config?.debug_connector_id || !config.primary_model_id) {
-        setLocalError(i18n.resolvedLanguage === "en" ? "Select an explicit runtime and model." : "محل اجرا و مدل را انتخاب کنید.");
-        finishOperation(taskAtStart, epochAtStart, operation);
-        return;
-      }
-      const base = `/api/v1/admin/diagnostics/connectors/${encodeURIComponent(config.debug_connector_id)}/api-probes`;
-      type Probe = { id: string; state: string; result?: { error_code?: string; model?: string; mode?: string; read_tool_executed?: boolean; output?: string } };
-      void (async () => {
-        let probe = await request<Probe>(base, { method: "POST", body: JSON.stringify({ model: config.primary_model_id }) });
-        for (let attempt = 0; attempt < 150 && isActiveOperation(taskAtStart, epochAtStart, operation); attempt++) {
-          probe = await request<Probe>(`${base}/${encodeURIComponent(probe.id)}`);
-          if (probe.state === "completed" || probe.state === "failed") break;
-          await new Promise(resolve => window.setTimeout(resolve, 1000));
-        }
-        if (!isActiveOperation(taskAtStart, epochAtStart, operation)) return;
-        const result = probe.result;
-        if (probe.state !== "completed" || result?.error_code || result?.model !== config.primary_model_id || !result?.output) {
-          setLocalError(explainDebugFailure(result?.error_code ?? null, i18n.resolvedLanguage === "en") ?? t("admin.aiSettings.connectionFailed"));
-        } else if (result.mode === "api_tools" && result.read_tool_executed) {
-          setMessage(t("admin.aiSettings.taskSmokePassed"));
-        } else if (result.mode === "analysis_only") {
-          setMessage(i18n.resolvedLanguage === "en" ? "Model replied. Analysis only; tools are unsupported." : "مدل پاسخ داد؛ فقط تحلیل فعال است و ابزار پشتیبانی نمی‌شود.");
-        } else {
-          setLocalError(t("admin.aiSettings.connectionFailed"));
-        }
-      })().catch((cause: unknown) => {
-        if (isActiveOperation(taskAtStart, epochAtStart, operation)) setError(cause);
-      }).finally(() => finishOperation(taskAtStart, epochAtStart, operation));
+      setLocalError(i18n.resolvedLanguage === "en" ? "Select Agent Service for unified debugging." : "برای دیباگ یکپارچه، Agent Service را انتخاب کنید.");
+      finishOperation(taskAtStart, epochAtStart, operation);
       return;
     }
     void testAdminAiProvider(apiKey || undefined)
@@ -441,12 +413,13 @@ export function AdminAiSettingsPage() {
         ))}
       </nav>
 
-      {selectedTask === "debug_agent" && <DebugConnectors english={i18n.resolvedLanguage === "en"} showExecutionTarget={!agentMode} selectedTarget={config?.debug_connector_id} onSelectTarget={id => patchConfig({ debug_connector_id: id })} />}
+      {selectedTask === "debug_agent" && <DebugConnectors english={i18n.resolvedLanguage === "en"} showExecutionTarget selectedTarget={config?.debug_connector_id} onSelectTarget={id => patchConfig({ debug_connector_id: id })} />}
       {selectedTask === "debug_agent" && <DebugAutomationSetup english={i18n.resolvedLanguage === "en"} />}
       <form className="admin-ai-settings-form" onSubmit={handleSave}>
         <section className="admin-panel">
           <h2>{t(`admin.aiSettings.tasks.${selectedTask}`)}</h2>
-          {selectedTask === "debug_agent" && <p role="note">{i18n.resolvedLanguage === "en" ? "Uses the selected API model or verified Codex connector profile. API models without tool support stay analysis-only. Tools require an online connector. Deployment needs separate artifact-bound authorization. Temperature, confidence threshold, cost limits and automatic model fallback are not applied to analysis runs." : "مدل API یا پروفایل تأییدشده Codex انتخاب می‌شود. مدل بدون پشتیبانی ابزار فقط تحلیل می‌کند. ابزارها به اتصال آنلاین نیاز دارند؛ استقرار مجوز مستقل برای نسخهٔ آزموده‌شده می‌خواهد. دما، آستانه اطمینان، سقف هزینه و تعویض خودکار مدل در اجرای تحلیل اعمال نمی‌شوند."}</p>}
+          {selectedTask === "debug_agent" && !agentMode && <p role="status">{i18n.resolvedLanguage === "en" ? "Select Agent Service to configure unified debugging. Previous API settings remain recorded but cannot start new unified runs." : "برای تنظیم دیباگ یکپارچه، Agent Service را انتخاب کنید. تنظیمات API قبلی حفظ می‌شوند اما برای اجرای جدید استفاده نمی‌شوند."}</p>}
+          {selectedTask === "debug_agent" && <p role="note">{i18n.resolvedLanguage === "en" ? "The selected agent runs in Agent Service. Repository tools and tests run on the independently selected laptop. The laptop needs no AI login. Offline targets block execution; no automatic fallback. Publishing and deployment require separate authorization." : "ایجنت منتخب در Agent Service اجرا می‌شود. ابزارهای مخزن و آزمون‌ها روی لپ‌تاپ منتخب اجرا می‌شوند؛ لپ‌تاپ به ورود حساب AI نیاز ندارد. اتصال آفلاین اجرا را متوقف می‌کند. انتشار PR و استقرار مجوز جداگانه می‌خواهند."}</p>}
           <fieldset className="admin-ai-backend-switch">
             <legend>{t("admin.aiSettings.executionBackend")}</legend>
             <label className={foodPriceAgentOnly ? "is-disabled" : undefined}>
@@ -455,7 +428,7 @@ export function AdminAiSettingsPage() {
                 name="execution-backend"
                 value="api"
                 checked={config.execution_backend === "api"}
-                disabled={foodPriceAgentOnly}
+                disabled={foodPriceAgentOnly || selectedTask === "debug_agent"}
                 onChange={() => {
                   setAuthAgent(null);
                   patchConfig({ execution_backend: "api" });
@@ -472,17 +445,17 @@ export function AdminAiSettingsPage() {
                 disabled={!agentTaskSupported}
                 onChange={() => {
                   setAuthAgent(null);
-                  patchConfig({ execution_backend: "agent_service", ...(selectedTask === "debug_agent" ? { agent_name: "codex", debug_connector_id: null } : {}) });
+                  patchConfig({ execution_backend: "agent_service" });
                 }}
               />
-              {selectedTask === "debug_agent" ? (i18n.resolvedLanguage === "en" ? "Enrolled interactive runtime" : "runtime تعاملی متصل") : t("admin.aiSettings.agentServiceBackend")}
+              {t("admin.aiSettings.agentServiceBackend")}
             </label>
             {!agentTaskSupported && <p className="admin-ai-inline-note">{t("admin.aiSettings.agentUnsupported")}</p>}
             {foodPriceAgentOnly && <p className="admin-ai-inline-note">{t("admin.aiSettings.foodPriceAgentOnly")}</p>}
           </fieldset>
-          {!agentMode && <>
+          {!agentMode && selectedTask !== "debug_agent" && <>
             <label className="admin-ai-setting-field"><span>{t("admin.aiSettings.provider")}</span><input value="OpenRouter" disabled /></label>
-            {selectedTask === "debug_agent" ? <p>{i18n.resolvedLanguage === "en" ? "Dedicated debug key: configure only in the Germany runtime credential store. The application key is never used." : "کلید اختصاصی دیباگ فقط در محل امن runtime آلمان تنظیم می‌شود. کلید برنامه استفاده نمی‌شود."}</p> : <label className="admin-ai-setting-field" htmlFor="ai-api-key">
+            <label className="admin-ai-setting-field" htmlFor="ai-api-key">
               <span>{t("admin.aiSettings.apiKey")}</span>
               <input
                 id="ai-api-key"
@@ -492,9 +465,10 @@ export function AdminAiSettingsPage() {
                 placeholder={config.credential.masked ?? t("admin.aiSettings.apiKeyPlaceholder")}
                 onChange={(event) => setApiKey(event.target.value)}
               />
-            </label>}
+            </label>
           </>}
-          {agentMode && selectedTask !== "debug_agent" && <AgentServicePanel
+          {agentMode && <AgentServicePanel
+            debugMode={selectedTask === "debug_agent"}
             runners={agentCapabilities}
             loading={agentCapabilitiesLoading}
             unavailable={agentCapabilitiesLoadError !== null}
@@ -508,16 +482,17 @@ export function AdminAiSettingsPage() {
             onTest={handleConnectionTest}
             testDisabled={busy !== null || !targetAgentIsReady(config)}
           />}
-          {agentMode && selectedTask === "debug_agent" && <div className="admin-ai-settings-actions"><button type="button" disabled={busy !== null || !targetAgentIsReady(config)} onClick={handleConnectionTest}>{i18n.resolvedLanguage === "en" ? "Test selected model with a read-only tool" : "تست مدل منتخب با ابزار فقط‌خواندنی"}</button><button type="button" onClick={loadAgentCapabilities}>{i18n.resolvedLanguage === "en" ? "Refresh runtime profiles" : "تازه‌سازی پروفایل‌های runtime"}</button></div>}
+
+          {agentMode && selectedTask === "debug_agent" && <><button type="button" disabled={agentCapabilitiesLoading} onClick={loadAgentCapabilities}>{i18n.resolvedLanguage === "en" ? "Refresh agent capabilities" : "تازه‌سازی قابلیت‌های ایجنت‌ها"}</button>{selectedRunner && !(selectedRunner.profiles ?? []).some(profile => profile.task_kinds.includes("debug_agent")) && <p role="status">{i18n.resolvedLanguage === "en" ? "This agent has no available debug profile. Installation and login alone do not prove native-tool isolation or model availability." : "این ایجنت پروفایل دیباگ در دسترس ندارد. نصب و ورود به‌تنهایی جداسازی امن ابزارها یا دسترسی مدل را تأیید نمی‌کنند."}</p>}</>}
           {agentCapabilitiesLoadError !== null && <AppErrorNotice audience="admin" context="generic" error={agentCapabilitiesLoadError} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
           <dl className="admin-ai-observability">
             <div><dt>{t("admin.aiSettings.lastConnection")}</dt><dd>{config.last_successful_connection_test_at ?? "—"}</dd></div>
             <div><dt>{t("admin.aiSettings.lastCatalogRefresh")}</dt><dd>{config.last_model_catalog_refresh_at ?? "—"}</dd></div>
             <div><dt>{t("admin.aiSettings.lastError")}</dt><dd>{config.last_error_code ?? "—"}{config.last_error_message ? ` — ${config.last_error_message}` : ""}</dd></div>
           </dl>
-          {!agentMode && <div className="admin-ai-settings-actions">
+          {!agentMode && selectedTask !== "debug_agent" && <div className="admin-ai-settings-actions">
             <button type="button" disabled={busy !== null} onClick={handleConnectionTest}>{t("admin.aiSettings.test")}</button>
-            <button type="button" disabled={busy !== null || (selectedTask !== "debug_agent" && !config.credential.configured)} onClick={handleRefresh}>{selectedTask === "debug_agent" ? (i18n.resolvedLanguage === "en" ? "Reload cached model catalog" : "خواندن دوبارهٔ فهرست ذخیره‌شدهٔ مدل‌ها") : t("admin.aiSettings.refresh")}</button>
+            <button type="button" disabled={busy !== null || !config.credential.configured} onClick={handleRefresh}>{t("admin.aiSettings.refresh")}</button>
           </div>}
           {feedbackOperation !== "save" && message && <p className="admin-ai-provider-feedback admin-ai-settings-message" role="status">{message}</p>}
           {feedbackOperation !== "save" && error !== null && <AppErrorNotice audience="admin" context="generic" error={error} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
@@ -526,6 +501,7 @@ export function AdminAiSettingsPage() {
 
         <section className="admin-panel">
           {catalogStale && !agentMode && <p className="form-error" role="status">{t("admin.aiSettings.catalogStale")}</p>}
+          <fieldset disabled={selectedTask === "debug_agent" && !agentMode} style={{ border: 0, minWidth: 0, margin: 0, padding: 0 }}>
           <AiModelSelector
             id="primary-model"
             label={agentMode ? t("admin.aiSettings.agentModel") : t("admin.aiSettings.primaryModel")}
@@ -544,6 +520,7 @@ export function AdminAiSettingsPage() {
               });
             }}
           />
+          </fieldset>
           {agentMode && selectedProfile && <p className="admin-ai-inline-note" role="status">
             {t("admin.aiSettings.agentService.profileStatus", {
               status: t(`admin.aiSettings.agentService.status.${selectedProfile.verification_status}`),
@@ -627,7 +604,7 @@ function toAgentCatalogModels(
         if (!runner.installed || !profile.task_kinds.includes(task)) return false;
         const needsImage = task === "body_photo_analysis" || task === "food_photo_estimation";
         const needsLiveWeb = task === "food_price_search";
-        return (task === "debug_agent" || profile.supports_structured_output)
+        return profile.supports_structured_output
           && profile.supports_text_input
           && (!needsImage || profile.supports_image_input)
           && (!needsLiveWeb || profile.supports_live_web);

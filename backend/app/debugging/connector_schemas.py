@@ -54,7 +54,7 @@ class ProgressResponse(StrictResponse):
 
 
 class ProbeJob(StrictResponse):
-    execution_backend: Literal["api", "agent_service"] = "agent_service"
+    execution_backend: Literal["api", "agent_service", "repository"] = "agent_service"
     config: dict[str, Any] = Field(default_factory=dict)
     id: UUID
     model: str

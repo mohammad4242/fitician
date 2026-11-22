@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
+from app.body_analysis.providers import AIProviderError
 from app.config import Settings, get_settings
 from app.database.session import get_engine
 from app.profile import models as profile_models  # noqa: F401
@@ -45,10 +46,16 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
             failure = "debug_agent_disabled"
         elif config.get("execution_backend") not in {"api", "agent_service"}:
             failure = "interactive_runtime_not_configured"
+        elif (
+            config.get("architecture") == "agent_service_laptop_v1"
+            and config.get("execution_backend") != "agent_service"
+        ):
+            failure = "interactive_runtime_not_configured"
         elif config.get("execution_backend") == "api" and not config.get("connector_id"):
             failure = "local_connector_not_configured"
         elif config.get("execution_backend") == "agent_service" and (
-            config.get("agent_name") != "codex" or not config.get("connector_id")
+            config.get("agent_name") not in {"codex", "claude", "antigravity"}
+            or not config.get("connector_id")
         ):
             failure = "interactive_runtime_not_configured"
         if failure is None and config.get("connector_id"):
@@ -58,6 +65,12 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                     seconds=30
                 ):
                     failure = "execution_target_offline"
+                elif (
+                    config.get("architecture") == "agent_service_laptop_v1"
+                    and config.get("execution_backend") == "agent_service"
+                    and target.capabilities.get("execution_role") != "repository_worker"
+                ):
+                    failure = "repository_worker_required"
                 elif config.get("execution_backend") == "api" and not target.capabilities.get(
                     "supports_api"
                 ):
@@ -117,6 +130,13 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
 
             async def execute() -> str:
                 nonlocal mode
+                if config.get("execution_backend") == "agent_service":
+                    if config.get("architecture") != "agent_service_laptop_v1":
+                        raise ValueError("interactive_runtime_not_configured")
+                    from .agent_runtime import run_agent
+
+                    mode = "agent_service_laptop"
+                    return await run_agent(settings, engine, run_id, lease_token, config, messages)
                 api = config.get("execution_backend") == "api"
                 mode = "api_remote" if api else "codex_app_server"
                 result = await call_connector(
@@ -174,6 +194,13 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
             failure = "provider_timeout"
         except httpx.HTTPError:
             failure = "provider_unreachable"
+        except AIProviderError as error:
+            failure = {
+                "unauthorized": "agent_authentication_required",
+                "model_not_found": "agent_profile_unavailable",
+                "timeout": "provider_timeout",
+                "rate_limited": "provider_rate_limited",
+            }.get(error.code.value, "provider_rejected")
         except (ValueError, RuntimeError, KeyError, IndexError, TypeError) as error:
             safe_codes = {
                 *CONNECTOR_BLOCKERS,

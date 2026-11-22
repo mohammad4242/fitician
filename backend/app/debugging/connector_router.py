@@ -51,10 +51,18 @@ Connector = Annotated[DebugConnector, Depends(principal)]
 
 class Capabilities(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    execution_role: Literal["repository_worker", "legacy_runtime"] = "legacy_runtime"
+    repository_branch: str | None = Field(default=None, max_length=200)
     cli_version: str | None = Field(default=None, max_length=40)
     models: list[str] = Field(default_factory=list, max_length=100)
     supports_codex: bool = False
     supports_tests: bool = False
+    supports_validation: bool = False
+    validation_profiles: list[
+        Literal["backend", "migrations", "frontend", "frontend_build", "agent"]
+    ] = Field(default_factory=list, max_length=5)
+    validation_images: dict[str, str] = Field(default_factory=dict, max_length=5)
+    validation_policy_commit: str | None = Field(default=None, pattern=r"^[a-f0-9]{40}$")
     supports_github: bool = False
     supports_ci: bool = False
     api_provider: Literal["openrouter"] | None = None

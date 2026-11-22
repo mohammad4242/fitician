@@ -418,7 +418,9 @@ def test_api_probe_runs_a_real_scoped_read_without_codex_and_replays_no_paid_req
     assert len(posts) == 2
 
 
-def test_debug_api_enables_with_dedicated_target_without_any_application_key(db, test_settings):
+def test_legacy_debug_api_cannot_enable_unified_runs_even_with_a_dedicated_target(
+    db, test_settings
+):
     from app.body_analysis.admin_config.enums import AIProviderName, AITaskType
     from app.body_analysis.admin_config.models import AIModelCatalogEntry
     from app.body_analysis.admin_config.schemas import AITaskConfigUpdate
@@ -445,13 +447,17 @@ def test_debug_api_enables_with_dedicated_target_without_any_application_key(db,
         )
     )
     db.flush()
-    result = save_task_config(
-        db,
-        task_type=AITaskType.DEBUG_AGENT,
-        actor=actor,
-        settings=test_settings,
-        payload=AITaskConfigUpdate(
-            enabled=True, debug_connector_id=target.id, primary_model_id="chosen/model"
-        ),
-    )
-    assert result.enabled and result.credential.configured and result.credential.masked is None
+    import pytest
+
+    from app.body_analysis.admin_config.service import AIConfigError
+
+    with pytest.raises(AIConfigError, match="requires Agent Service"):
+        save_task_config(
+            db,
+            task_type=AITaskType.DEBUG_AGENT,
+            actor=actor,
+            settings=test_settings,
+            payload=AITaskConfigUpdate(
+                enabled=True, debug_connector_id=target.id, primary_model_id="chosen/model"
+            ),
+        )

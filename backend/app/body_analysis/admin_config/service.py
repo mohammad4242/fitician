@@ -303,6 +303,13 @@ def save_task_config(
             "FOOD_PRICE_SEARCH must use Agent Service for production price research"
         )
 
+    if (
+        task_type is AITaskType.DEBUG_AGENT
+        and payload.enabled
+        and execution_backend != AIExecutionBackend.AGENT_SERVICE
+    ):
+        raise AIConfigError("Unified debugging requires Agent Service CLI authentication")
+
     if debug_connector_id is not None:
         if task_type is not AITaskType.DEBUG_AGENT:
             raise AIConfigError("Execution targets are only supported for debug_agent")
@@ -348,26 +355,15 @@ def save_task_config(
         if verification is None:
             raise AIConfigError("The selected Agent Service profile must pass its task test first")
         if task_type is AITaskType.DEBUG_AGENT:
-            from app.debugging.runtime_profiles import capabilities, connector_for_profile
+            from app.debugging.runtime_profiles import authorized_target
 
-            connector = connector_for_profile(db, agent_profile_id, agent_model_id)
-            profile = next(
-                (
-                    profile
-                    for runner in capabilities(db).runners
-                    for profile in runner.profiles or []
-                    if profile.profile_id == agent_profile_id
-                ),
-                None,
-            )
-            if (
-                connector is None
-                or profile is None
-                or verification.profile_fingerprint != profile.fingerprint
-            ):
-                raise AIConfigError(
-                    "The selected debug connector must be online with current verified capabilities"
-                )
+            if debug_connector_id is None:
+                raise AIConfigError("Select a laptop execution target independently of the agent")
+            connector = authorized_target(db, debug_connector_id)
+            if connector.capabilities.get("execution_role") != "repository_worker":
+                raise AIConfigError("The selected target must be a repository-only laptop worker")
+            if agent_profile_id.startswith("connector:"):
+                raise AIConfigError("Select a profile from Agent Service, not a laptop AI profile")
     elif payload.enabled:
         if task_type is AITaskType.DEBUG_AGENT:
             from app.debugging.runtime_profiles import connected_connectors
@@ -852,18 +848,13 @@ async def get_agent_service_capabilities(
     db: Session | None = None,
     task_type: AITaskType | None = None,
 ) -> AgentServiceCapabilitiesResponse:
-    if task_type is AITaskType.DEBUG_AGENT and db is not None:
-        from app.debugging.runtime_profiles import capabilities as debug_capabilities
-
-        payload = debug_capabilities(db).model_dump()
-    else:
-        payload = await _agent_service_json(
-            client,
-            settings=settings,
-            method="GET",
-            path="/v1/capabilities",
-            timeout_seconds=max(30.0, settings.agent_service_connect_timeout_seconds),
-        )
+    payload = await _agent_service_json(
+        client,
+        settings=settings,
+        method="GET",
+        path="/v1/capabilities",
+        timeout_seconds=max(30.0, settings.agent_service_connect_timeout_seconds),
+    )
     try:
         capabilities = AgentServiceCapabilitiesResponse.model_validate(payload)
         if db is None or task_type is None:

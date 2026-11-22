@@ -19,12 +19,39 @@ from .service import append_event
 
 
 def queue_publication(
-    db: Session, run_id: UUID, key: str, validation_id: UUID, title: str, snapshot_digest: str
+    db: Session,
+    run_id: UUID,
+    key: str,
+    validation_id: UUID,
+    title: str,
+    snapshot_digest: str,
+    *,
+    approved_by: UUID | None = None,
 ) -> DebugOperation:
     run = db.scalar(select(DebugRun).where(DebugRun.id == run_id).with_for_update())
     if run is None:
         raise ValueError("run_not_found")
-    _authorize_run(db, run)
+    if approved_by is None:
+        if run.config_snapshot.get("architecture") == "agent_service_laptop_v1":
+            raise ValueError("publication_authorization_required")
+        _authorize_run(db, run)
+    else:
+        from app.auth.models import User
+        from app.observability.environment import diagnostics_environment
+
+        from .models import DebugThread
+
+        actor = db.get(User, approved_by)
+        thread = db.get(DebugThread, run.thread_id)
+        if (
+            not actor
+            or not actor.is_admin
+            or not thread
+            or thread.environment != diagnostics_environment()
+            or run.cancel_requested
+            or run.state not in {"completed", "investigating"}
+        ):
+            raise ValueError("publication_not_authorized")
     if run.action != "prepare_fix":
         raise ValueError("mutation_not_authorized")
     if not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", key):
@@ -63,6 +90,7 @@ def queue_publication(
         raise ValueError("automation_worker_not_configured")
     request = {
         "validation_id": str(validation.id),
+        **({"approved_by": str(approved_by)} if approved_by else {}),
         "title": title,
         "purpose": "repair_publication",
         "snapshot": validation.request["snapshot"],

@@ -95,6 +95,58 @@ def automation_probe(
         raise translate_error(error) from None
 
 
+class PublicationApproval(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str = Field(min_length=10, max_length=140)
+    snapshot_digest: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+@router.post(
+    "/issues/{issue_id}/operations/{validation_id}/publish",
+    response_model=OperationResponse,
+    dependencies=[Depends(require_authenticated_mutation)],
+)
+def approve_publication(
+    issue_id: UUID,
+    validation_id: UUID,
+    payload: PublicationApproval,
+    actor: AdminUser,
+    db: DatabaseSession,
+) -> dict[str, Any]:
+    from .automation import operation_json
+    from .publication import queue_publication
+
+    validation = db.scalar(
+        select(DebugOperation)
+        .join(DebugRun)
+        .join(DebugThread)
+        .where(
+            DebugOperation.id == validation_id,
+            DebugThread.issue_id == issue_id,
+            DebugThread.environment == diagnostics_environment(),
+            DebugOperation.environment == diagnostics_environment(),
+        )
+        .with_for_update()
+    )
+    if validation is None:
+        raise HTTPException(404, detail={"code": "operation_not_found"})
+    try:
+        row = queue_publication(
+            db,
+            validation.run_id,
+            f"admin-publish:{validation.id}",
+            validation.id,
+            payload.title,
+            payload.snapshot_digest,
+            approved_by=actor.id,
+        )
+        db.commit()
+        return operation_json(row)
+    except ValueError as error:
+        db.rollback()
+        raise translate_error(error) from None
+
+
 @router.get("/automation-status", response_model=AutomationAvailability)
 def automation_status(db: DatabaseSession) -> dict[str, Any]:
     from .automation import availability
@@ -491,7 +543,21 @@ def enroll_laptop(
 
 @router.get("/connectors")
 def list_laptops(db: DatabaseSession) -> list[dict[str, Any]]:
-    from .models import DebugConnector
+    from .models import DebugConnector, DebugConnectorProbe
+
+    probes = {
+        row.connector_id: row
+        for row in db.scalars(
+            select(DebugConnectorProbe)
+            .join(DebugConnector)
+            .where(
+                DebugConnector.environment == diagnostics_environment(),
+                DebugConnectorProbe.model == "repository",
+            )
+            .order_by(DebugConnectorProbe.connector_id, DebugConnectorProbe.created_at.desc())
+            .distinct(DebugConnectorProbe.connector_id)
+        )
+    }
 
     return [
         {
@@ -502,6 +568,14 @@ def list_laptops(db: DatabaseSession) -> list[dict[str, Any]]:
             "revoked": row.revoked,
             "last_seen": row.last_seen.isoformat() if row.last_seen else None,
             "capabilities": row.capabilities,
+            "last_repository_probe": {
+                "state": probes[row.id].state,
+                "at": probes[row.id].created_at.isoformat(),
+                "read_tool_executed": bool((probes[row.id].result or {}).get("read_tool_executed")),
+                "error_code": (probes[row.id].result or {}).get("error_code"),
+            }
+            if row.id in probes
+            else None,
         }
         for row in db.scalars(
             select(DebugConnector).where(
@@ -515,6 +589,26 @@ def list_laptops(db: DatabaseSession) -> list[dict[str, Any]]:
 class ApiProbeInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     model: str = Field(min_length=1, max_length=300, pattern=r"^[A-Za-z0-9_./:+-]+$")
+
+
+@router.post(
+    "/connectors/{connector_id}/repository-probes",
+    response_model=ApiProbeResult,
+    dependencies=[Depends(require_authenticated_mutation)],
+)
+def start_repository_probe(
+    connector_id: UUID, actor: AdminUser, db: DatabaseSession
+) -> dict[str, Any]:
+    from .probes import queue_repository_probe
+    from .runtime_profiles import authorized_target
+
+    try:
+        row = queue_repository_probe(db, authorized_target(db, connector_id), actor.id)
+        db.commit()
+        return {"id": row.id, "state": row.state, "result": None}
+    except ValueError as error:
+        db.rollback()
+        raise translate_error(error) from None
 
 
 @router.post(
@@ -537,6 +631,9 @@ def start_api_probe(
         raise translate_error(error) from None
 
 
+@router.get(
+    "/connectors/{connector_id}/repository-probes/{probe_id}", response_model=ApiProbeResult
+)
 @router.get("/connectors/{connector_id}/api-probes/{probe_id}", response_model=ApiProbeResult)
 def read_api_probe(
     connector_id: UUID, probe_id: UUID, actor: AdminUser, db: DatabaseSession

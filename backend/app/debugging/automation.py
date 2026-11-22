@@ -37,6 +37,10 @@ def authorize_operation(db: Session, operation: DebugOperation) -> DebugRun:
         or operation.environment != thread.environment
     ):
         raise ValueError("automation_not_authorized")
+    if operation.kind == "publish_pr" and operation.request.get("approved_by"):
+        approver = db.get(User, UUID(operation.request["approved_by"]))
+        if approver is None or not approver.is_admin:
+            raise ValueError("automation_not_authorized")
     if operation.kind == "replay":
         requester = db.get(User, UUID(operation.request["requested_by"]))
         if requester is None or not requester.is_admin:

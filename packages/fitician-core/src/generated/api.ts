@@ -861,6 +861,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/connectors/{connector_id}/repository-probes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Repository Probe */
+        post: operations["start_repository_probe_api_v1_admin_diagnostics_connectors__connector_id__repository_probes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/connectors/{connector_id}/repository-probes/{probe_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Api Probe */
+        get: operations["read_api_probe_api_v1_admin_diagnostics_connectors__connector_id__repository_probes__probe_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/diagnostics/connectors/{connector_id}/revoke": {
         parameters: {
             query?: never;
@@ -1145,6 +1179,23 @@ export type paths = {
         put?: never;
         /** Cancel Operation */
         post: operations["cancel_operation_api_v1_admin_diagnostics_issues__issue_id__operations__operation_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/issues/{issue_id}/operations/{validation_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Publication */
+        post: operations["approve_publication_api_v1_admin_diagnostics_issues__issue_id__operations__validation_id__publish_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6422,6 +6473,8 @@ export type components = {
              * @enum {string}
              */
             auth_state: "unknown" | "authenticated" | "unauthenticated";
+            /** Debug Status */
+            debug_status?: ("available" | "not_installed" | "authentication_required" | "models_unavailable" | "native_tool_isolation_unavailable") | null;
             /** Installed */
             installed: boolean;
             /** Models */
@@ -8337,8 +8390,16 @@ export type components = {
             api_provider?: "openrouter" | null;
             /** Cli Version */
             cli_version?: string | null;
+            /**
+             * Execution Role
+             * @default legacy_runtime
+             * @enum {string}
+             */
+            execution_role: "repository_worker" | "legacy_runtime";
             /** Models */
             models?: string[];
+            /** Repository Branch */
+            repository_branch?: string | null;
             /** Repository Head */
             repository_head: string;
             /** Runtime Error Code */
@@ -8370,6 +8431,19 @@ export type components = {
              * @default false
              */
             supports_tests: boolean;
+            /**
+             * Supports Validation
+             * @default false
+             */
+            supports_validation: boolean;
+            /** Validation Images */
+            validation_images?: {
+                [key: string]: string;
+            };
+            /** Validation Policy Commit */
+            validation_policy_commit?: string | null;
+            /** Validation Profiles */
+            validation_profiles?: ("backend" | "migrations" | "frontend" | "frontend_build" | "agent")[];
         };
         /** CaptureResult */
         CaptureResult: {
@@ -13196,7 +13270,7 @@ export type components = {
              * @default agent_service
              * @enum {string}
              */
-            execution_backend: "api" | "agent_service";
+            execution_backend: "api" | "agent_service" | "repository";
             /**
              * Id
              * Format: uuid
@@ -13791,6 +13865,13 @@ export type components = {
             ok: boolean;
             /** Safe Error Message */
             safe_error_message?: string | null;
+        };
+        /** PublicationApproval */
+        PublicationApproval: {
+            /** Snapshot Digest */
+            snapshot_digest: string;
+            /** Title */
+            title: string;
         };
         /** PublicationRequest */
         PublicationRequest: {
@@ -18629,6 +18710,69 @@ export interface operations {
             };
         };
     };
+    start_repository_probe_api_v1_admin_diagnostics_connectors__connector_id__repository_probes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connector_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiProbeResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_api_probe_api_v1_admin_diagnostics_connectors__connector_id__repository_probes__probe_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connector_id: string;
+                probe_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiProbeResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     revoke_laptop_api_v1_admin_diagnostics_connectors__connector_id__revoke_post: {
         parameters: {
             query?: never;
@@ -19237,6 +19381,42 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_publication_api_v1_admin_diagnostics_issues__issue_id__operations__validation_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issue_id: string;
+                validation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublicationApproval"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

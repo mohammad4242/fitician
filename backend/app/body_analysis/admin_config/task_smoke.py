@@ -134,26 +134,47 @@ async def run_task_smoke(
                 "The profile does not support live web research.",
             )
         if task_type is AITaskType.DEBUG_AGENT:
-            from app.debugging.probes import run_profile_probe
-            from app.debugging.runtime_profiles import connector_for_profile
+            from app.body_analysis.admin_config.service import _agent_service_json
 
-            connector = connector_for_profile(db, profile_id, profile.model_id)
-            if actor_id is None or connector is None:
-                raise TaskSmokeFailure(
-                    "backend_request",
-                    "debug_connector_offline",
-                    "The enrolled debug connector must be online.",
-                )
-            passed = await run_profile_probe(db, connector, actor_id, profile.model_id)
+            response = await _agent_service_json(
+                client,
+                settings=settings,
+                method="POST",
+                path="/v1/debug/turn",
+                timeout_seconds=60,
+                json_body={
+                    "agent": agent.value,
+                    "model_id": profile.model_id,
+                    "profile_id": profile.profile_id,
+                    "profile_fingerprint": profile.fingerprint,
+                    "timeout_seconds": 55,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": (
+                                "Synthetic test. Return a Persian diagnosis. No evidence is "
+                                "available; do not claim a confirmed cause or tool execution."
+                            ),
+                        }
+                    ],
+                    "tools": [],
+                },
+            )
+            passed = (
+                response.get("model_id") == profile.model_id
+                and response.get("profile_id") == profile.profile_id
+                and response.get("agent") == agent.value
+                and response.get("payload", {}).get("kind") == "diagnosis"
+            )
             return TaskSmokeResult(
                 passed=passed,
                 stage="passed" if passed else "failed",
-                request_id=None,
+                request_id=response.get("request_id"),
                 duration_seconds=time.perf_counter() - started,
                 error_code=None if passed else "debug_runtime_probe_failed",
                 safe_error_message=None
                 if passed
-                else "The selected model did not complete the read-only runtime probe.",
+                else "The selected agent returned invalid output.",
             ), profile
         if provider is None:
             provider = AgentServiceProvider(

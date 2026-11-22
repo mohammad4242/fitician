@@ -7,6 +7,163 @@ environment gate and automatic delivery is limited to eligible main CI/component
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
+## Unified Option A — November 23 (active architecture)
+
+This section supersedes the historical independent Germany repair runtime and laptop-hosted
+AI designs below. Production has **not** been changed. PR41 must remain Draft. No account
+was logged out, no CLI credentials were copied to the laptop, and no production service,
+configuration, migration, SMS activation or deployment was changed.
+
+### Execution and trust boundaries
+
+- The **existing Agent Service** owns CLI authentication and inference. A separate internal
+  `POST /v1/debug/turn` returns one bounded structured tool request or Persian diagnosis.
+  It uses the three existing runner implementations, their existing account environment,
+  global concurrency controller, request workspaces and cancellation/process cleanup.
+  This is a structured turn/result loop, **not** a claim of persistent native CLI threads
+  or identical MCP support. Conversation/run/tool history remains durable in Fitician.
+- The backend owns the loop, authorization and immutable run provenance: selected agent,
+  actual discovered/configured model, separate debug profile/fingerprint, laptop target,
+  occurrence, evidence and supported test policy. Completed inference receipts are reused
+  after recovery. An interrupted unacknowledged inference is blocked, never blindly repeated.
+- The **outbound laptop connector** has explicit `execution_role=repository_worker`. It
+  discovers no AI accounts/models and rejects whole-model jobs. Repository identity must match
+  the configured Fitician origin and repository root. It reads/searches/edits only isolated
+  worktrees. It never silently switches to Germany when offline. Revocation, environment,
+  administrator, target capabilities, call leases and cancellation are rechecked.
+- Repository tools use the existing durable queue, idempotency journal and evidence events.
+  New `fitician_validate` runs the existing fixed credential-free sandbox profiles on the
+  laptop: backend, isolated PostgreSQL/migrations, frontend checks/build and Agent Service.
+  Only profiles with locally configured immutable images are advertised. Synthetic test
+  snapshots are ephemeral local commits; they are not repair-branch commits or publications.
+- Existing GitHub CI/broker integration is retained. Models cannot commit or publish a new
+  unified run. An administrator reviews the diff/CI evidence and explicitly authorizes
+  `POST /issues/{issue_id}/operations/{validation_id}/publish`, binding the exact successful
+  validation and snapshot digest. The existing broker publishes that immutable snapshot via
+  GitHub APIs; it does not execute repository code in Agent Service. Merge/deployment remain
+  separate guarded actions. Cancelling or revoking an approver prevents later execution.
+- Deterministic JSON validation rejects unlisted tools, unsafe arguments and sensitive patches.
+  Model-proposed factual citations must resolve to actual scoped evidence. A model diagnosis
+  cannot confirm cause or resolution. Hidden reasoning is neither requested nor retained.
+
+### Settings, models and compatibility
+
+Debugging now uses Agent Service; newly enabled unified tasks cannot use the legacy direct API
+runtime. Previous API configuration/history is retained without silently changing its model.
+In Admin AI Settings, select Agent Service explicitly, choose an agent/debug profile, and
+independently choose an enrolled repository laptop. Changing either choice preserves the other.
+The page separately exposes Agent Service/CLI installation, authentication, debugging capability,
+model task verification, laptop heartbeat, repository branch/commit and persisted connection tests.
+Persian/English explanations and explicit blocked states are preserved.
+
+Codex models come from its CLI metadata cache or bounded `app-server model/list`, or an explicit
+operator allowlist. Claude uses an explicit CLI model preference/allowlist. These are candidates,
+not subscription guarantees: a real task smoke is required. Debug profiles have separate IDs
+and fingerprints; existing generation profiles and verification fingerprints remain intact.
+Unsupported temperature/token options are not asserted effective. No app model is pinned to SOL.
+
+Current verified native-tool policies: Codex0.151.0 disables shell/unified execution, image tools,
+apps, subagents, plugins, web and configured MCP servers for debug inference; Claude2.1.220 disables built-in tools,
+uses empty strict MCP config, safe mode and noninteractive deny. Generation commands keep their
+previous policy. Debug subprocess output is bounded and cancellation kills only its process group.
+Unknown versions fail closed.
+
+**Antigravity1.1.22 is blocked for debugging.** Actual testing in a temporary request workspace
+inside the existing container showed that its documented workspace `PreToolUse` hook was not
+invoked and a synthetic canary write occurred. The temporary workspace was removed; no production
+source or credentials were targeted. Installing/authenticating agy alone is not sufficient to
+safely enable tools. No global permission/authentication settings were overwritten. A compatible
+verified request-scoped restriction or owner-approved CLI upgrade is still required; the UI
+reports this blocker instead of presenting unsafe execution as supported.
+
+### Recovery and verification safeguards
+
+Fresh task enablement rechecks actual Agent Service authentication, exact debug profile/model,
+fingerprint and passed task verification; an unavailable service cannot be enabled using a
+historical pass. Long conversations use bounded context excerpts without deleting durable
+history. New regression files appear in the diff before staging. Timed-out Git helper groups
+and cancelled inference/test processes are reaped; a finished parent cannot leave a child
+running. Request correlation uses the run ID without transferring provider credentials.
+
+### Local worker provisioning (no AI login)
+
+Download the repository-worker configuration from AI Settings. Store it outside Git with0600
+permissions; set absolute `repository` and private `workspace_root` paths. Keep existing CLI
+login directories untouched; they are not required or used by this worker. Set `test_image` to
+an immutable Python image digest for the small networkless unittest profile. For full profiles,
+configure `validation_images` as an explicit profile-to-image-ID map and
+`validation_policy_commit` as the reviewed40-character policy commit. Python profiles require
+the Dockerfile's `python` target; frontend profiles require its `frontend` target. A frontend-only
+image cannot run backend pytest. Each image's policy label must match the configured commit.
+The downloaded template advertises no full test profile until its policy/images are configured.
+
+Run the existing connector entrypoint with its private configuration:
+`python -m app.debugging.connector --config /private/fitician-connector.json`.
+Use **Test laptop connection**, **Refresh agent capabilities**, **Test selected agent**, then
+save/enable the task. Open `/admin/diagnostics`, select an occurrence, start analysis or explicitly
+request preparation of a fix. Review recorded tool/test evidence and the diff before authorizing
+Draft PR publication. Closing the browser does not authorize a second run or publication.
+
+### Evidence and remaining gates
+
+| Capability | Code/local test | Actual external evidence | Production |
+| --- | --- | --- | --- |
+| Backend orchestration, independent laptop selection, leases/cancellation, privacy | Automated PostgreSQL and frontend tests | Not yet panel-initiated | Not deployed |
+| Codex structured tool loop | Actual existing container CLI0.151.0, discovered gpt-5.6-luna | Seven real turns: read twice, search, isolated edit, actual Docker unittest, diff, Persian diagnosis; failed before / passed after; original checkout preserved | Isolated adapter test only |
+| Final Codex debug profile | Separate `codex-gpt-5.6-luna-low-debug` | Actual final-policy tool-request response in5.851s; prior profile probe8.183s | Not enrolled/activated by this change |
+| Claude adapter | Mocked structured turns and native-tool restriction tests | Existing CLI2.1.220: actual auth status `loggedIn=false`, exit1,3.314s; no explicit model allowlist | Real inference blocked pending owner login/model selection |
+| Antigravity | Discovered installed1.1.22; authenticated | Real deny-hook canary failed; intentionally unavailable for debugging | Blocked, not claimed supported |
+| Laptop validation | Real unittest failure→repair→pass and cancellation; full backend sandbox also fails before/passes after with one exercised regression | PostgreSQL and immutable test images run on laptop, no production dependencies | Private worker policy/enrollment still needs rollout |
+| Draft PR authorization | Exact snapshot/CI validation, idempotency and explicit administrator action tested | No synthetic repair PR published in this continuation | No merge/deployment |
+| Sentry/evidence and existing AI workflows | Relevant regression checks; capture code unchanged | No new production Sentry→panel→Agent acceptance claimed | Existing production version unchanged |
+
+Private synthetic evidence/logs are under ignored `.codex-tmp/unified-debug-20261122/` with
+restricted files. `real-tool-loop/acceptance.json` records actual test commands, exit codes,
+diff provenance and the preserved fixture checkout. `profile-acceptance/result.json` records
+real isolated PostgreSQL-backed validation (one failure before, one success after). Initial
+full-profile attempts correctly failed because the selected cached image was frontend-only;
+they were not counted as successful tests. The Python test image was then built locally.
+No synthetic test fixture was a production customer record.
+
+Final local checks for Option A (November23):
+
+- Backend: `TEST_DATABASE_URL=<owned isolated PostgreSQL> .venv/bin/python -m pytest -q
+  tests/test_debug_*.py tests/ai/test_agent_service_admin_contract.py
+  tests/ai/test_agent_service_provider.py tests/admin/test_agent_service_auth_api.py
+  tests/admin/test_agent_service_proxy_api.py tests/admin/test_ai_task_settings_api.py
+  tests/test_diagnostics.py tests/test_diagnostics_runtime.py tests/test_diagnostic_evidence.py`
+  — **395 passed,3 skipped**. One skip requires the legacy standalone App Server CLI; two
+  Docker tests ran separately with an explicit immutable test image — **2 passed**, including
+  real seeded repair/commit and cancellation without successful test evidence.
+- Agent Service: `.venv/bin/python -m pytest -q tests` — **298 passed**.
+- Frontend: `npm run test --workspace frontend -- --run src/features/diagnostics
+  src/features/admin/AdminAiSettingsPage.test.tsx src/features/admin/AgentServicePanel.test.tsx`
+  — **88 passed**; full `npm run build --workspace frontend` passed (351 prerendered pages).
+- `python3 -m unittest ops/tests/test_debug_validation.py -q` — **9 passed**.
+- Mypy: all35 Agent Service modules and14 changed backend modules passed. Source-scoped Ruff,
+  frontend `oxlint src`, OpenAPI consistency and whitespace checks passed. Broad local lint also
+  scans pre-existing untracked standalone bundles/test scratch directories and reports findings
+  there; those unrelated files were neither deleted nor hidden by changing lint rules.
+- Fresh GitHub inspection: PR41 is Draft; protected-main `debug-validation.yml` and
+  `debug-server-observation.yml` return404. Real broker validation/publication remains blocked
+  until the normal reviewed policy installation. No feature-ref policy bypass or synthetic PR
+  is presented as acceptance. The running Agent Service image remains the older generation-only
+  build and does not expose DEBUG_AGENT; a production-panel end-to-end run is not possible
+  without a separately approved rollout. Neither unit tests nor the isolated Codex loop claim it.
+
+No new migration is required for this architecture change: existing task target, JSON run
+snapshot, connector/probe, evidence and operation tables suffice. Existing pending PR migrations
+still need their separate production backup/restore/review gate. Roll out the backend contract
+before the updated existing Agent Service because older strict clients do not accept the new
+capability field. Do not activate the obsolete independent debug runtime for Option A. Keep
+existing production images/volumes/authentication as rollback assets; reverting code does not
+authorize any database downgrade. Existing owner/Environment release gates remain mandatory.
+
+Official references checked: [Codex configuration](https://developers.openai.com/codex/config-reference),
+[Claude CLI](https://code.claude.com/docs/en/cli-reference), and
+[Antigravity hooks](https://antigravity.google/docs/hooks/). Current documentation is not proof
+that an older installed CLI implements a feature; the agy canary demonstrated that distinction.
+
 ## Permanent enrollment readiness — November22 continuation
 
 Continued from3a6e1b99, preserving unrelated work. Its

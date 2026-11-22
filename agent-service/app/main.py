@@ -25,6 +25,7 @@ from .auth.schemas import (
 )
 from .concurrency import ConcurrencyController
 from .config import Settings, get_settings
+from .debug_turn import DebugTurnInput, debug_turn, while_connected
 from .errors import AgentServiceError, handle_service_error
 from .observability import emit_log
 from .private_media import PrivateMediaResolver
@@ -381,6 +382,19 @@ def create_app(
         request.state.model = payload.model_id or payload.profile_id
         request.state.task_kind = "test"
         return await agent_service.test(payload, request.state.request_id)
+
+    @app.post("/v1/debug/turn", response_model=AgentGenerationOutput)
+    async def run_debug_turn(
+        request: Request,
+        payload: DebugTurnInput,
+        _: None = Depends(require_internal_auth),
+    ) -> AgentGenerationOutput:
+        request.state.agent = payload.agent.value
+        request.state.model = payload.model_id
+        request.state.task_kind = "debug_agent"
+        return await while_connected(
+            debug_turn(agent_service, payload, request.state.request_id), request.is_disconnected
+        )
 
     @app.post("/v1/generate", response_model=AgentGenerationOutput)
     async def generate(

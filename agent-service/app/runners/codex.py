@@ -4,6 +4,7 @@ import re
 import shutil
 import tempfile
 import time
+import tomllib
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
@@ -11,7 +12,7 @@ from typing import Any
 from jsonschema import Draft202012Validator  # type: ignore[import-untyped]
 
 from ..process import ProcessExecutionError, ProcessTimeoutError, run_process
-from ..profiles import codex_profiles
+from ..profiles import codex_profiles, debug_profiles
 from ..proxy import ProxyRuntime
 from ..schemas import AgentName, AuthMode, AuthState, RunnerCapabilities, RunnerModelCapabilities
 from .base import AgentRunner, RunnerError, RunnerRequest, RunnerResult, resolve_image_paths
@@ -66,6 +67,8 @@ class CodexRunner(AgentRunner):
         # This opt-in is deliberately false until the exact container capability is tested.
         self.supports_image_input = supports_image_input
         self.shared_media_root = shared_media_root
+        self._catalog_models: tuple[str, ...] = ()
+        self._catalog_checked_at = 0.0
         self.proxy_runtime = proxy_runtime or ProxyRuntime()
         self._metadata = CliMetadataProbe(
             executable=self.executable,
@@ -78,11 +81,34 @@ class CodexRunner(AgentRunner):
     async def capabilities(self) -> RunnerCapabilities:
         installed = self._is_installed()
         version = await self._metadata.version() if installed else None
-        profiles = codex_profiles(
-            version=version,
-            configured_models=self.configured_models,
-            supports_image_input=self.supports_image_input,
-        ) if installed else ()
+        available_models = (self.configured_models or self._cached_models()) if installed else ()
+        if installed and not available_models and time.monotonic() - self._catalog_checked_at > 60:
+            from .cli_catalog import codex_models
+
+            self._catalog_checked_at = time.monotonic()
+            try:
+                self._catalog_models = await codex_models(
+                    self.executable, self._workspace_path(), self._subprocess_environment()
+                )
+            except (OSError, ValueError, TimeoutError, RuntimeError):
+                self._catalog_models = ()
+        available_models = available_models or self._catalog_models
+        profiles = (
+            codex_profiles(
+                version=version,
+                configured_models=self.configured_models,
+                supports_image_input=self.supports_image_input,
+            )
+            if installed
+            else ()
+        )
+        if available_models:
+            discovered = codex_profiles(
+                version=version,
+                configured_models=available_models,
+                supports_image_input=self.supports_image_input,
+            )
+            profiles = (*profiles, *debug_profiles(discovered, version=version))
         return RunnerCapabilities(
             agent=self.name,
             installed=installed,
@@ -97,10 +123,32 @@ class CodexRunner(AgentRunner):
                     supports_structured_output=True,
                     supports_live_web=True,
                 )
-                for model_id in self.configured_models
+                for model_id in available_models
             ],
             profiles=list(profiles),
         )
+
+    @staticmethod
+    def _cached_models() -> tuple[str, ...]:
+        # CLI-owned metadata, never auth.json; availability still requires a
+        # successful task smoke against the selected authenticated account.
+        cache = Path(os.environ.get("HOME", "")) / ".codex/models_cache.json"
+        try:
+            if not cache.is_file() or cache.stat().st_size > 2_097_152:
+                return ()
+            payload = json.loads(cache.read_text())
+            return tuple(
+                dict.fromkeys(
+                    model["slug"]
+                    for model in payload.get("models", [])
+                    if isinstance(model, dict)
+                    and model.get("visibility") == "list"
+                    and isinstance(model.get("slug"), str)
+                    and re.fullmatch(r"[A-Za-z0-9._-]{1,150}", model["slug"])
+                )
+            )[:100]
+        except (OSError, ValueError, TypeError, AttributeError):
+            return ()
 
     async def probe_auth_state(self) -> AuthState:
         if not self._is_installed():
@@ -153,6 +201,7 @@ class CodexRunner(AgentRunner):
                     input_text=prompt,
                     env=self._subprocess_environment(),
                     inherit_environment=False,
+                    **({"max_output_bytes": 1_048_576} if request.external_tools_only else {}),
                 )
             except ProcessTimeoutError as exc:
                 raise RunnerError("timeout", "runner timed out") from exc
@@ -242,6 +291,30 @@ class CodexRunner(AgentRunner):
             str(output_path),
             "--json",
         ]
+        if request.external_tools_only:
+            # Native commands, apps, images, web and every configured MCP server
+            # are unavailable. HOME remains intact for the existing CLI account.
+            for option in (
+                "features.shell_tool=false",
+                "features.unified_exec=false",
+                "features.view_image=false",
+                "features.apps=false",
+                "features.multi_agent=false",
+                "features.plugins=false",
+                "features.apply_patch_freeform=false",
+                'web_search="disabled"',
+            ):
+                command.extend(["-c", option])
+            config_path = Path(os.environ.get("HOME", "")) / ".codex/config.toml"
+            try:
+                config = tomllib.loads(config_path.read_text()) if config_path.exists() else {}
+                servers = config.get("mcp_servers", {})
+                if not isinstance(servers, dict):
+                    raise ValueError("invalid MCP config")
+                for name in servers:
+                    command.extend(["-c", f"mcp_servers.{json.dumps(name)}.enabled=false"])
+            except (OSError, ValueError) as exc:
+                raise RunnerError("invalid_request", "native tool isolation unavailable") from exc
         if request.effort is not None:
             if request.effort not in {"low", "medium", "high"}:
                 raise RunnerError("invalid_request", "reasoning effort is invalid")
@@ -382,9 +455,7 @@ class CodexRunner(AgentRunner):
         text = " ".join((stdout, stderr)).lower()
         if re.search(r"model[ _-]+not[ _-]+found|unknown model|model does not exist", text):
             return RunnerError("model_not_found", "model was not found")
-        if re.search(
-            r"rate[ -]?limit|usage limit|too many requests|quota exceeded|\b429\b", text
-        ):
+        if re.search(r"rate[ -]?limit|usage limit|too many requests|quota exceeded|\b429\b", text):
             return RunnerError("rate_limited", "runner rate limit reached")
         if re.search(
             r"user location is not supported|location is not supported for the api",

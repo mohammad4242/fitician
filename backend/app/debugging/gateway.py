@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -33,8 +34,13 @@ async def call_connector(
         connector = db.get(DebugConnector, UUID(connector_id)) if connector_id else None
         if connector is None:
             raise ValueError("local_connector_not_configured")
+        if connector.last_seen is None or connector.last_seen < datetime.now(UTC) - timedelta(
+            seconds=30
+        ):
+            raise ValueError("execution_target_offline")
         row = enqueue_call(db, run, connector, key, tool, arguments)
         identifier = row.id
+        target_id = connector.id
         append_event(
             db,
             run,
@@ -49,6 +55,13 @@ async def call_connector(
             if run is None or run.lease_token != lease:
                 raise ValueError("run_lease_lost")
             _authorize_run(db, run)
+            target = db.get(DebugConnector, target_id)
+            if (
+                target is None
+                or target.last_seen is None
+                or target.last_seen < (datetime.now(UTC) - timedelta(seconds=30))
+            ):
+                raise ValueError("execution_target_offline")
             latest_call = db.get(DebugConnectorCall, identifier)
             if latest_call and latest_call.state == "completed":
                 result = latest_call.result or {}

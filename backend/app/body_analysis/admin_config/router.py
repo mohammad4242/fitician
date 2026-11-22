@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 import httpx
@@ -10,8 +10,8 @@ from app.admin.dependencies import AdminUser, require_admin
 from app.auth.cookies import require_trusted_origin
 from app.auth.dependencies import AppSettings, DatabaseSession
 from app.body_analysis.admin_config.crypto import CredentialEncryptionError
-from app.body_analysis.admin_config.enums import AIProviderName, AITaskType
-from app.body_analysis.admin_config.models import AIAgentProfileVerification
+from app.body_analysis.admin_config.enums import AIExecutionBackend, AIProviderName, AITaskType
+from app.body_analysis.admin_config.models import AIAgentProfileVerification, AITaskConfig
 from app.body_analysis.admin_config.schemas import (
     AgentServiceAuthActiveCancellationResponse,
     AgentServiceAuthInputRequest,
@@ -146,7 +146,8 @@ def read_task_configs(db: DatabaseSession) -> list[AITaskConfigDetail]:
     response_model=AITaskConfigDetail,
     dependencies=[Depends(require_trusted_origin)],
 )
-def update_task_config(
+async def update_task_config(
+    request: Request,
     task_type: AITaskType,
     payload: AITaskConfigUpdate,
     db: DatabaseSession,
@@ -154,6 +155,38 @@ def update_task_config(
     admin: AdminUser,
 ) -> AITaskConfigDetail:
     try:
+        current = db.scalar(select(AITaskConfig).where(AITaskConfig.task_type == task_type))
+
+        def effective(name: str) -> Any:
+            return (
+                getattr(payload, name)
+                if name in payload.model_fields_set
+                else getattr(current, name, None)
+            )
+
+        if (
+            task_type is AITaskType.DEBUG_AGENT
+            and payload.enabled
+            and effective("execution_backend") == AIExecutionBackend.AGENT_SERVICE
+        ):
+            capabilities = await get_agent_service_capabilities(
+                client=_agent_client(request), settings=settings, db=db, task_type=task_type
+            )
+            verified = any(
+                runner.agent == effective("agent_name")
+                and runner.installed
+                and runner.auth_state == "authenticated"
+                and profile.profile_id == effective("agent_profile_id")
+                and profile.model_id == effective("agent_model_id")
+                and AITaskType.DEBUG_AGENT in profile.task_kinds
+                and profile.verification_status == "passed"
+                for runner in capabilities.runners
+                for profile in runner.profiles or []
+            )
+            if not verified:
+                raise AIConfigError(
+                    "Test the current authenticated Agent Service debug profile first"
+                )
         return save_task_config(
             db,
             task_type=task_type,
@@ -163,6 +196,8 @@ def update_task_config(
         )
     except (AIConfigError, CredentialEncryptionError) as error:
         raise _unprocessable(error) from None
+    except AIProviderError as error:
+        raise _agent_provider_error(error) from None
 
 
 @router.get("/models", response_model=ModelCatalogResponse)

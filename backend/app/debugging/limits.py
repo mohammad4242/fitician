@@ -42,6 +42,15 @@ API_RUN_ERRORS = API_SETUP_ERRORS | {
 }
 CONNECTOR_BLOCKERS = frozenset(
     {
+        "agent_authentication_required",
+        "agent_profile_unavailable",
+        "native_tool_isolation_unavailable",
+        "repository_worker_required",
+        "execution_target_offline",
+        "pinned_validation_policy_required",
+        "validation_policy_unavailable",
+        "immutable_validation_image_required",
+        "laptop_model_execution_forbidden",
         "workspace_capacity_reached",
         "repository_capacity_reached",
         "exact_release_commit_required",
