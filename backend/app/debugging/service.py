@@ -146,7 +146,11 @@ def submit_message(
 
         connector = db.get(DebugConnector, UUID(snapshot["connector_id"]))
         snapshot["connector_name"] = connector.name if connector else None
-        snapshot["connector_capabilities"] = execution_capabilities(connector) if connector else {}
+        snapshot["connector_capabilities"] = (
+            execution_capabilities(connector, backend=snapshot.get("execution_backend"))
+            if connector
+            else {}
+        )
     snapshot["config_updated_at"] = config.updated_at.isoformat() if config else None
     from .models import DebugConnector
 

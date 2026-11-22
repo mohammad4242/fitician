@@ -995,3 +995,24 @@ function renderPage() {
     </MemoryRouter>,
   );
 }
+
+
+it("keeps debug model secrets off the application form and tests the explicit remote runtime", async () => {
+  const debugConfig: AdminAiTaskConfig = { ...bodyConfig, task_type: "debug_agent", debug_connector_id: "germany", primary_model_id: "vendor/vision-model" };
+  api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig, debugConfig]);
+  connectorRequest.mockImplementation((path: string) => {
+    if (path.endsWith("/api-probes")) return Promise.resolve({ id: "probe", state: "queued" });
+    if (path.endsWith("/api-probes/probe")) return Promise.resolve({ id: "probe", state: "completed", result: { model: "vendor/vision-model", mode: "api_tools", read_tool_executed: true, output: "observed" } });
+    return Promise.resolve([]);
+  });
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Debug agent" }));
+  expect(screen.queryByLabelText("API key")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Test connection" }));
+  await waitFor(() => expect(connectorRequest).toHaveBeenCalledWith(
+    "/api/v1/admin/diagnostics/connectors/germany/api-probes",
+    expect.objectContaining({ method: "POST", body: JSON.stringify({ model: "vendor/vision-model" }) }),
+  ));
+  expect(api.testAdminAiProvider).not.toHaveBeenCalled();
+});

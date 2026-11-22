@@ -38,6 +38,7 @@ TOOLS = frozenset(
         "fitician_commit",
         "fitician_create_pr",
         "fitician_codex_turn",
+        "fitician_api_turn",
         "fitician_record_finding",
         "fitician_server_evidence",
         "fitician_ci_validate",
@@ -238,7 +239,10 @@ def _authorize_run(db: Session, run: DebugRun) -> None:
         from .runtime_profiles import authorized_target, execution_capabilities
 
         target = authorized_target(db, run.config_snapshot["connector_id"])
-        if execution_capabilities(target) != expected:
+        if (
+            execution_capabilities(target, backend=run.config_snapshot.get("execution_backend"))
+            != expected
+        ):
             raise ValueError("execution_target_changed")
 
 

@@ -54,6 +54,8 @@ class ProgressResponse(StrictResponse):
 
 
 class ProbeJob(StrictResponse):
+    execution_backend: Literal["api", "agent_service"] = "agent_service"
+    config: dict[str, Any] = Field(default_factory=dict)
     id: UUID
     model: str
     release_commit: str = Field(pattern=r"^[a-f0-9]{40}$")
@@ -144,3 +146,9 @@ class AutomationProgressResponse(StrictResponse):
     disposition: Literal[
         "recorded", "reconcile_only", "dispatch_once", "cancel_once", "publish_once"
     ]
+
+
+class ApiProbeResult(StrictResponse):
+    id: UUID
+    state: Literal["queued", "running", "completed", "failed"]
+    result: dict[str, Any] | None = None

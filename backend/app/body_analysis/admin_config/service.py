@@ -153,8 +153,40 @@ def list_task_configs(db: Session) -> list[AITaskConfigDetail]:
     result: list[AITaskConfigDetail] = []
     for task_type in _TASK_CONFIGURABLE_TASKS:
         record = records.get(task_type)
-        result.append(config_detail(record, task_type=task_type, credential=credential))
+        result.append(task_config_detail(db, record, task_type, credential))
     return result
+
+
+def task_config_detail(
+    db: Session,
+    config: AITaskConfig | None,
+    task_type: AITaskType,
+    credential: AIProviderCredential | None,
+) -> AITaskConfigDetail:
+    detail = config_detail(
+        config,
+        task_type=task_type,
+        credential=None if task_type is AITaskType.DEBUG_AGENT else credential,
+    )
+    if task_type is AITaskType.DEBUG_AGENT:
+        from app.debugging.runtime_profiles import authorized_target
+
+        ready = False
+        if (
+            config
+            and config.execution_backend == AIExecutionBackend.API
+            and config.debug_connector_id
+        ):
+            try:
+                target = authorized_target(db, config.debug_connector_id)
+                ready = bool(
+                    target.capabilities.get("supports_api")
+                    and target.capabilities.get("api_credential_revision")
+                )
+            except ValueError:
+                pass
+        detail.credential = CredentialStatus(configured=ready, masked=None)
+    return detail
 
 
 def config_detail(
@@ -223,6 +255,10 @@ def save_task_config(
     actor: User,
     settings: Settings,
 ) -> AITaskConfigDetail:
+    if task_type is AITaskType.DEBUG_AGENT and (
+        payload.api_key is not None or payload.replace_credential
+    ):
+        raise AIConfigError("Configure the debug model only in the Germany credential store")
     config = db.scalar(select(AITaskConfig).where(AITaskConfig.task_type == task_type))
     credential = get_credential(db, payload.provider)
     credential_changed = False
@@ -396,7 +432,7 @@ def save_task_config(
     )
     db.commit()
     db.refresh(config)
-    return config_detail(config, task_type=task_type, credential=credential)
+    return task_config_detail(db, config, task_type, credential)
 
 
 def decrypted_key(

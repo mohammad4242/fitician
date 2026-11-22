@@ -122,7 +122,10 @@ class GermanyProvider:
         credential = load_credential(self.credential_file)
         try:
             async with self.client.stream(
-                "GET", BASE_URL + "/key", headers={"Authorization": "Bearer " + credential.key}
+                "GET",
+                BASE_URL + "/key",
+                headers={"Authorization": "Bearer " + credential.key},
+                timeout=10,
             ) as response:
                 data = (await bounded_json(response)).get("data", {})
             limit, remaining = data.get("limit"), data.get("limit_remaining")
@@ -142,6 +145,8 @@ class GermanyProvider:
             return credential
         except httpx.HTTPError:
             raise ValueError("provider_unreachable") from None
+        except (KeyError, TypeError, AttributeError, json.JSONDecodeError):
+            raise ValueError("provider_invalid_response") from None
 
     async def execute(
         self,

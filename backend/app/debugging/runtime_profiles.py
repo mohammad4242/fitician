@@ -139,11 +139,22 @@ def authorized_target(db: Session, identifier: UUID | str) -> DebugConnector:
     return target
 
 
-def execution_capabilities(connector: DebugConnector) -> dict[str, Any]:
-    return {
+def execution_capabilities(
+    connector: DebugConnector, *, backend: str | None = None
+) -> dict[str, Any]:
+    result = {
         "cli_version": connector.capabilities.get("cli_version"),
         "runtime_revision": connector.capabilities.get("runtime_revision"),
         "supports_tests": bool(connector.capabilities.get("supports_tests")),
         "supports_github": bool(connector.capabilities.get("supports_github")),
         "supports_ci": bool(connector.capabilities.get("supports_ci")),
     }
+
+    if backend == "api":
+        result.update(
+            {
+                key: connector.capabilities.get(key)
+                for key in ("api_provider", "api_credential_revision")
+            }
+        )
+    return result

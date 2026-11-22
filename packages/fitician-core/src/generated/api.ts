@@ -827,6 +827,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/diagnostics/connectors/{connector_id}/api-probes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Api Probe */
+        post: operations["start_api_probe_api_v1_admin_diagnostics_connectors__connector_id__api_probes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/diagnostics/connectors/{connector_id}/api-probes/{probe_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Api Probe */
+        get: operations["read_api_probe_api_v1_admin_diagnostics_connectors__connector_id__api_probes__probe_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/diagnostics/connectors/{connector_id}/revoke": {
         parameters: {
             query?: never;
@@ -6701,6 +6735,28 @@ export type components = {
             /** Latest Status */
             latest_status?: string | null;
         };
+        /** ApiProbeInput */
+        ApiProbeInput: {
+            /** Model */
+            model: string;
+        };
+        /** ApiProbeResult */
+        ApiProbeResult: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Result */
+            result?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "queued" | "running" | "completed" | "failed";
+        };
         /** MessageInput */
         app__debugging__router__MessageInput: {
             /**
@@ -8255,6 +8311,12 @@ export type components = {
         CampaignSurface: "landing" | "register";
         /** Capabilities */
         Capabilities: {
+            /** Api Credential Revision */
+            api_credential_revision?: string | null;
+            /** Api Error Code */
+            api_error_code?: ("dedicated_model_credential_required" | "dedicated_model_credential_invalid" | "dedicated_model_credential_changed" | "dedicated_model_spending_policy_required" | "dedicated_model_rate_state_invalid" | "provider_unreachable" | "provider_rejected" | "provider_rate_limited" | "provider_invalid_response") | null;
+            /** Api Provider */
+            api_provider?: "openrouter" | null;
             /** Cli Version */
             cli_version?: string | null;
             /** Models */
@@ -8265,6 +8327,11 @@ export type components = {
             runtime_error_code?: ("dedicated_codex_authentication_required" | "unsupported_codex_protocol_version" | "dedicated_codex_home_must_be_private" | "dedicated_codex_home_configuration_not_allowed" | "project_runtime_configuration_not_allowed" | "codex_discovery_failed" | "codex_discovery_timeout") | null;
             /** Runtime Revision */
             runtime_revision?: string | null;
+            /**
+             * Supports Api
+             * @default false
+             */
+            supports_api: boolean;
             /**
              * Supports Ci
              * @default false
@@ -13078,6 +13145,16 @@ export type components = {
         };
         /** ProbeJob */
         ProbeJob: {
+            /** Config */
+            config?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Execution Backend
+             * @default agent_service
+             * @enum {string}
+             */
+            execution_backend: "api" | "agent_service";
             /**
              * Id
              * Format: uuid
@@ -18425,6 +18502,73 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_api_probe_api_v1_admin_diagnostics_connectors__connector_id__api_probes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connector_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiProbeInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiProbeResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_api_probe_api_v1_admin_diagnostics_connectors__connector_id__api_probes__probe_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                connector_id: string;
+                probe_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiProbeResult"];
                 };
             };
             /** @description Validation Error */

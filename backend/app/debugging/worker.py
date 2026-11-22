@@ -14,15 +14,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
-from app.body_analysis.admin_config.crypto import CredentialCipher
-from app.body_analysis.admin_config.enums import AIProviderName
-from app.body_analysis.admin_config.models import AIProviderCredential
 from app.config import Settings, get_settings
 from app.database.session import get_engine
 from app.profile import models as profile_models  # noqa: F401
 
-from .api_runtime import model_supports_tools, request_analysis, run_api_tools
-from .catalog import tool_catalog
+from .api_runtime import request_analysis as request_analysis
 from .gateway import call_connector
 from .limits import CONNECTOR_BLOCKERS, validate_runtime_config
 from .models import DebugMessage, DebugRun
@@ -41,7 +37,6 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
         if run is None or run.lease_token != lease_token:
             return
         config = dict(run.config_snapshot)
-        run_action = run.action
         message = db.get(DebugMessage, run.message_id)
         actor = db.get(User, message.actor_id) if message and message.actor_id else None
         if actor is None or not actor.is_admin:
@@ -50,6 +45,8 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
             failure = "debug_agent_disabled"
         elif config.get("execution_backend") not in {"api", "agent_service"}:
             failure = "interactive_runtime_not_configured"
+        elif config.get("execution_backend") == "api" and not config.get("connector_id"):
+            failure = "local_connector_not_configured"
         elif config.get("execution_backend") == "agent_service" and (
             config.get("agent_name") != "codex" or not config.get("connector_id")
         ):
@@ -61,9 +58,17 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                     seconds=30
                 ):
                     failure = "execution_target_offline"
+                elif config.get("execution_backend") == "api" and not target.capabilities.get(
+                    "supports_api"
+                ):
+                    failure = (
+                        target.capabilities.get("api_error_code")
+                        or "dedicated_model_credential_required"
+                    )
                 elif (
                     config.get("connector_capabilities") is not None
-                    and execution_capabilities(target) != config["connector_capabilities"]
+                    and execution_capabilities(target, backend=config.get("execution_backend"))
+                    != config["connector_capabilities"]
                 ):
                     failure = "execution_target_changed"
             except ValueError:
@@ -73,25 +78,6 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
                 validate_runtime_config(config)
             except ValueError:
                 failure = "debug_runtime_options_unsupported"
-        credential = db.scalar(
-            select(AIProviderCredential).where(
-                AIProviderCredential.provider == AIProviderName.OPENROUTER
-            )
-        )
-        api_key = None
-        if failure is None and config.get("execution_backend") == "api":
-            try:
-                api_key = (
-                    CredentialCipher(settings.ai_credential_encryption_key).decrypt(
-                        credential.encrypted_api_key
-                    )
-                    if credential
-                    else None
-                )
-            except ValueError:
-                failure = "credential_unavailable"
-            if not api_key:
-                failure = "credential_unavailable"
         history = list(
             db.scalars(
                 select(DebugMessage)
@@ -128,114 +114,26 @@ async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> No
     if failure is None:
         try:
             timeout = int(config.get("timeout_seconds", 420))
-            tool_number = 0
-
-            async def progress(kind: str, payload: dict[str, Any]) -> None:
-                with Session(engine) as db:
-                    latest = db.scalar(
-                        select(DebugRun).where(DebugRun.id == run_id).with_for_update()
-                    )
-                    if (
-                        latest is None
-                        or latest.lease_token != lease_token
-                        or latest.cancel_requested
-                    ):
-                        raise ValueError("run_lease_lost")
-                    append_event(db, latest, kind, payload)
-                    db.commit()
-
-            async def tool_handler(name: str, arguments: dict[str, Any]) -> str:
-                nonlocal tool_number
-                tool_number += 1
-                if name == "fitician_server_evidence":
-                    from .server_evidence import collect
-
-                    with Session(engine) as db:
-                        result = collect(
-                            db,
-                            run_id,
-                            f"api-tool-{tool_number}",
-                            process_role="debug_worker",
-                            required_lease=lease_token,
-                        )
-                        db.commit()
-                    return json.dumps(result, ensure_ascii=False)
-                result = await call_connector(
-                    engine, run_id, lease_token, f"api-tool-{tool_number}", name, arguments
-                )
-                return str(result.get("output", ""))
 
             async def execute() -> str:
                 nonlocal mode
-                if config.get("execution_backend") == "agent_service":
-                    mode = "codex_app_server"
-                    result = await call_connector(
-                        engine,
-                        run_id,
-                        lease_token,
-                        "codex-turn",
-                        "fitician_codex_turn",
-                        {"messages": messages},
-                    )
-                    return sanitize_text(str(result.get("output", "")))
-                async with httpx.AsyncClient(
-                    timeout=timeout,
-                    proxy=settings.openrouter_proxy_url or None,
-                    trust_env=False,
-                    follow_redirects=False,
-                ) as client:
-                    supports_tools = await model_supports_tools(
-                        client,
-                        settings.openrouter_base_url,
-                        api_key or "",
-                        str(config.get("primary_model_id", "")),
-                    )
-                    if config.get("connector_id") and supports_tools:
-                        mode = "api_tools"
-                        await progress(
-                            "capabilities", {"mode": mode, "model": config.get("primary_model_id")}
-                        )
-                        return await run_api_tools(
-                            client,
-                            base_url=settings.openrouter_base_url,
-                            api_key=api_key or "",
-                            config=config,
-                            messages=messages,
-                            tools=tool_catalog(
-                                allow_write=run_action == "prepare_fix",
-                                supports_tests=bool(
-                                    config.get("connector_capabilities", {}).get("supports_tests")
-                                ),
-                                supports_github=bool(
-                                    config.get("connector_capabilities", {}).get("supports_github")
-                                ),
-                                supports_ci=bool(
-                                    config.get("automation_worker_id")
-                                    and config.get("connector_capabilities", {}).get("supports_ci")
-                                ),
-                            ),
-                            handler=tool_handler,
-                            progress=progress,
-                        )
-                    if run_action != "analyze":
-                        raise ValueError("repair_executor_not_configured")
-                    mode = "analysis_only"
-                    messages[0]["content"] += " No tools are available in this run. Analysis only."
-                    await progress(
-                        "capabilities",
-                        {
-                            "mode": mode,
-                            "model_supports_tools": supports_tools,
-                            "connector_configured": bool(config.get("connector_id")),
-                        },
-                    )
-                    return await request_analysis(
-                        client,
-                        base_url=settings.openrouter_base_url,
-                        api_key=api_key or "",
-                        config=config,
-                        messages=messages,
-                    )
+                api = config.get("execution_backend") == "api"
+                mode = "api_remote" if api else "codex_app_server"
+                result = await call_connector(
+                    engine,
+                    run_id,
+                    lease_token,
+                    "api-turn" if api else "codex-turn",
+                    "fitician_api_turn" if api else "fitician_codex_turn",
+                    {"messages": messages},
+                )
+                if api:
+                    if result.get("model") != config.get("primary_model_id"):
+                        raise ValueError("selected_model_not_available")
+                    if result.get("mode") not in {"api_tools", "analysis_only"}:
+                        raise ValueError("provider_invalid_response")
+                    mode = result["mode"]
+                return sanitize_text(str(result.get("output", "")))
 
             task = asyncio.create_task(execute())
             try:

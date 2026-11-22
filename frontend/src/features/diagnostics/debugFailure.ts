@@ -1,6 +1,14 @@
 /** Fixed operational facts and next actions; unknown codes do not imply a cause. */
 export function explainDebugFailure(code: string | null, english: boolean): string | null {
   switch (code) {
+    case "dedicated_model_credential_required":
+    case "dedicated_model_credential_invalid":
+    case "dedicated_model_credential_changed":
+      return english ? "The dedicated Germany model credential is missing, invalid, or changed. Configure it securely on that runtime; the application key cannot be used." : "کلید اختصاصی مدل در آلمان تنظیم نشده، نامعتبر است یا تغییر کرده است. آن را در محل امن همان runtime تنظیم کنید؛ کلید برنامه قابل استفاده نیست.";
+    case "dedicated_model_spending_policy_required":
+      return english ? "The dedicated key requires a daily limit of at most $1, remaining credit, and BYOK included in its limit." : "کلید اختصاصی به سقف روزانهٔ حداکثر ۱ دلار، اعتبار باقی‌مانده و احتساب BYOK نیاز دارد.";
+    case "dedicated_model_rate_state_invalid":
+      return english ? "The model rate-limit state could not be verified. Check the Germany runtime storage." : "وضعیت محدودیت نرخ مدل تأیید نشد. فضای ذخیرهٔ runtime آلمان را بررسی کنید.";
     case "trusted_main_unavailable":
       return english ? "The current main release is unavailable. Check the trusted repository connection." : "نسخهٔ فعلی main در دسترس نیست. اتصال به مخزن مورداعتماد را بررسی کنید.";
     case "github_repair_requires_current_base":

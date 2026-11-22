@@ -16,6 +16,7 @@ from app.observability.diagnostics_models import DiagnosticIssue
 from app.observability.environment import diagnostics_environment
 
 from .connector_schemas import (
+    ApiProbeResult,
     AutomationAvailability,
     OperationPage,
     OperationResponse,
@@ -509,6 +510,65 @@ def list_laptops(db: DatabaseSession) -> list[dict[str, Any]]:
             )
         )
     ]
+
+
+class ApiProbeInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    model: str = Field(min_length=1, max_length=300, pattern=r"^[A-Za-z0-9_./:+-]+$")
+
+
+@router.post(
+    "/connectors/{connector_id}/api-probes",
+    response_model=ApiProbeResult,
+    dependencies=[Depends(require_authenticated_mutation)],
+)
+def start_api_probe(
+    connector_id: UUID, payload: ApiProbeInput, actor: AdminUser, db: DatabaseSession
+) -> dict[str, Any]:
+    from .probes import queue_api_probe
+    from .runtime_profiles import authorized_target
+
+    try:
+        row = queue_api_probe(db, authorized_target(db, connector_id), actor.id, payload.model)
+        db.commit()
+        return {"id": row.id, "state": row.state, "result": None}
+    except ValueError as error:
+        db.rollback()
+        raise translate_error(error) from None
+
+
+@router.get("/connectors/{connector_id}/api-probes/{probe_id}", response_model=ApiProbeResult)
+def read_api_probe(
+    connector_id: UUID, probe_id: UUID, actor: AdminUser, db: DatabaseSession
+) -> dict[str, Any]:
+    from datetime import UTC, datetime, timedelta
+
+    from .models import DebugConnectorProbe
+    from .runtime_profiles import authorized_target
+
+    try:
+        authorized_target(db, connector_id)
+    except ValueError as error:
+        raise translate_error(error) from None
+    row = db.scalar(
+        select(DebugConnectorProbe).where(
+            DebugConnectorProbe.id == probe_id,
+            DebugConnectorProbe.connector_id == connector_id,
+            DebugConnectorProbe.actor_id == actor.id,
+        )
+    )
+    if row is None:
+        raise HTTPException(404, detail={"code": "probe_not_found"})
+    if row.state in {"queued", "running"} and row.created_at < datetime.now(UTC) - timedelta(
+        seconds=150
+    ):
+        row.state = "failed"
+        db.commit()
+    return {
+        "id": row.id,
+        "state": row.state,
+        "result": row.result if row.state == "completed" else None,
+    }
 
 
 @router.post(

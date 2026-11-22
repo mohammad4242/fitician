@@ -1,4 +1,4 @@
-"""Opt-in lightweight Codex dispatch in the existing Iran scheduler; no local model loop."""
+"""Opt-in lightweight remote model dispatch in the existing Iran scheduler; no local model loop."""
 
 from __future__ import annotations
 
@@ -40,9 +40,9 @@ async def remote_dispatch_loop(settings: Settings, *, stop_event: asyncio.Event)
             async with async_heartbeat(path, service="debug-dispatch", interval_seconds=5):
                 while not stop_event.is_set():
                     with Session(get_engine(settings)) as db:
-                        # API-model orchestration stays unavailable here: never move model
-                        # credentials or a reasoning/tool loop into the business scheduler.
-                        run = claim_run(db, execution_backend="agent_service")
+                        # Both complete model turns execute on the explicit remote target.
+                        # No provider credential or model/tool loop runs in this scheduler.
+                        run = claim_run(db)
                         identity = (run.id, run.lease_token) if run else None
                         db.commit()
                     if identity and identity[1]:

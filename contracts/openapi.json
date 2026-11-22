@@ -5243,6 +5243,61 @@
         "title": "AnalysisSummary",
         "type": "object"
       },
+      "ApiProbeInput": {
+        "additionalProperties": false,
+        "properties": {
+          "model": {
+            "maxLength": 300,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_./:+-]+$",
+            "title": "Model",
+            "type": "string"
+          }
+        },
+        "required": [
+          "model"
+        ],
+        "title": "ApiProbeInput",
+        "type": "object"
+      },
+      "ApiProbeResult": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "failed"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state"
+        ],
+        "title": "ApiProbeResult",
+        "type": "object"
+      },
       "AppleAuthRequest": {
         "additionalProperties": false,
         "properties": {
@@ -9335,6 +9390,52 @@
       "Capabilities": {
         "additionalProperties": false,
         "properties": {
+          "api_credential_revision": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9-]{36}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Credential Revision"
+          },
+          "api_error_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "dedicated_model_credential_required",
+                  "dedicated_model_credential_invalid",
+                  "dedicated_model_credential_changed",
+                  "dedicated_model_spending_policy_required",
+                  "dedicated_model_rate_state_invalid",
+                  "provider_unreachable",
+                  "provider_rejected",
+                  "provider_rate_limited",
+                  "provider_invalid_response"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Error Code"
+          },
+          "api_provider": {
+            "anyOf": [
+              {
+                "const": "openrouter",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Provider"
+          },
           "cli_version": {
             "anyOf": [
               {
@@ -9391,6 +9492,11 @@
               }
             ],
             "title": "Runtime Revision"
+          },
+          "supports_api": {
+            "default": false,
+            "title": "Supports Api",
+            "type": "boolean"
           },
           "supports_ci": {
             "default": false,
@@ -23115,6 +23221,20 @@
       "ProbeJob": {
         "additionalProperties": false,
         "properties": {
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "execution_backend": {
+            "default": "agent_service",
+            "enum": [
+              "api",
+              "agent_service"
+            ],
+            "title": "Execution Backend",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -36972,6 +37092,122 @@
           }
         ],
         "summary": "Enroll Laptop",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/connectors/{connector_id}/api-probes": {
+      "post": {
+        "operationId": "start_api_probe_api_v1_admin_diagnostics_connectors__connector_id__api_probes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiProbeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProbeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Api Probe",
+        "tags": [
+          "admin-debugging"
+        ]
+      }
+    },
+    "/api/v1/admin/diagnostics/connectors/{connector_id}/api-probes/{probe_id}": {
+      "get": {
+        "operationId": "read_api_probe_api_v1_admin_diagnostics_connectors__connector_id__api_probes__probe_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connector_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Connector Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "probe_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Probe Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiProbeResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Api Probe",
         "tags": [
           "admin-debugging"
         ]

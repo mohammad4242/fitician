@@ -16,6 +16,29 @@ RuntimeSetupError = Literal[
     "codex_discovery_timeout",
 ]
 RUNTIME_SETUP_ERRORS = frozenset(get_args(RuntimeSetupError))
+APISetupError = Literal[
+    "dedicated_model_credential_required",
+    "dedicated_model_credential_invalid",
+    "dedicated_model_credential_changed",
+    "dedicated_model_spending_policy_required",
+    "dedicated_model_rate_state_invalid",
+    "provider_unreachable",
+    "provider_rejected",
+    "provider_rate_limited",
+    "provider_invalid_response",
+]
+API_SETUP_ERRORS = frozenset(get_args(APISetupError))
+API_RUN_ERRORS = API_SETUP_ERRORS | {
+    "selected_model_not_available",
+    "model_not_configured",
+    "provider_timeout",
+    "provider_response_too_large",
+    "provider_usage_invalid",
+    "model_capability_discovery_failed",
+    "tool_run_budget_exhausted",
+    "repair_executor_not_configured",
+    "debug_provider_not_supported",
+}
 CONNECTOR_BLOCKERS = frozenset(
     {
         "workspace_capacity_reached",
@@ -30,6 +53,11 @@ CONNECTOR_BLOCKERS = frozenset(
         "workspace_branch_not_owned",
         "interrupted_call_requires_new_run",
         *RUNTIME_SETUP_ERRORS,
+        "dedicated_model_credential_required",
+        "dedicated_model_credential_invalid",
+        "dedicated_model_credential_changed",
+        "dedicated_model_spending_policy_required",
+        "dedicated_model_rate_state_invalid",
     }
 )
 

@@ -57,6 +57,7 @@ WORKDIR /app
 COPY backend/app/__init__.py /app/app/__init__.py
 COPY backend/app/debugging/__init__.py backend/app/debugging/appserver.py \
      backend/app/debugging/catalog.py backend/app/debugging/connector.py \
+     backend/app/debugging/api_runtime.py backend/app/debugging/germany_provider.py \
      backend/app/debugging/github.py backend/app/debugging/limits.py \
      backend/app/debugging/privacy.py backend/app/debugging/runtime_storage.py \
      backend/app/debugging/server_runtime.py backend/app/debugging/tools.py \

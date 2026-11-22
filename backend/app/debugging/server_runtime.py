@@ -20,6 +20,7 @@ from .connector import (
     save_private,
     validate_configuration,
 )
+from .germany_provider import GermanyProvider
 from .process_lifecycle import initialize_telemetry, serve_until_stopped
 from .runtime_storage import initialize_repository
 
@@ -83,7 +84,7 @@ class Supervisor:
             phase = "connected" if connected else "connecting"
             if client.connection_error:
                 phase = client.connection_error
-            elif connected and not client.models:
+            elif connected and not client.models and not getattr(client, "api_revision", None):
                 phase = "codex_not_verified"
         return {
             "heartbeat": time.time(),
@@ -100,6 +101,8 @@ class Supervisor:
             else "github_actions_connection_unverified",
             "release_commit": os.environ.get("FITICIAN_RUNTIME_COMMIT", "unknown"),
             "telemetry": self.telemetry_state,
+            "api_authenticated": bool(client and getattr(client, "api_revision", None)),
+            "api_error_code": getattr(client, "api_error", None),
         }
 
     async def pulse(self) -> None:
@@ -123,13 +126,26 @@ class Supervisor:
                         Path(value["repository"]),
                         os.environ.get("FITICIAN_RUNTIME_COMMIT", ""),
                     )
-                    async with httpx.AsyncClient(
-                        timeout=15,
-                        follow_redirects=False,
-                        trust_env=False,
-                        proxy=value.get("proxy"),
-                    ) as http:
-                        self.connector = LaptopConnector(value, http)
+                    async with (
+                        httpx.AsyncClient(
+                            timeout=15,
+                            follow_redirects=False,
+                            trust_env=False,
+                            proxy=value.get("proxy"),
+                        ) as http,
+                        httpx.AsyncClient(
+                            timeout=httpx.Timeout(120, connect=10),
+                            trust_env=False,
+                            follow_redirects=False,
+                            limits=httpx.Limits(max_connections=1, max_keepalive_connections=1),
+                        ) as model_http,
+                    ):
+                        provider = GermanyProvider(
+                            self.config.parent / "model-api.json",
+                            self.root / "model-rate",
+                            model_http,
+                        )
+                        self.connector = LaptopConnector(value, http, model_provider=provider)
                         await self.connector.run()
                 except (
                     OSError,

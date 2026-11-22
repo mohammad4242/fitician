@@ -20,7 +20,7 @@ def provision(root: Path, key: str, *, owner: tuple[int, int]) -> None:
         root.is_symlink()
         or private.is_symlink()
         or not private.is_dir()
-        or not (root / "runtime.env").is_file()
+        or not (root / "current/runtime.env").is_file()
     ):
         raise ValueError("dedicated_germany_runtime_required")
     if not re.fullmatch(r"sk-or-v1-[A-Za-z0-9_-]{32,128}", key):
@@ -60,7 +60,7 @@ def main() -> int:
         )
         return 2
     try:
-        if not (ROOT / "runtime.env").is_file():
+        if not (ROOT / "current/runtime.env").is_file():
             raise ValueError("dedicated_germany_runtime_required")
         key = getpass.getpass("Dedicated Fitician debug OpenRouter key (hidden): ")
         provision(ROOT, key, owner=(10001, 10001))

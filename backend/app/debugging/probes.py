@@ -52,6 +52,55 @@ def queue_probe(
     return row
 
 
+def queue_api_probe(
+    db: Session, connector: DebugConnector, actor_id: UUID, model: str
+) -> DebugConnectorProbe:
+    from .runtime_profiles import authorized_target
+
+    authorized_target(db, connector.id)
+    now = datetime.now(UTC)
+    actor = db.get(User, actor_id)
+    if not actor or not actor.is_admin:
+        raise ValueError("probe_not_authorized")
+    if not connector.last_seen or connector.last_seen < now - timedelta(seconds=30):
+        raise ValueError("local_connector_offline")
+    caps = connector.capabilities
+    if not caps.get("supports_api") or not caps.get("api_credential_revision"):
+        raise ValueError("dedicated_model_credential_required")
+    # Reuse the same durable queue and single-runtime concurrency guard.
+    for previous in db.scalars(
+        select(DebugConnectorProbe).where(
+            DebugConnectorProbe.connector_id == connector.id,
+            DebugConnectorProbe.state.in_(["queued", "running"]),
+        )
+    ):
+        if previous.created_at and previous.created_at < now - timedelta(seconds=150):
+            previous.state = "failed"
+        else:
+            raise ValueError("runtime_probe_already_active")
+    row = DebugConnectorProbe(
+        connector_id=connector.id,
+        actor_id=actor_id,
+        model=model,
+        release_commit=caps["repository_head"],
+        result={
+            "request_config": {
+                "execution_backend": "api",
+                "provider": "openrouter",
+                "primary_model_id": model,
+                "max_output_tokens": 512,
+                "timeout_seconds": 55,
+                "connector_capabilities": {
+                    "api_credential_revision": caps["api_credential_revision"]
+                },
+            }
+        },
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
 def claim_probe(db: Session, connector: DebugConnector) -> dict[str, Any] | None:
     row = db.scalar(
         select(DebugConnectorProbe)
@@ -76,6 +125,10 @@ def claim_probe(db: Session, connector: DebugConnector) -> dict[str, Any] | None
         "model": row.model,
         "release_commit": row.release_commit,
         "lease_token": str(row.lease_token),
+        "execution_backend": (row.result or {})
+        .get("request_config", {})
+        .get("execution_backend", "agent_service"),
+        "config": (row.result or {}).get("request_config", {}),
     }
 
 

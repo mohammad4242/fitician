@@ -73,8 +73,8 @@ def test_shared_dispatch_is_serial_and_uses_one_connection(monkeypatch, test_set
         assert settings.db_pool_timeout_seconds == 1
         return object()
 
-    def claim(db, *, execution_backend):
-        assert execution_backend == "agent_service"
+    def claim(db, *, execution_backend=None):
+        assert execution_backend is None
         assert len(seen) == len(claims)
         value = SimpleNamespace(id=uuid4(), lease_token=uuid4())
         claims.append(value.id)

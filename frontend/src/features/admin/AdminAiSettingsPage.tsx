@@ -1,3 +1,5 @@
+import { request } from "../../shared/apiClient";
+import { explainDebugFailure } from "../diagnostics/debugFailure";
 import { DebugAutomationSetup } from "../diagnostics/DebugAutomation";
 import { DebugConnectors } from "../diagnostics/DebugConnectors";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -229,8 +231,8 @@ export function AdminAiSettingsPage() {
       minimum_confidence: target.minimum_confidence,
       max_cost_per_request: target.max_cost_per_request,
       routing_restrictions: target.routing_restrictions,
-      replace_credential: replacementKey.length > 0,
-      ...(replacementKey ? { api_key: replacementKey } : {}),
+      replace_credential: target.task_type !== "debug_agent" && replacementKey.length > 0,
+      ...(target.task_type !== "debug_agent" && replacementKey ? { api_key: replacementKey } : {}),
     };
     void saveAdminAiTaskConfig(taskAtStart, payload)
       .then((saved) => {
@@ -283,6 +285,37 @@ export function AdminAiSettingsPage() {
         .finally(() => finishOperation(taskAtStart, epochAtStart, operation));
       return;
     }
+    if (taskAtStart === "debug_agent") {
+      if (!config?.debug_connector_id || !config.primary_model_id) {
+        setLocalError(i18n.resolvedLanguage === "en" ? "Select an explicit runtime and model." : "محل اجرا و مدل را انتخاب کنید.");
+        finishOperation(taskAtStart, epochAtStart, operation);
+        return;
+      }
+      const base = `/api/v1/admin/diagnostics/connectors/${encodeURIComponent(config.debug_connector_id)}/api-probes`;
+      type Probe = { id: string; state: string; result?: { error_code?: string; model?: string; mode?: string; read_tool_executed?: boolean; output?: string } };
+      void (async () => {
+        let probe = await request<Probe>(base, { method: "POST", body: JSON.stringify({ model: config.primary_model_id }) });
+        for (let attempt = 0; attempt < 150 && isActiveOperation(taskAtStart, epochAtStart, operation); attempt++) {
+          probe = await request<Probe>(`${base}/${encodeURIComponent(probe.id)}`);
+          if (probe.state === "completed" || probe.state === "failed") break;
+          await new Promise(resolve => window.setTimeout(resolve, 1000));
+        }
+        if (!isActiveOperation(taskAtStart, epochAtStart, operation)) return;
+        const result = probe.result;
+        if (probe.state !== "completed" || result?.error_code || result?.model !== config.primary_model_id || !result?.output) {
+          setLocalError(explainDebugFailure(result?.error_code ?? null, i18n.resolvedLanguage === "en") ?? t("admin.aiSettings.connectionFailed"));
+        } else if (result.mode === "api_tools" && result.read_tool_executed) {
+          setMessage(t("admin.aiSettings.taskSmokePassed"));
+        } else if (result.mode === "analysis_only") {
+          setMessage(i18n.resolvedLanguage === "en" ? "Model replied. Analysis only; tools are unsupported." : "مدل پاسخ داد؛ فقط تحلیل فعال است و ابزار پشتیبانی نمی‌شود.");
+        } else {
+          setLocalError(t("admin.aiSettings.connectionFailed"));
+        }
+      })().catch((cause: unknown) => {
+        if (isActiveOperation(taskAtStart, epochAtStart, operation)) setError(cause);
+      }).finally(() => finishOperation(taskAtStart, epochAtStart, operation));
+      return;
+    }
     void testAdminAiProvider(apiKey || undefined)
       .then((result) => {
         if (!isActiveOperation(taskAtStart, epochAtStart, operation)) return;
@@ -316,7 +349,7 @@ export function AdminAiSettingsPage() {
     const operation = beginOperation("refresh");
     setMessage(null);
     clearErrors();
-    void refreshAdminAiModels()
+    void (taskAtStart === "debug_agent" ? Promise.resolve() : refreshAdminAiModels())
       .then(() => {
         if (!isActiveOperation(taskAtStart, epochAtStart, operation)) return;
         return loadModels(taskAtStart, "", epochAtStart);
@@ -447,7 +480,7 @@ export function AdminAiSettingsPage() {
           </fieldset>
           {!agentMode && <>
             <label className="admin-ai-setting-field"><span>{t("admin.aiSettings.provider")}</span><input value="OpenRouter" disabled /></label>
-            <label className="admin-ai-setting-field" htmlFor="ai-api-key">
+            {selectedTask === "debug_agent" ? <p>{i18n.resolvedLanguage === "en" ? "Dedicated debug key: configure only in the Germany runtime credential store. The application key is never used." : "کلید اختصاصی دیباگ فقط در محل امن runtime آلمان تنظیم می‌شود. کلید برنامه استفاده نمی‌شود."}</p> : <label className="admin-ai-setting-field" htmlFor="ai-api-key">
               <span>{t("admin.aiSettings.apiKey")}</span>
               <input
                 id="ai-api-key"
@@ -457,7 +490,7 @@ export function AdminAiSettingsPage() {
                 placeholder={config.credential.masked ?? t("admin.aiSettings.apiKeyPlaceholder")}
                 onChange={(event) => setApiKey(event.target.value)}
               />
-            </label>
+            </label>}
           </>}
           {agentMode && selectedTask !== "debug_agent" && <AgentServicePanel
             runners={agentCapabilities}

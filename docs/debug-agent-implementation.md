@@ -9,14 +9,39 @@ repair runtime, GitHub access or deployment is established merely by enabling an
 
 ## Germany dedicated model key — approved November 22 continuation
 
-The owner selected a separate Germany-only OpenRouter key. No application/GitHub/Sentry key
-may be reused. Read-only inspection found the existing Germany private directory empty and
-no model-api.json. A strict purpose-bound mode-0600 loader, provider-side daily-budget check
-(maximum USD1/day, BYOK included, no management key), and persistent six-request/minute
-reservations passed twenty provider/runtime tests after observed failures. The interactive
-server-only provisioning helper passed two filesystem/no-overwrite regressions. It accepts
-no key argument or environment fallback. Runtime wiring and live model verification follow;
-this component alone does not establish enrollment or production readiness.
+The owner selected a separate Germany-only OpenRouter key and then confirmed it is **not
+ready**. No key was copied from Iran or from the laptop. The prepared root-only helper at
+`/opt/fitician-debug-runtime/setup/provision-debug-model.py` accepts hidden interactive input
+and atomically creates only `private/model-api.json` (0600, service uid10001). Actual runtime
+layout was inspected: the service marker is `current/runtime.env`, not root `runtime.env`.
+The private directory remains unprovisioned; no service restart or production change occurred.
+
+Implemented: purpose-bound credential loader, provider-side maximum USD1/day daily budget
+with BYOK included, management-key rejection, persistent six-inference-requests/minute
+reservations, a separate TLS model client, and whole-turn remote API orchestration. Iran
+holds no model credential and performs no paid model/tool loop. Every run pins selected
+model, execution target and credential revision; rotation affects subsequent API turns
+without invalidating Codex profiles. Existing generation isolation is unchanged.
+
+Admin AI Settings rejects debug credential replacement before touching application credentials,
+never displays the application's key suffix for debug_agent, and accepts no debug key in the
+browser form. Its new durable API probe selects the exact runtime/model, performs a bounded
+read-only source check, preserves results across refresh, checks administrator/environment
+scope and reports unsupported tools as analysis-only. Missing runtime/key blocks explicitly.
+The API probe and normal API turn use the actual scoped repository tool implementation;
+provider requests in local acceptance use MockTransport, not real paid inference.
+
+Verification: 279 backend tests passed, 3 opt-in CLI/local-image tests skipped; the two added
+route/probe integration tests also passed. Thirty AI Settings tests, frontend TypeScript,
+14 debugging-module mypy, provisioning regressions and regenerated OpenAPI passed. A new
+full-CI run must validate the resulting exact commit. Prior commit e6383c6f's CI44958031380
+was independently read back as successful; that is not CI proof for these new changes.
+
+Still blocked: dedicated key provisioning, actual selected-model inference on Germany,
+production enrollment and actual production-panel acceptance. The owner prohibits production
+migration/deployment/restarts and production SMS activation; these gates remain intact.
+The shared-mode release policy still needs integration before an approved rollout. Historical
+November21 notes below predate this dedicated-key decision and adapter implementation.
 
 ## Revalidated completion checklist — 2026-11-21
 
