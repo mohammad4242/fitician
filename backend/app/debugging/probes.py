@@ -161,7 +161,9 @@ def finish_probe(
     row = authorize_probe(db, connector, probe_id, lease)
     if result.get("model") != row.model:
         raise ValueError("probe_model_mismatch")
-    row.result = json.loads(json.dumps(sanitize_payload(result)))
+    snapshot = (row.result or {}).get("request_config")
+    value = {**result, **({"request_config": snapshot} if snapshot is not None else {})}
+    row.result = json.loads(json.dumps(sanitize_payload(value)))
     row.state = "completed"
     row.lease_until = None
 

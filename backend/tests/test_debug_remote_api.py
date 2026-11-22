@@ -244,6 +244,10 @@ def test_api_probe_pins_selected_model_and_credential_without_codex(db):
         },
     )
     assert probe.state == "completed"
+    assert (
+        probe.result["request_config"]["connector_capabilities"]["api_credential_revision"]
+        == revision
+    )
 
 
 def test_api_probe_routes_require_admin_origin_and_same_environment(client, db):
@@ -403,3 +407,42 @@ def test_api_probe_runs_a_real_scoped_read_without_codex_and_replays_no_paid_req
 
     asyncio.run(run())
     assert len(posts) == 2
+
+
+def test_debug_api_enables_with_dedicated_target_without_any_application_key(db, test_settings):
+    from app.body_analysis.admin_config.enums import AIProviderName, AITaskType
+    from app.body_analysis.admin_config.models import AIModelCatalogEntry
+    from app.body_analysis.admin_config.schemas import AITaskConfigUpdate
+    from app.body_analysis.admin_config.service import save_task_config
+    from tests.test_debug_runtime_profiles import target_fixture
+
+    actor, target = target_fixture(db)
+    target.capabilities = {
+        "supports_api": True,
+        "api_provider": "openrouter",
+        "api_credential_revision": str(uuid4()),
+    }
+    db.add(
+        AIModelCatalogEntry(
+            provider=AIProviderName.OPENROUTER,
+            model_id="chosen/model",
+            display_name="Chosen model",
+            provider_family="chosen",
+            supports_text_input=True,
+            supports_image_input=False,
+            supports_structured_output=False,
+            available=True,
+            refreshed_at=datetime.now(UTC),
+        )
+    )
+    db.flush()
+    result = save_task_config(
+        db,
+        task_type=AITaskType.DEBUG_AGENT,
+        actor=actor,
+        settings=test_settings,
+        payload=AITaskConfigUpdate(
+            enabled=True, debug_connector_id=target.id, primary_model_id="chosen/model"
+        ),
+    )
+    assert result.enabled and result.credential.configured and result.credential.masked is None

@@ -28,6 +28,9 @@ never displays the application's key suffix for debug_agent, and accepts no debu
 browser form. Its new durable API probe selects the exact runtime/model, performs a bounded
 read-only source check, preserves results across refresh, checks administrator/environment
 scope and reports unsupported tools as analysis-only. Missing runtime/key blocks explicitly.
+Enabling the API task now requires its online dedicated target, never the application
+credential. Completed probes retain their credential-revision/configuration snapshot. The
+52 settings/profile/probe regressions and focused mypy passed after observed failures.
 The API probe and normal API turn use the actual scoped repository tool implementation;
 provider requests in local acceptance use MockTransport, not real paid inference.
 

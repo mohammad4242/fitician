@@ -369,7 +369,20 @@ def save_task_config(
                     "The selected debug connector must be online with current verified capabilities"
                 )
     elif payload.enabled:
-        if credential is None:
+        if task_type is AITaskType.DEBUG_AGENT:
+            from app.debugging.runtime_profiles import connected_connectors
+
+            if not any(
+                row.id == debug_connector_id
+                and row.capabilities.get("supports_api")
+                and row.capabilities.get("api_provider") == "openrouter"
+                and row.capabilities.get("api_credential_revision")
+                for row in connected_connectors(db)
+            ):
+                raise AIConfigError(
+                    "Verify the dedicated Germany model connection before enabling debug_agent"
+                )
+        elif credential is None:
             raise AIConfigError("A provider credential is required before enabling this task")
         if primary_model_id is None:
             raise AIConfigError("A primary model is required before enabling this task")
