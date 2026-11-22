@@ -203,3 +203,160 @@ def test_selected_model_and_real_tool_dispatch_use_only_the_dedicated_key(tmp_pa
     assert calls == [("fitician_read_file", {"path": "bug.py"})]
     assert len(requests) == 2 and all(r["model"] == "chosen/model" for r in requests)
     assert KEY not in json.dumps(events) + json.dumps(result)
+
+
+@pytest.mark.parametrize(
+    "failure,expected",
+    [
+        ("auth_timeout", "provider_unreachable"),
+        ("auth_rejected", "provider_rejected"),
+        ("completion_timeout", "provider_unreachable"),
+        ("completion_rate_limited", "provider_rate_limited"),
+    ],
+)
+def test_dedicated_provider_failure_never_retries_or_exposes_private_error(
+    tmp_path, failure, expected
+):
+    from app.debugging.germany_provider import GermanyProvider
+
+    path = tmp_path / "model-api.json"
+    saved = credential(path)
+    calls = []
+    events = []
+
+    def handle(request):
+        calls.append(request.url.path)
+        if request.url.path.endswith("/key"):
+            if failure == "auth_timeout":
+                raise httpx.ReadTimeout(KEY, request=request)
+            if failure == "auth_rejected":
+                return httpx.Response(401, json={"error": KEY})
+            return httpx.Response(
+                200,
+                json={
+                    "data": {
+                        "limit": 1,
+                        "limit_remaining": 1,
+                        "limit_reset": "daily",
+                        "include_byok_in_limit": True,
+                    }
+                },
+            )
+        if request.url.path.endswith("/models"):
+            return httpx.Response(
+                200,
+                json={
+                    "data": [
+                        {
+                            "id": "openai/gpt-4.1-mini",
+                            "supported_parameters": ["tools", "tool_choice"],
+                        }
+                    ]
+                },
+            )
+        assert json.loads(request.content)["model"] == "openai/gpt-4.1-mini"
+        if failure == "completion_timeout":
+            raise httpx.ReadTimeout(KEY, request=request)
+        return httpx.Response(429, json={"error": KEY})
+
+    async def forbidden(name, arguments):
+        raise AssertionError("Failed requests must not execute tools")
+
+    async def progress(kind, payload):
+        events.append((kind, payload))
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            provider = GermanyProvider(path, tmp_path / "rate-state", client)
+            with pytest.raises(ValueError, match="^" + expected + "$") as error:
+                await provider.execute(
+                    config={"primary_model_id": "openai/gpt-4.1-mini", "max_output_tokens": 128},
+                    messages=[{"role": "user", "content": "Reply OK"}],
+                    tools=[],
+                    handler=forbidden,
+                    progress=progress,
+                    allow_write=False,
+                    expected_revision=saved["revision"],
+                )
+            assert KEY not in str(error.value)
+
+    asyncio.run(run())
+    inference = failure.startswith("completion_")
+    assert calls == ["/api/v1/key"] + (
+        ["/api/v1/models", "/api/v1/chat/completions"] if inference else []
+    )
+    state = tmp_path / "rate-state/model-rate.json"
+    assert state.exists() is inference
+    if inference:
+        assert len(json.loads(state.read_text())["requests"]) == 1
+    assert KEY not in json.dumps(events)
+
+
+def test_dedicated_provider_cancellation_preserves_uncertain_request_reservation(tmp_path):
+    from app.debugging.germany_provider import GermanyProvider
+
+    path = tmp_path / "model-api.json"
+    saved = credential(path)
+    calls = []
+
+    async def run():
+        started = asyncio.Event()
+
+        async def handle(request):
+            calls.append(request.url.path)
+            if request.url.path.endswith("/key"):
+                return httpx.Response(
+                    200,
+                    json={
+                        "data": {
+                            "limit": 1,
+                            "limit_remaining": 1,
+                            "limit_reset": "daily",
+                            "include_byok_in_limit": True,
+                        }
+                    },
+                )
+            if request.url.path.endswith("/models"):
+                return httpx.Response(
+                    200,
+                    json={
+                        "data": [
+                            {
+                                "id": "openai/gpt-4.1-mini",
+                                "supported_parameters": ["tools", "tool_choice"],
+                            }
+                        ]
+                    },
+                )
+            started.set()
+            await asyncio.Future()
+            raise AssertionError("Cancelled request must not return a fabricated response")
+
+        async def forbidden(name, arguments):
+            raise AssertionError("Cancelled request cannot execute tools")
+
+        async def progress(kind, payload):
+            assert KEY not in json.dumps(payload)
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+            provider = GermanyProvider(path, tmp_path / "rate-state", client)
+            task = asyncio.create_task(
+                provider.execute(
+                    config={"primary_model_id": "openai/gpt-4.1-mini", "max_output_tokens": 128},
+                    messages=[{"role": "user", "content": "Reply OK"}],
+                    tools=[],
+                    handler=forbidden,
+                    progress=progress,
+                    allow_write=False,
+                    expected_revision=saved["revision"],
+                )
+            )
+            await asyncio.wait_for(started.wait(), timeout=1)
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+
+    asyncio.run(run())
+    assert calls == ["/api/v1/key", "/api/v1/models", "/api/v1/chat/completions"]
+    state = tmp_path / "rate-state/model-rate.json"
+    assert len(json.loads(state.read_text())["requests"]) == 1

@@ -7,6 +7,57 @@ environment gate and automatic delivery is limited to eligible main CI/component
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
+## Approved same-key conversion and real authentication — November22
+
+The owner explicitly approved the existing format-repair helper and selected
+`openai/gpt-4.1-mini` exclusively for low-cost non-production testing. The reviewed helper
+was verified against its committed SHA256 and applied on the verified Germany host
+`fastcreate-560543`. The original bytes were preserved in a root-private0600 backup inside
+the existing Germany credential store. The active `private/model-api.json` now matches the
+exact purpose-bound adapter schema, has0600 permissions and10001:10001 ownership, and
+contains the identical key. No credential was returned to the laptop or transferred to Iran.
+
+A read-only128MiB/0.1CPU one-shot container on Germany used the actual current
+`GermanyProvider.execute`, the exact credential mount and the selected model configuration.
+HTTPS authentication at `GET /api/v1/key` returned **200 in488ms**; the entire attempted
+adapter turn took1386ms. The returned policy had `limit=null`, `limit_remaining=null`,
+`limit_reset=null`, and `include_byok_in_limit=false`. The adapter correctly stopped with
+`dedicated_model_spending_policy_required` before model discovery or inference.
+**Paid model requests:0; tool invocations:0.** This establishes working key authentication,
+not a successful completion, model availability, Agent enrollment or panel/model acceptance.
+The probe has a private pre-dispatch journal and permits at most one paid request; no retry
+or limit bypass was performed. There is no model-response latency to report yet.
+
+The only credential setup action now required is to edit this same key in OpenRouter's
+key settings: set a positive limit of at mostUSD1, daily reset, include BYOK usage, and retain
+available account credit. No replacement key, chat secret or management token is requested.
+The application policy remains six inference requests/minute with durable reservations.
+
+Safety regression checks added five cases covering authentication timeout/rejection,
+completion timeout/429, and cancellation. They assert no retry, no private error export,
+the exact selected model, no tool execution after failure, and retained uncertain-dispatch
+rate reservations. Commands actually run:
+
+- `backend/.venv/bin/python -m pytest --noconftest backend/tests/test_debug_germany_provider.py backend/tests/test_debug_api_tools.py backend/tests/test_debug_server_runtime.py backend/tests/test_debug_connector_client.py --basetemp=.codex-tmp/germany-key-20261122/provider-safety-tests -q`:57 passed. These are isolated logic/transport tests; they do not exercise PostgreSQL or paid models.
+- `python -m unittest ops.tests.test_debug_model_format_repair ops.tests.test_debug_model_provision`:8 passed. An earlier invocation used a nonexistent `test_debug_model_provisioning` module and failed collection; the corrected real module above passed.
+- Focused Ruff passed. No application behavior was weakened to obtain passing tests.
+
+Fresh GitHub readback confirms headba7e0850 has successful
+[CI45012420597](https://github.com/mohammad4242/fitician/actions/runs/45012420597) and
+[Public SEO45012420504](https://github.com/mohammad4242/fitician/actions/runs/45012420504).
+PR41 remains Draft. These results apply toba7e0850, not an uncompleted later CI run.
+Private evidence: `approved-format-result.json`, `model-api-live-result.json`,
+`provider-safety-tests.log`, `approved-helper-tests-corrected.log`,
+`approved-privacy-runtime.json` and `current-ci-result.json` in the ignored
+`.codex-tmp/germany-key-20261122/` directory. The production runtime was not activated;
+there was no application deployment, migration, production restart, merge or SMS activation.
+Fresh runtime status remains `awaiting_enrollment`, connected/authenticatedfalse and
+`github_actions_not_connected`. Its actual Docker image ID starts`bfaa3e95`, restart count0,
+and start time remains2026-11-13T08:04:23Z. CLI0.167.2 reports a ChatGPT authentication cache;
+that cache does not establish network-authenticated model execution. Exact-key checks found
+zero matches in six new evidence/test files and the runtime's last10minutes of logs.
+Older checkpoints below describe the preceding, now-repaired format blocker.
+
 ## Credential revalidation — November22 follow-up
 
 The owner reported the dedicated key saved. Fresh strict-host SSH inspection confirmed Germany
