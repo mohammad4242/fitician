@@ -34,7 +34,7 @@ credential. Completed probes retain their credential-revision/configuration snap
 The API probe and normal API turn use the actual scoped repository tool implementation;
 provider requests in local acceptance use MockTransport, not real paid inference.
 
-Verification: the final debugging/settings selection passed282 tests, with3 opt-in
+Verification: the final debugging/settings selection passed 282 tests, with 3 opt-in
 CLI/local-image tests skipped. Four Persian/English Chromium/WebKit cases and236 business /
 quota / capture-privacy / alert regressions passed. Thirty AI Settings tests, frontend TypeScript,
 14 debugging-module mypy, provisioning regressions and regenerated OpenAPI passed. A new
@@ -52,24 +52,24 @@ scheduler headroom are checked. Existing standalone policies and rollback snapsh
 supported; changing between modes with an active policy fails closed for reconciliation.
 408 ops tests passed, including real Compose rendering and shared-state/rollback checks.
 A broad-suite regression exposed an unintended new restriction on the existing base .env
-permissions; that was removed while retaining0600 for all new private diagnostics files.
+permissions; that was removed while retaining 0600 for all new private diagnostics files.
 Shared flags in the base env cannot bypass the explicit host-owned activation policy.
-The tracked secret scan and an exact-value scan of53 private logs passed.
+The tracked secret scan and an exact-value scan of 53 private logs passed.
 No production policy/configuration was installed or changed.
 
-Fresh read-only observations at 05:28 UTC: Iran2CPU/3916MiB, available1493MiB, disk9872MiB;
-Germany1CPU/1967MiB, available1305MiB, disk2449MiB. All **running** healthchecked services
+Fresh read-only observations at 05:28 UTC: Iran 2CPU/3916MiB, available 1493MiB, disk 9872MiB;
+Germany 1CPU/1967MiB, available 1305MiB, disk 2449MiB. All **running** healthchecked services
 were healthy; stopped historical rehearsal containers are not production health failures.
 The exact Germany GitHub credential still matches the local dedicated store (0600); its
 read-only workflow GET returned200. Both enrollment files remain absent. The reviewed
 validation and observation workflows were rechecked onmain and returned404; no policy bypass
 or merge was attempted.
-Iran DB remains20261018_175 with30 observed connections. Scheduler153.8/192MiB working
+Iran DB remains 20261018_175 with 30 observed connections. Scheduler 153.8/192MiB working
 set has insufficient 64MiB residual reserve; the new gate correctly blocks activation with
 that current container allocation. The earlier isolated256MiB scheduler test is not approval
 to change production. No VPS upgrade is established as necessary. Germany disk remains below
-its retained3GiB release gate. A refreshed read-only inventory identifies29 archived system
-journal files totaling1360MiB as review candidates; no file/image cleanup, restart or guard
+its retained 3GiB release gate. A refreshed read-only inventory identifies 29 archived system
+journal files totaling 1360MiB as review candidates; no file/image cleanup, restart or guard
 reduction occurred.
 
 Historical November21 notes below predate this dedicated-key decision and adapter/release
@@ -85,10 +85,50 @@ implemented. Requests accept no custom exception text or business payload. Captu
 the original stack and correlation ID; local persistence never asserts Sentry/SMS delivery.
 The exact occurrence opens in the same workspace and stays in the URL across selection and
 refresh, while existing filters are retained. Returning to the list clears stale occurrence
-selection. Unknown external delivery is preserved as unknown.66 capture/privacy tests and83
+selection. Unknown external delivery is preserved as unknown. 66 capture/privacy tests and 83
 settings/diagnostics UI tests passed; focused mypy, TypeScript and secret checks passed.
-Live ingestion through this new action is a separate verification gate. No production flag
-was enabled and no new mobile build or physical SMS was sent.
+Actual acceptance on source `7e2a1291f4074f2c7472fe47a94a4bb971f33ad3`: clicking the real
+Persian panel action on the isolated database created exactly one occurrence, then Sentry
+API readback confirmed event `be8a705fcb8f4224a5b757f7cb9fa1b2` in staging. Local occurrence
+`1b1f5038-cd57-5cb1-b6e6-79cc514b5a45` linked to Sentry group 7858366948 with observed delivery,
+matching release and exact-commit source links. At 390px, Persian explanation, selected
+occurrence, existing filters, original stack, stored operator message, cancellation and refresh
+passed. No model response was fabricated: the queued run was explicitly cancelled, with
+`model_executed=false`. The test harness first stopped before capture twice, then used an
+incorrect 202 expectation for the existing 200 chat contract; the existing occurrence/run were
+reconciled, never recaptured. Proof records exactly one synthetic occurrence. No production
+flag was enabled and no new mobile build or physical SMS was sent.
+
+Read-only Germany CLI inspection confirmed 0.167.2 and a ChatGPT login cache; this is not
+network authentication/model-execution proof. The runtime remains awaiting enrollment.
+Fresh GitHub verification fetched all four controlled-validation artifact ZIPs from
+[CI44992753117](https://github.com/mohammad4242/fitician/actions/runs/44992753117) through the
+actual broker adapter. Each ZIP digest and passed report matched tested PR merge commit
+`54109d102ff5c8ed5bbe837d35991177a6238ea2`, whose tree equals source 7e2a1291. The full CI,
+including backend/browser/Android jobs, was still in progress at this checkpoint. Hosted
+isolated runtime rollout/restart/rollback, Agent suite, frontend test/lint/build and topology
+checks had passed. No production broker publication or deployment is established by this.
+
+Private evidence is under `.codex-tmp/germany-api-20261122/` (Git ignored):
+`live-panel-verification.json`, `live-evidence-browser.json`, `current-ci-artifacts.json`,
+`runtime-readonly.json`, regional readbacks, test logs and 390px screenshots. A fresh exact-value
+scan of the private logs reported zero known credential/recipient matches. The two pre-existing
+regional documentation edits remain preserved and outside these commits.
+
+Actual local commands (using the owned PostgreSQL18 fixture and its test-only environment):
+- `python -m unittest discover -s ops/tests`: 408 passed.
+- `.venv/bin/python -m pytest -q tests/test_debug*.py tests/admin/test_ai_task_settings_api.py`:
+  282 passed, 3 explicit pinned-CLI/local-image skips.
+- The 13-file business/quota/privacy/alert selection: 236 passed; capture/privacy selection 66 passed.
+- `npm test -- src/features/diagnostics src/features/admin/AdminAiSettingsPage.test.tsx`: 83 passed.
+- `npx tsc -b`, focused Ruff/mypy/Oxlint, `npm run check:openapi` and `npm run security:secrets`:passed.
+- Isolated Playwright Chromium/WebKit Persian/English selection:4 passed, plus the actual
+  Sentry panel/cancellation/refresh browser acceptance above.
+
+No production migration, deployment, critical-service restart, merge, cleanup or SMS activation
+occurred. The dedicated key, enrollment/reviewed-main workflows and production activation/
+capacity/disk gates remain open. Android ARM/iOS and new native release symbolication were not
+performed during this continuation.
 
 ## Revalidated completion checklist — 2026-11-21
 
