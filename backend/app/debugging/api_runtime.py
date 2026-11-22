@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 import httpx
@@ -11,6 +12,55 @@ from jsonschema import ValidationError, validate
 from .appserver import ProgressHandler, ToolHandler
 from .limits import validate_runtime_config
 from .privacy import sanitize_text
+
+
+async def request_analysis(
+    client: httpx.AsyncClient,
+    *,
+    base_url: str,
+    api_key: str,
+    config: dict[str, Any],
+    messages: list[dict[str, str]],
+    before_request: Callable[[], Awaitable[None]] | None = None,
+) -> str:
+    model = config.get("primary_model_id")
+    if not isinstance(model, str) or not model:
+        raise ValueError("model_not_configured")
+    # A provider selection is not tool execution authority. No tools are sent in analysis mode.
+    restrictions = config.get("routing_restrictions", [])
+    validate_runtime_config(config)
+    provider: dict[str, Any] = {"data_collection": "deny", "allow_fallbacks": False}
+    if "zero_data_retention" in restrictions:
+        provider["zdr"] = True
+    if "require_supported_parameters" in restrictions:
+        provider["require_parameters"] = True
+    if before_request is not None:
+        await before_request()
+    async with client.stream(
+        "POST",
+        base_url.rstrip("/") + "/chat/completions",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={
+            "model": model,
+            "messages": messages,
+            "max_tokens": int(config.get("max_output_tokens", 4096)),
+            "provider": provider,
+        },
+    ) as response:
+        if response.status_code == 429:
+            raise ValueError("provider_rate_limited")
+        if response.status_code != 200:
+            raise ValueError("provider_rejected")
+        payload = bytearray()
+        async for chunk in response.aiter_bytes():
+            payload.extend(chunk)
+            if len(payload) > 1_048_576:
+                raise ValueError("provider_response_too_large")
+        body = json.loads(payload)
+    content = body.get("choices", [{}])[0].get("message", {}).get("content")
+    if not isinstance(content, str) or not content.strip():
+        raise ValueError("provider_invalid_response")
+    return sanitize_text(content)
 
 
 async def model_supports_tools(
@@ -44,6 +94,7 @@ async def run_api_tools(
     tools: list[dict[str, Any]],
     handler: ToolHandler,
     progress: ProgressHandler,
+    before_request: Callable[[], Awaitable[None]] | None = None,
 ) -> str:
     model = config.get("primary_model_id")
     if not isinstance(model, str) or not model:
@@ -62,6 +113,8 @@ async def run_api_tools(
             raise ValueError("tool_run_budget_exhausted")
         allocation = min(remaining, 2048)
         await progress("model_request", {"step": step + 1, "model": model})
+        if before_request is not None:
+            await before_request()
         async with client.stream(
             "POST",
             base_url.rstrip("/") + "/chat/completions",

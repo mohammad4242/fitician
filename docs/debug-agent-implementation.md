@@ -7,6 +7,17 @@ environment gate and automatic delivery is limited to eligible main CI/component
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
+## Germany dedicated model key — approved November 22 continuation
+
+The owner selected a separate Germany-only OpenRouter key. No application/GitHub/Sentry key
+may be reused. Read-only inspection found the existing Germany private directory empty and
+no model-api.json. A strict purpose-bound mode-0600 loader, provider-side daily-budget check
+(maximum USD1/day, BYOK included, no management key), and persistent six-request/minute
+reservations passed twenty provider/runtime tests after observed failures. The interactive
+server-only provisioning helper passed two filesystem/no-overwrite regressions. It accepts
+no key argument or environment fallback. Runtime wiring and live model verification follow;
+this component alone does not establish enrollment or production readiness.
+
 ## Revalidated completion checklist — 2026-11-21
 
 ### Current verification and remaining gates — November 21 UTC continuation

@@ -21,7 +21,7 @@ from app.config import Settings, get_settings
 from app.database.session import get_engine
 from app.profile import models as profile_models  # noqa: F401
 
-from .api_runtime import model_supports_tools, run_api_tools
+from .api_runtime import model_supports_tools, request_analysis, run_api_tools
 from .catalog import tool_catalog
 from .gateway import call_connector
 from .limits import CONNECTOR_BLOCKERS, validate_runtime_config
@@ -29,52 +29,6 @@ from .models import DebugMessage, DebugRun
 from .privacy import sanitize_text
 from .runtime_profiles import authorized_target, execution_capabilities
 from .service import append_event, assistant_submission_key, claim_run
-
-
-async def request_analysis(
-    client: httpx.AsyncClient,
-    *,
-    base_url: str,
-    api_key: str,
-    config: dict[str, Any],
-    messages: list[dict[str, str]],
-) -> str:
-    model = config.get("primary_model_id")
-    if not isinstance(model, str) or not model:
-        raise ValueError("model_not_configured")
-    # A provider selection is not tool execution authority. No tools are sent in analysis mode.
-    restrictions = config.get("routing_restrictions", [])
-    validate_runtime_config(config)
-    provider: dict[str, Any] = {"data_collection": "deny", "allow_fallbacks": False}
-    if "zero_data_retention" in restrictions:
-        provider["zdr"] = True
-    if "require_supported_parameters" in restrictions:
-        provider["require_parameters"] = True
-    async with client.stream(
-        "POST",
-        base_url.rstrip("/") + "/chat/completions",
-        headers={"Authorization": f"Bearer {api_key}"},
-        json={
-            "model": model,
-            "messages": messages,
-            "max_tokens": int(config.get("max_output_tokens", 4096)),
-            "provider": provider,
-        },
-    ) as response:
-        if response.status_code == 429:
-            raise ValueError("provider_rate_limited")
-        if response.status_code != 200:
-            raise ValueError("provider_rejected")
-        payload = bytearray()
-        async for chunk in response.aiter_bytes():
-            payload.extend(chunk)
-            if len(payload) > 1_048_576:
-                raise ValueError("provider_response_too_large")
-        body = json.loads(payload)
-    content = body.get("choices", [{}])[0].get("message", {}).get("content")
-    if not isinstance(content, str) or not content.strip():
-        raise ValueError("provider_invalid_response")
-    return sanitize_text(content)
 
 
 async def execute_run(settings: Settings, run_id: UUID, lease_token: UUID) -> None:
