@@ -37,6 +37,7 @@ class RegionalWorkflowTests(unittest.TestCase):
             IMAGE_TAG="a" * 40,
             CI_RUN_ID="123",
             OWNER_APPROVED="true",
+            AUTOMATION_ONLY="false",
             ALLOW_SCHEMA_MIGRATIONS="false",
             INITIAL_DEPLOY="false",
             FRONTEND_CONTRACT_REFRESH="false",
@@ -62,6 +63,8 @@ class RegionalWorkflowTests(unittest.TestCase):
                 ("CI_RUN_ID", "123\nowner_approved=true"),
                 ("IMAGE_TAG", "a" * 40 + "\nauto_release=true"),
                 ("FRONTEND_CONTRACT_REFRESH", "true\nauto_release=true"),
+                ("AUTOMATION_ONLY", "true\nauto_release=true"),
+                ("AUTOMATION_ONLY", "true"),
             ]:
                 with self.subTest(key=key):
                     output.unlink(missing_ok=True)
@@ -87,6 +90,20 @@ class RegionalWorkflowTests(unittest.TestCase):
                     check=False,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
+            result = subprocess.run(
+                ["bash", "-c", script],
+                env={
+                    **valid,
+                    "DEPLOY_KIND": "debug_runtime",
+                    "IMAGE_SOURCE": "preloaded",
+                    "AUTOMATION_ONLY": "true",
+                    "GITHUB_OUTPUT": str(output),
+                },
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_regional_deploy_is_guarded_and_default_off(
         self,

@@ -39,6 +39,10 @@ uses the existing Agent Service for AI and the laptop for repository execution.
 
 ## Critical workflow and trust-boundary review
 
+Both trusted debug workflows now pin every third-party action to a verified full commit SHA,
+and all their checkouts disable persisted GitHub credentials. This follows the official
+[GitHub secure-use guidance](https://docs.github.com/en/actions/reference/security/secure-use).
+
 `debug-validation.yml` checks exact 40-character candidate identities, canonical UUIDs and
 fixed allowlisted profiles/test paths. Trusted policy and candidate checkouts are separate;
 credentials are not persisted. Policy builds dependencies; candidate code runs as UID10001 in
@@ -58,6 +62,31 @@ publication or deployment authority.
 closed target/trace inputs, uses region-specific Environment credentials and strict host pins,
 and runs a fixed read-only collector. It does not accept a model-provided command. Observation
 artifacts retain their digest/provenance and cannot establish business resolution.
+
+## Broker-only release boundary
+
+The previous `debug_runtime` path always selected the legacy inference connector alongside
+GitHub automation. Unified Option A now uses the same owner-gated regional workflow with
+`deploy_kind=debug_runtime`, `automation_only=true`, `image_source=preloaded`. It replaces only
+`automation`, including only that service's new resource allocation while preserving and
+budgeting all other containers. It does not install or authenticate another AI environment.
+
+The broker has its own active-contract marker and component receipt under
+`releases/<sha>/automation/`. Legacy connector releases remain separate. A later combined
+legacy rollout fails closed rather than assuming both components share a rollback image.
+First-enrollment rollback stops only the new broker; it never passes an empty service list to
+Compose (which would start unrelated services). All original owner, immutable image, archive,
+concurrency,3072MiB-plus-transfer, memory and authentication-volume guards remain.
+
+The existing actual Docker rollout/rollback smoke now also exercises broker-only replacement,
+idempotent replay and rollback while checking the legacy connector's identity. Publication
+requires those additional proof flags. Empty isolated fixture configuration deliberately tests
+liveness without claiming provider authentication or enrollment. Hosted execution remains a
+fresh-CI gate; unit tests alone do not establish live broker deployment.
+
+The stateless Agent Service can be updated first. Broker registration and the selected laptop's
+production enrollment require the new Iran API/schema, so their activation follows that API
+rollout. CLI authentication remains in the existing Agent Service volume throughout.
 
 ## Pending schema review (175 to 187)
 
@@ -113,9 +142,15 @@ layers and a separately owner-approved storage plan are required before rollout 
 - [x] Preserve unrelated work and isolate the two independent product fixes.
 - [x] Disable automatic CD without disabling manual owner-gated release.
 - [x] Recheck all existing regional service health and original production schema.
-- [ ] Complete final release review and fresh exact-head CI after the scope change.
+- [x] Broker-mode and action-pin regressions observed failing before correction.
+- [x] Local release checks:428 ops tests,410 focused backend tests (3 explicit local skips),
+  1397 frontend tests, OpenAPI, actionlint, Ruff and secret checks.
+- [ ] Fresh exact-head CI and actual broker rollout smoke after release hardening.
 - [ ] Merge normally; verify trusted workflows and full CI on actual merged main.
-- [ ] Verify fresh encrypted backup restore/migration rehearsal.
+- [x] Fresh encrypted snapshot/S3 readback verified; isolated restore and175→187 rehearsal
+  preserved155 existing table counts and11 protected fingerprints, with all FKs valid.
+  Result:169 tables. No plaintext backup file, application execution or production mutation.
+  Refresh the snapshot if cutover is delayed beyond the existing release freshness guard.
 - [ ] Resolve Germany capacity with separate owner approval; no deletion assumed.
 - [ ] Deploy exact tested images, enroll workers/connectors, verify live panel workflow.
 - [ ] Production Sentry/model/repair/CI/PR acceptance; SMS stays disabled.

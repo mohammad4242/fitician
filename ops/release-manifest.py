@@ -63,6 +63,10 @@ def runtime_identity(root: Path, commit: str) -> dict:
                 "actual_rollback",
                 "persistent_state_retained",
                 "unrelated_services_unchanged",
+                "broker_only_rollout",
+                "broker_only_idempotent",
+                "broker_only_rollback",
+                "legacy_connector_unchanged",
             )
         )
     ):

@@ -25,9 +25,10 @@ jobs:
     timeout-minutes: 5
     environment: ${{ inputs.target == 'iran' && 'production-iran' || 'production-germany' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.sha }}
+          persist-credentials: false
       - name: Verify immutable read-only request
         env:
           POLICY: ${{ inputs.policy_commit }}
@@ -52,7 +53,7 @@ jobs:
           VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
         run: bash ops/debug-observe-remote.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: fitician-server-observation-${{ inputs.operation_id }}
           path: .ci-evidence/debug-observation/observation.json

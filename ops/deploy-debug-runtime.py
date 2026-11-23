@@ -127,14 +127,30 @@ def service_metadata(service: str) -> dict[str, Any]:
     return json.loads(docker("inspect", rows[0]))[0]
 
 
-def non_runtime_identity() -> dict[str, Any]:
+def selected_services(automation: bool, automation_only: bool) -> list[str]:
+    if automation and automation_only:
+        raise ValueError("runtime_service_selection_invalid")
+    return (
+        ["automation"]
+        if automation_only
+        else (["connector", "automation"] if automation else ["connector"])
+    )
+
+
+def non_runtime_identity(services: list[str] | None = None) -> dict[str, Any]:
+    selected = services if services is not None else ["connector", "automation"]
     ids = docker("ps", "-q").split()
     if not ids:
         return {}
     return {
         item["Id"]: {"started": item["State"]["StartedAt"], "image": item["Image"]}
         for item in json.loads(docker("inspect", *ids))
-        if item["Config"].get("Labels", {}).get("com.docker.compose.project") != PROJECT
+        if (
+            item["Config"].get("Labels", {}).get("com.docker.compose.project")
+            != PROJECT
+            or item["Config"].get("Labels", {}).get("com.docker.compose.service")
+            not in selected
+        )
     }
 
 
@@ -144,9 +160,11 @@ def capacity_budget(
     cpus: int,
     others: list[dict[str, Any]],
     automation: bool,
+    *,
+    connector: bool = True,
 ) -> dict[str, Any]:
-    required = (512 + (192 if automation else 0)) * 1024**2
-    memory, cpu = required, 0.25 + (0.1 if automation else 0)
+    required = ((512 if connector else 0) + (192 if automation else 0)) * 1024**2
+    memory, cpu = required, (0.25 if connector else 0) + (0.1 if automation else 0)
     for row in others:
         host = row["HostConfig"]
         limit = host.get("Memory", 0)
@@ -227,8 +245,11 @@ def rollout(
             added = [name for name in services if name not in prior_services]
             if added:
                 compose(candidate, "stop", "--timeout", "30", *added)
-            compose_up(previous, prior_services)
-            verify_running(prior_services, prior["image_id"], prior["commit"])
+            # An empty Compose service list means "all services". Never use it when
+            # rolling back the first broker enrollment; stop only the new service.
+            if prior_services:
+                compose_up(previous, prior_services)
+                verify_running(prior_services, prior["image_id"], prior["commit"])
         except (ValueError, subprocess.SubprocessError):
             raise ValueError("runtime_rollback_unconfirmed") from None
         raise ValueError("runtime_rollout_rolled_back") from None
@@ -254,9 +275,11 @@ def deploy(
     *,
     owner_approved: bool,
     automation: bool = False,
+    automation_only: bool = False,
 ) -> dict[str, Any]:
     if not owner_approved:
         raise ValueError("runtime_owner_approval_required")
+    services = selected_services(automation, automation_only)
     if not root.is_absolute() or root.is_symlink() or not root.is_dir():
         raise ValueError("existing_managed_runtime_required")
     marker = root / "managed.json"
@@ -265,6 +288,10 @@ def deploy(
         or json.loads(marker.read_text()).get("managed_by") != PROJECT
     ):
         raise ValueError("existing_managed_runtime_required")
+    # Independent broker releases must not later be rolled back as if the legacy
+    # inference connector shared the same image/contract. Use component releases.
+    if automation and (root / "active-automation-release.json").exists():
+        raise ValueError("runtime_automation_requires_independent_rollout")
     for name in (
         "state",
         "private",
@@ -287,8 +314,7 @@ def deploy(
         except BlockingIOError:
             raise ValueError("regional_deployment_in_progress") from None
         manifest = verify_bundle(directory, expected, commit, run_id)
-        services = ["connector", "automation"] if automation else ["connector"]
-        if automation:
+        if "automation" in services:
             for name in ("github.json", "worker.json"):
                 file = root / "automation-private" / name
                 if (
@@ -297,10 +323,17 @@ def deploy(
                     or file.stat().st_mode & 0o077
                 ):
                     raise ValueError("runtime_automation_configuration_required")
-        active = root / "active-release.json"
+        active = root / (
+            "active-automation-release.json"
+            if automation_only
+            else "active-release.json"
+        )
+        previous_active = active
+        if automation_only and not active.exists():
+            previous_active = root / "active-release.json"
         previous = (
-            Path(json.loads(active.read_text())["contract"])
-            if active.exists()
+            Path(json.loads(previous_active.read_text())["contract"])
+            if previous_active.exists()
             else root / "current/compose.debug-runtime.yaml"
         )
         if (
@@ -323,7 +356,11 @@ def deploy(
                 "-q",
             ).strip()
         }
-        prior_row = prior_rows["connector"]
+        # On first broker enrollment the existing connector supplies only the
+        # rollback image anchor. It is not selected, stopped, restarted or enrolled.
+        prior_row = next(iter(prior_rows.values()), None) or service_metadata(
+            "connector"
+        )
         prior_commit = (
             prior_row["Config"]
             .get("Labels", {})
@@ -336,8 +373,12 @@ def deploy(
             "image_id": config_digest_for_image(prior_row["Image"]),
             "services": list(prior_rows),
         }
-        prior_identity = non_runtime_identity()
+        prior_identity = non_runtime_identity(services)
         release = root / "releases" / commit
+        if automation_only:
+            release = release / "automation"
+        if any(path.is_symlink() for path in (release, release.parent)):
+            raise ValueError("runtime_private_directory_required")
         journal = release / "deployment.json"
         if journal.exists():
             receipt = json.loads(journal.read_text())
@@ -360,7 +401,8 @@ def deploy(
             memory["MemAvailable"],
             os.cpu_count() or 1,
             others,
-            automation,
+            "automation" in services,
+            connector="connector" in services,
         )
         required_disk = max(
             3221225472, unpacked_size(directory / "image.tar.gz") + 1610612736
@@ -432,7 +474,7 @@ def deploy(
                 commit,
                 prior,
             )
-            if non_runtime_identity() != prior_identity:
+            if non_runtime_identity(services) != prior_identity:
                 raise ValueError("unrelated_service_identity_changed")
             save(
                 active,
@@ -475,7 +517,9 @@ def main() -> None:
     parser.add_argument("--ci-run-id", type=int, required=True)
     parser.add_argument("--regional-lock", type=Path, required=True)
     parser.add_argument("--owner-approved", action="store_true")
-    parser.add_argument("--automation", action="store_true")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--automation", action="store_true")
+    selection.add_argument("--automation-only", action="store_true")
     args = parser.parse_args()
     try:
         result = deploy(
@@ -487,6 +531,7 @@ def main() -> None:
             args.regional_lock,
             owner_approved=args.owner_approved,
             automation=args.automation,
+            automation_only=args.automation_only,
         )
         print(json.dumps(result))
     except Exception as error:  # noqa: BLE001 - never emit raw subprocess/metadata error bodies

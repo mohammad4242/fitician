@@ -44,6 +44,10 @@ def evidence(directory):
         "actual_rollback": True,
         "persistent_state_retained": True,
         "unrelated_services_unchanged": True,
+        "broker_only_rollout": True,
+        "broker_only_idempotent": True,
+        "broker_only_rollback": True,
+        "legacy_connector_unchanged": True,
         "production_deployment": False,
     }
     for name, payload in [("smoke.json", smoke), ("release-smoke.json", rollout)]:
@@ -55,6 +59,30 @@ def evidence(directory):
 
 
 class IndependentManifestTests(unittest.TestCase):
+    def test_refuses_untested_broker_only_rollout_recovery_and_connector_isolation(
+        self,
+    ):
+        flags = (
+            "broker_only_rollout",
+            "broker_only_idempotent",
+            "broker_only_rollback",
+            "legacy_connector_unchanged",
+        )
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as name:
+            path = Path(name)
+            evidence(path)
+            file = path / "release-smoke.json"
+            original = json.loads(file.read_text())
+            for flag in flags:
+                with self.subTest(flag=flag):
+                    value = {**original}
+                    value.pop(flag, None)
+                    file.write_text(json.dumps(value))
+                    with self.assertRaisesRegex(
+                        ValueError, "release_runtime_rollout_smoke_required"
+                    ):
+                        builder().build_manifest(path, "c" * 40, 42, 1)
+
     def test_prepares_only_the_exact_runtime_from_recorded_smoke_and_rollout(self):
         with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as name:
             path = Path(name)

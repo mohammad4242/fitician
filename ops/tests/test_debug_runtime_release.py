@@ -63,6 +63,95 @@ def bundle(folder):
 
 
 class RuntimeReleaseTests(unittest.TestCase):
+    def test_broker_only_selects_no_inference_connector(self):
+        release = module()
+        self.assertEqual(release.selected_services(False, True), ["automation"])
+        self.assertEqual(release.selected_services(False, False), ["connector"])
+        self.assertEqual(
+            release.selected_services(True, False), ["connector", "automation"]
+        )
+        with self.assertRaisesRegex(ValueError, "runtime_service_selection_invalid"):
+            release.selected_services(True, True)
+
+    def test_broker_only_preserves_other_runtime_container_identities(self):
+        release = module()
+        rows = [
+            {
+                "Id": name,
+                "Config": {
+                    "Labels": {
+                        "com.docker.compose.project": project,
+                        "com.docker.compose.service": service,
+                    }
+                },
+                "State": {"StartedAt": "unchanged"},
+                "Image": name + "-image",
+            }
+            for name, project, service in [
+                ("legacy", release.PROJECT, "connector"),
+                ("broker", release.PROJECT, "automation"),
+                ("generation", "fitician-agent", "agent-service"),
+            ]
+        ]
+        with patch.object(
+            release,
+            "docker",
+            side_effect=["legacy broker generation", json.dumps(rows)],
+        ):
+            observed = release.non_runtime_identity(["automation"])
+        self.assertEqual(set(observed), {"legacy", "generation"})
+
+    def test_broker_only_capacity_includes_existing_connector_without_adding_another(
+        self,
+    ):
+        release = module()
+        mib = 1024**2
+        existing = [{"HostConfig": {"Memory": 512 * mib, "NanoCpus": 250000000}}]
+        result = release.capacity_budget(
+            1536 * mib, 1024 * mib, 1, existing, True, connector=False
+        )
+        self.assertEqual(result["planned_memory_mib"], 704)
+        self.assertEqual(result["planned_cpu_limits"], 0.35)
+        with self.assertRaisesRegex(ValueError, "runtime_memory_capacity_required"):
+            release.capacity_budget(
+                1024 * mib, 1024 * mib, 1, existing, True, connector=False
+            )
+
+    def test_first_broker_failure_stops_only_new_broker_and_never_starts_all_services(
+        self,
+    ):
+        release = module()
+        with (
+            patch.object(release, "compose_up") as up,
+            patch.object(release, "compose") as compose,
+            patch.object(
+                release, "verify_running", side_effect=ValueError("unhealthy")
+            ),
+            self.assertRaisesRegex(ValueError, "runtime_rollout_rolled_back"),
+        ):
+            release.rollout(
+                Path("candidate"),
+                Path("previous"),
+                ["automation"],
+                "sha256:" + "a" * 64,
+                "c" * 40,
+                {"services": [], "image_id": "sha256:" + "b" * 64, "commit": "d" * 40},
+            )
+        up.assert_called_once_with(Path("candidate"), ["automation"])
+        compose.assert_called_once_with(
+            Path("candidate"), "stop", "--timeout", "30", "automation"
+        )
+
+    def test_regional_broker_mode_retains_transfer_capacity_and_owner_guards(self):
+        workflow = (ROOT / ".github/workflows/deploy-regional.yml").read_text()
+        job = workflow.split("\n  deploy-debug-runtime:\n", 1)[1]
+        self.assertIn("automation_only:", workflow)
+        self.assertIn("--automation-only", job)
+        self.assertIn("3221225472 +", job)
+        self.assertIn("needs['owner-approval'].result == 'success'", job)
+        self.assertIn("cancel-in-progress: false", job)
+        self.assertIn("--owner-approved", job)
+
     def test_independent_runtime_bundle_needs_no_application_images_or_web_artifacts(
         self,
     ):

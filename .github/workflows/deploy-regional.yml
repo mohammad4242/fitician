@@ -43,6 +43,11 @@ on:
         required: true
         type: boolean
         default: false
+      automation_only:
+        description: Replace only the Germany GitHub broker; preserve AI and repository runtimes
+        required: false
+        type: boolean
+        default: false
       allow_schema_migrations:
         description: Approve reviewed schema migration on Iran full release
         required: false
@@ -130,6 +135,7 @@ jobs:
           EXPECTED_BASELINE_SHA256: ${{ inputs.expected_baseline_sha256 }}
           AUTHORIZATION_EXPIRES_AT: ${{ inputs.authorization_expires_at }}
           OWNER_APPROVED: ${{ inputs.owner_approved }}
+          AUTOMATION_ONLY: ${{ inputs.automation_only }}
           ALLOW_SCHEMA_MIGRATIONS: ${{ inputs.allow_schema_migrations }}
           INITIAL_DEPLOY: ${{ inputs.initial_deploy }}
           FRONTEND_CONTRACT_REFRESH: ${{ inputs.frontend_contract_refresh }}
@@ -140,6 +146,7 @@ jobs:
           set -euo pipefail
           [[ "$TARGET" == iran || "$TARGET" == germany ]]
           [[ "$DEPLOY_KIND" == full || "$DEPLOY_KIND" == frontend || "$DEPLOY_KIND" == backend || "$DEPLOY_KIND" == agent || "$DEPLOY_KIND" == debug_runtime ]]
+          [[ "$AUTOMATION_ONLY" == false || "$TARGET:$DEPLOY_KIND" == germany:debug_runtime ]]
           if [[ "$DEPLOY_KIND" == debug_runtime ]]; then
             test "$TARGET" = germany
             test "$IMAGE_SOURCE" = preloaded
@@ -162,7 +169,7 @@ jobs:
           fi
           [[ -z "$SCALABILITY_EVIDENCE_RUN_ID" || "$SCALABILITY_EVIDENCE_RUN_ID" =~ ^[0-9]+$ ]]
           [[ "$IMAGE_SOURCE" == registry || "$IMAGE_SOURCE" == preloaded ]]
-          for flag in "$OWNER_APPROVED" "$ALLOW_SCHEMA_MIGRATIONS" "$INITIAL_DEPLOY" "$FRONTEND_CONTRACT_REFRESH" "$FIRST_SCALABILITY_RELEASE_APPROVED"; do
+          for flag in "$OWNER_APPROVED" "$ALLOW_SCHEMA_MIGRATIONS" "$INITIAL_DEPLOY" "$FRONTEND_CONTRACT_REFRESH" "$FIRST_SCALABILITY_RELEASE_APPROVED" "$AUTOMATION_ONLY"; do
             [[ "$flag" == true || "$flag" == false ]]
           done
           for pair in \
@@ -668,6 +675,7 @@ jobs:
       VPS_SSH_PORT: ${{ vars.VPS_SSH_PORT || '9011' }}
       VPS_APP_DIR: ${{ vars.VPS_APP_DIR }}
       DEBUG_RUNTIME_ROOT: ${{ vars.DEBUG_RUNTIME_ROOT || '/opt/fitician-debug-runtime' }}
+      AUTOMATION_ONLY: ${{ inputs.automation_only || false }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -738,15 +746,18 @@ jobs:
         run: |
           set -euo pipefail
           incoming="$DEBUG_RUNTIME_ROOT/incoming/$IMAGE_TAG"
-          # Existing automation is retained only with its explicit secure enrollment files.
+          # Unified Option A releases only the broker; CLI inference stays in Agent Service.
+          # Legacy combined releases retain their explicit secure enrollment requirement.
           # shellcheck disable=SC2029
-          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" "automation=''; if [ -f '$DEBUG_RUNTIME_ROOT/automation-private/worker.json' ] && [ -f '$DEBUG_RUNTIME_ROOT/automation-private/github.json' ]; then automation=--automation; fi; python3 '$incoming/ops/deploy-debug-runtime.py' --root '$DEBUG_RUNTIME_ROOT' --directory '$incoming/bundle' --manifest-sha256 '$EXPECTED_MANIFEST_SHA256' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID' --regional-lock '$VPS_APP_DIR/.regional-deploy.lock' --owner-approved \$automation"
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" "automation=''; if [ '$AUTOMATION_ONLY' = true ]; then automation=--automation-only; elif [ -f '$DEBUG_RUNTIME_ROOT/automation-private/worker.json' ] && [ -f '$DEBUG_RUNTIME_ROOT/automation-private/github.json' ]; then automation=--automation; fi; python3 '$incoming/ops/deploy-debug-runtime.py' --root '$DEBUG_RUNTIME_ROOT' --directory '$incoming/bundle' --manifest-sha256 '$EXPECTED_MANIFEST_SHA256' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID' --regional-lock '$VPS_APP_DIR/.regional-deploy.lock' --owner-approved \$automation"
       - name: Retain bounded deployment evidence
         if: always() && steps.runtime_rollout.outcome != 'skipped' && steps.runtime_rollout.outcome != ''
         run: |
           mkdir -p .ci-evidence/runtime-deployment
+          receipt_subdir=''
+          if [ "$AUTOMATION_ONLY" = true ]; then receipt_subdir=/automation; fi
           # shellcheck disable=SC2029
-          scp -P "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST:$DEBUG_RUNTIME_ROOT/releases/$IMAGE_TAG/deployment.json" .ci-evidence/runtime-deployment/deployment.json
+          scp -P "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST:$DEBUG_RUNTIME_ROOT/releases/$IMAGE_TAG$receipt_subdir/deployment.json" .ci-evidence/runtime-deployment/deployment.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:

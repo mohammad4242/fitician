@@ -205,6 +205,91 @@ def run(directory: Path, commit: str, output: Path) -> dict:
                 == "retained"
             )
             assert release.non_runtime_identity() == others
+            # Exercise Option A's broker-only component path using empty fixture
+            # configuration, no real credentials, no outbound network or AI calls.
+            for filename in ("worker.json", "github.json"):
+                file = root / "automation-private" / filename
+                file.write_text("{}")
+                file.chmod(0o600)
+            release.docker(
+                "run",
+                "--rm",
+                "--network=none",
+                "--read-only",
+                "--cap-drop=ALL",
+                "--cap-add=CHOWN",
+                "--user=0:0",
+                "--mount",
+                f"type=bind,src={root / 'automation-private'},dst=/fixture",
+                "--entrypoint=python",
+                image,
+                "-c",
+                "import os; [os.chown('/fixture/'+name,10001,10001) "
+                "for name in ('worker.json','github.json')]",
+            )
+            protected = release.non_runtime_identity(["automation"])
+            broker_receipt = release.deploy(
+                root,
+                root / "bundle",
+                digest,
+                commit,
+                1,
+                root / "regional.lock",
+                owner_approved=True,
+                automation_only=True,
+            )
+            assert broker_receipt["state"] == "deployed"
+            broker_id = release.service_metadata("automation")["Id"]
+            again_broker = release.deploy(
+                root,
+                root / "bundle",
+                digest,
+                commit,
+                1,
+                root / "regional.lock",
+                owner_approved=True,
+                automation_only=True,
+            )
+            assert again_broker == broker_receipt
+            assert release.service_metadata("automation")["Id"] == broker_id
+            assert release.non_runtime_identity(["automation"]) == protected
+            broker_contract = Path(
+                json.loads((root / "active-automation-release.json").read_text())[
+                    "contract"
+                ]
+            )
+            broker_failure = root / "failing-broker"
+            broker_failure.mkdir()
+            broken_broker = broker_failure / "compose.debug-runtime.yaml"
+            broken_broker.write_text(
+                compose.replace(
+                    "command: [serve]",
+                    "command: [unsupported-release-smoke-argument]",
+                    1,
+                )
+            )
+            (broker_failure / "runtime.env").write_text(
+                (broker_contract.parent / "runtime.env").read_text()
+            )
+            try:
+                release.rollout(
+                    broken_broker,
+                    broker_contract,
+                    ["automation"],
+                    image_id,
+                    commit,
+                    {
+                        "image_id": image_id,
+                        "commit": commit,
+                        "services": ["automation"],
+                    },
+                )
+            except ValueError as error:
+                assert str(error) == "runtime_rollout_rolled_back"
+            else:
+                raise ValueError("controlled_broker_failure_did_not_fail")
+            assert release.non_runtime_identity(["automation"]) == protected
+            assert release.service_metadata("connector")["Id"] == container
             result = {
                 "commit": commit,
                 "image_id": image_id,
@@ -214,6 +299,11 @@ def run(directory: Path, commit: str, output: Path) -> dict:
                 "actual_rollback": True,
                 "persistent_state_retained": True,
                 "unrelated_services_unchanged": True,
+                "broker_only_rollout": True,
+                "broker_only_idempotent": True,
+                "broker_only_rollback": True,
+                "legacy_connector_unchanged": True,
+                "broker_enrollment_verified": False,
                 "production_deployment": False,
             }
         finally:

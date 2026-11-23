@@ -2,6 +2,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import subprocess
 import tarfile
 import unittest
@@ -18,6 +19,20 @@ ci_contract = __import__("app.debugging.ci_contract", fromlist=["test_result"])
 
 
 class DebugValidationTests(unittest.TestCase):
+    def test_trusted_workflows_pin_actions_and_never_persist_checkout_credentials(self):
+        root = Path(__file__).parents[2]
+        for name in ("debug-validation.yml", "debug-server-observation.yml"):
+            with self.subTest(workflow=name):
+                workflow = (root / ".github/workflows" / name).read_text()
+                actions = re.findall(r"uses:\s+([^@\s]+)@([^\s]+)", workflow)
+                self.assertTrue(actions)
+                for action, revision in actions:
+                    self.assertRegex(revision, r"^[a-f0-9]{40}$", action)
+                self.assertEqual(
+                    workflow.count("actions/checkout@"),
+                    workflow.count("persist-credentials: false"),
+                )
+
     def test_extracted_source_is_readable_by_the_sandbox_under_private_host_umask(self):
         with TemporaryDirectory(dir=Path(__file__).parents[2] / ".codex-tmp") as temp:
             root = Path(temp)

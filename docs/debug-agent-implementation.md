@@ -18,6 +18,11 @@ configuration, migration, SMS activation or deployment was changed during that s
 The subsequent authorized release audit is tracked in
 [debug-agent-release-audit-2026-11-23.md](debug-agent-release-audit-2026-11-23.md).
 
+The authorized release now has a broker-only deployment mode in the existing regional
+workflow; it does not replace the legacy inference connector. Trusted debug workflow actions
+are pinned to full SHAs. See the release audit for fresh backup/restore proof and remaining
+capacity, CI, merge and production acceptance gates.
+
 ### Execution and trust boundaries
 
 - The **existing Agent Service** owns CLI authentication and inference. A separate internal
