@@ -6,6 +6,7 @@ import {
 } from "@fitician/core";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
+import { diagnosticsRelease } from "../config/diagnosticsRelease";
 
 type DiagnosticSender = (events: readonly ClientDiagnosticEvent[]) => Promise<void>;
 
@@ -85,8 +86,8 @@ export function reportMobileClientRequestSpan(input: {
   } catch { /* Telemetry must preserve the application outcome. */ }
 }
 
-export function mobileClientPlatform(): "android" | "ios_pwa" {
-  return Platform.OS === "android" ? "android" : "ios_pwa";
+export function mobileClientPlatform(): "android" | "ios" | "web" {
+  return Platform.OS === "android" ? "android" : Platform.OS === "ios" ? "ios" : "web";
 }
 
 export function mobileClientVersion(): string | null {
@@ -99,6 +100,7 @@ function mobileDiagnosticEvent(
   code: ClientDiagnosticErrorCode,
 ): ClientDiagnosticEvent | null {
   const osVersion = String(Platform.Version);
+  const release = diagnosticsRelease(Constants.expoConfig?.extra?.diagnosticBuildCommit);
   const transportKind = context.transport_kind;
   const normalizedTransportKind: ClientDiagnosticEvent["transport_kind"] = transportKind === "network"
     || transportKind === "timeout"
@@ -117,7 +119,7 @@ function mobileDiagnosticEvent(
     ...(typeof context.source_location === "string" ? { source_location: context.source_location } : {}),
     ...(safeToken(context.correlation_id, "", 128) ? { request_id: safeToken(context.correlation_id, "", 128) } : {}),
     ...(safeToken(Constants.expoConfig?.version, "", 64) ? { version: safeToken(Constants.expoConfig?.version, "", 64) } : {}),
-    ...(safeToken(Constants.nativeBuildVersion, "", 64) ? { build: safeToken(Constants.nativeBuildVersion, "", 64) } : {}),
+    ...(release.commit ? { build: release.commit } : {}),
     ...(safeToken(context.operation_id, "", 128) ? { operation_id: safeToken(context.operation_id, "", 128) } : {}),
     ...(safeToken(context.trace_id, "", 32) ? { trace_id: safeToken(context.trace_id, "", 32) } : {}),
     ...(safeToken(context.span_id, "", 16) ? { span_id: safeToken(context.span_id, "", 16) } : {}),

@@ -1,17 +1,19 @@
 import { afterEach, expect, it, vi } from "vitest";
 
-vi.mock("expo-constants", () => ({ default: { expoConfig: { version: "2.3.1" }, nativeBuildVersion: "45" } }));
-vi.mock("react-native", () => ({ Platform: { OS: "android", Version: 35 } }));
+vi.mock("expo-constants", () => ({ default: { expoConfig: { version: "2.3.1", extra: { diagnosticBuildCommit: "b".repeat(40) } }, nativeBuildVersion: "45" } }));
+const platform = vi.hoisted(() => ({ OS: "android", Version: 35 }));
+vi.mock("react-native", () => ({ Platform: platform }));
 
 import {
   clearMobileClientDiagnostics,
+  mobileClientPlatform,
   configureMobileClientDiagnostics,
   flushMobileClientDiagnostics,
   reportMobileClientDiagnostic,
   reportMobileClientRequestSpan,
 } from "./clientDiagnostics";
 
-afterEach(() => clearMobileClientDiagnostics());
+afterEach(() => { clearMobileClientDiagnostics(); platform.OS = "android"; });
 
 it("queues a privacy-safe event and suppresses telemetry recursion", async () => {
   const batches: unknown[][] = [];
@@ -39,7 +41,7 @@ it("queues a privacy-safe event and suppresses telemetry recursion", async () =>
     operation: "request",
     request_id: "corr-1",
     version: "2.3.1",
-    build: "45",
+    build: "b".repeat(40),
     os_version: "35",
     duration_ms: 28,
     http_status: 503,
@@ -101,7 +103,7 @@ it("queues matched dispatch and terminal request observations", async () => {
     parent_span_id: "c".repeat(16),
     request_id: "corr-2",
     version: "2.3.1",
-    build: "45",
+    build: "b".repeat(40),
   });
 });
 
@@ -122,4 +124,9 @@ it("emits the normalized transport kind only on the terminal failure span", asyn
   const events = batches.flat() as Array<Record<string, unknown>>;
   expect(events[0]).not.toHaveProperty("transport_kind");
   expect(events[1]).toMatchObject({ stage: "transport_failed", transport_kind: "offline" });
+});
+
+it("identifies native iOS independently from an iOS PWA", () => {
+  platform.OS = "ios";
+  expect(mobileClientPlatform()).toBe("ios");
 });

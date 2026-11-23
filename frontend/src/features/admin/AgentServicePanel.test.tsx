@@ -162,3 +162,12 @@ it("shows unavailable status and keeps the panel compact while loading", () => {
   );
   expect(screen.getByText("Unavailable")).toBeInTheDocument();
 });
+
+it("labels Claude MOCK and cannot offer login or authenticated execution", () => {
+  render(<AgentServicePanel runners={[{ ...runners[2], installed: true, auth_state: "authenticated", auth_mode: "browser_link", debug_status: "mock" }]} debugMode loading={false} unavailable={false} selectedAgent="claude" selectedModelId="mock-claude" onSelectAgent={vi.fn()} onAuthenticate={vi.fn()} onReauthenticate={vi.fn()} onLogout={vi.fn()} onTest={vi.fn()} testDisabled={false} />);
+  const card = screen.getByRole("group", { name: "Claude" });
+  expect(card).toHaveTextContent("MOCK — no model or tools execute");
+  expect(card).not.toHaveTextContent("Connected");
+  expect(screen.queryByRole("button", { name: "Logout Claude" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Re-authenticate Claude" })).not.toBeInTheDocument();
+});

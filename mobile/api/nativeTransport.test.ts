@@ -346,8 +346,11 @@ it("reports failed HTTP requests without sending response details", async () => 
       parent_span_id: "b".repeat(16),
     }),
   );
-  expect(JSON.stringify(captureException.mock.calls[0])).not.toContain("member@example.com");
-  expect(JSON.stringify(captureException.mock.calls[0])).not.toContain("PROFILE_PRIVATE");
+  // The adapter must receive the original exception for stack preservation. Export scrubbing
+  // belongs to the SDK boundary; context itself must never copy the response payload.
+  expect(JSON.stringify(captureException.mock.calls[0][1])).not.toContain("member@example.com");
+  expect(JSON.stringify(captureException.mock.calls[0][1])).not.toContain("PROFILE_PRIVATE");
+  expect(captureException.mock.calls[0][0].stack).toContain("ApiError");
 });
 
 it("does not re-report diagnostics ingestion failures", async () => {

@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 import httpx
 from PIL import Image, ImageDraw
@@ -86,6 +87,7 @@ async def run_task_smoke(
     settings: Settings,
     client: httpx.AsyncClient,
     provider: AIProvider | None = None,
+    actor_id: UUID | None = None,
 ) -> tuple[TaskSmokeResult, AgentServiceModelProfile | None]:
     started = time.perf_counter()
     profile: AgentServiceModelProfile | None = None
@@ -131,6 +133,55 @@ async def run_task_smoke(
                 "invalid_request",
                 "The profile does not support live web research.",
             )
+        if task_type is AITaskType.DEBUG_AGENT:
+            from app.body_analysis.admin_config.service import _agent_service_json
+
+            response = await _agent_service_json(
+                client,
+                settings=settings,
+                method="POST",
+                path="/v1/debug/turn",
+                timeout_seconds=60,
+                json_body={
+                    "agent": agent.value,
+                    "model_id": profile.model_id,
+                    "profile_id": profile.profile_id,
+                    "profile_fingerprint": profile.fingerprint,
+                    "timeout_seconds": 55,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": (
+                                "Synthetic test. Return a Persian diagnosis. No evidence is "
+                                "available; do not claim a confirmed cause or tool execution."
+                            ),
+                        }
+                    ],
+                    "tools": [],
+                },
+            )
+            passed = (
+                response.get("model_id") == profile.model_id
+                and response.get("profile_id") == profile.profile_id
+                and response.get("agent") == agent.value
+                and response.get("payload", {}).get("kind") == "diagnosis"
+            )
+            if agent is AIAgentName.CLAUDE:
+                passed = passed and (
+                    profile.profile_id == "claude-mock-debug"
+                    and profile.model_id == "mock-claude"
+                    and response.get("execution_mode") == "mock"
+                )
+            return TaskSmokeResult(
+                passed=passed,
+                stage="passed" if passed else "failed",
+                request_id=response.get("request_id"),
+                duration_seconds=time.perf_counter() - started,
+                error_code=None if passed else "debug_runtime_probe_failed",
+                safe_error_message=None
+                if passed
+                else "The selected agent returned invalid output.",
+            ), profile
         if provider is None:
             provider = AgentServiceProvider(
                 client,

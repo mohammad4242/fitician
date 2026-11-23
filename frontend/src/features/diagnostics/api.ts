@@ -66,6 +66,7 @@ export interface DiagnosticStatusHistory {
 }
 
 export interface DiagnosticIssueDetail {
+  readonly affected_user_count?: number;
   readonly issue: DiagnosticIssue;
   readonly events: readonly DiagnosticEvent[];
   readonly status_history: readonly DiagnosticStatusHistory[];
@@ -296,6 +297,7 @@ export function getDiagnosticTraceAnalytics(hours: number): Promise<TraceAnalyti
 
 
 export interface InfrastructureSnapshot {
+  readonly capture_losses?: readonly { readonly event_id: string; readonly reason: string; readonly observed_at: string }[];
   readonly signals: readonly { readonly component: string; readonly status: string; readonly observed_at: string | null; readonly evidence: string; readonly business_operation_verified: boolean }[];
   readonly queues: Readonly<Record<string, Readonly<Record<string, number>>>>;
 }

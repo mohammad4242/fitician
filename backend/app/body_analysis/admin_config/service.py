@@ -64,6 +64,7 @@ class AgentServiceAuthError(Exception):
 
 
 _AGENT_SERVICE_TASKS = {
+    AITaskType.DEBUG_AGENT,
     AITaskType.WORKOUT_PLAN_GENERATION,
     AITaskType.BODY_PHOTO_ANALYSIS,
     AITaskType.FOOD_PHOTO_ESTIMATION,
@@ -128,9 +129,7 @@ def _mask_proxy_url(value: str | None) -> str | None:
         host = f"[{hostname}]" if ":" in hostname and not hostname.startswith("[") else hostname
         port = f":{parsed.port}" if parsed.port is not None else ""
         credentials = (
-            "****:****@"
-            if parsed.username is not None or parsed.password is not None
-            else ""
+            "****:****@" if parsed.username is not None or parsed.password is not None else ""
         )
         return f"{parsed.scheme.lower()}://{credentials}{host}{port}"
     except (TypeError, ValueError):
@@ -154,8 +153,40 @@ def list_task_configs(db: Session) -> list[AITaskConfigDetail]:
     result: list[AITaskConfigDetail] = []
     for task_type in _TASK_CONFIGURABLE_TASKS:
         record = records.get(task_type)
-        result.append(config_detail(record, task_type=task_type, credential=credential))
+        result.append(task_config_detail(db, record, task_type, credential))
     return result
+
+
+def task_config_detail(
+    db: Session,
+    config: AITaskConfig | None,
+    task_type: AITaskType,
+    credential: AIProviderCredential | None,
+) -> AITaskConfigDetail:
+    detail = config_detail(
+        config,
+        task_type=task_type,
+        credential=None if task_type is AITaskType.DEBUG_AGENT else credential,
+    )
+    if task_type is AITaskType.DEBUG_AGENT:
+        from app.debugging.runtime_profiles import authorized_target
+
+        ready = False
+        if (
+            config
+            and config.execution_backend == AIExecutionBackend.API
+            and config.debug_connector_id
+        ):
+            try:
+                target = authorized_target(db, config.debug_connector_id)
+                ready = bool(
+                    target.capabilities.get("supports_api")
+                    and target.capabilities.get("api_credential_revision")
+                )
+            except ValueError:
+                pass
+        detail.credential = CredentialStatus(configured=ready, masked=None)
+    return detail
 
 
 def config_detail(
@@ -198,6 +229,7 @@ def config_detail(
         agent_name=config.agent_name,
         agent_model_id=config.agent_model_id,
         agent_profile_id=config.agent_profile_id,
+        debug_connector_id=config.debug_connector_id,
         enabled=config.enabled,
         primary_model_id=config.primary_model_id,
         fallback_model_ids=list(config.fallback_model_ids),
@@ -223,6 +255,10 @@ def save_task_config(
     actor: User,
     settings: Settings,
 ) -> AITaskConfigDetail:
+    if task_type is AITaskType.DEBUG_AGENT and (
+        payload.api_key is not None or payload.replace_credential
+    ):
+        raise AIConfigError("Configure the debug model only in the Germany credential store")
     config = db.scalar(select(AITaskConfig).where(AITaskConfig.task_type == task_type))
     credential = get_credential(db, payload.provider)
     credential_changed = False
@@ -254,6 +290,7 @@ def save_task_config(
     agent_name = effective("agent_name")
     agent_model_id = effective("agent_model_id")
     agent_profile_id = effective("agent_profile_id")
+    debug_connector_id = effective("debug_connector_id")
     primary_model_id = effective("primary_model_id")
     fallback_model_ids = effective("fallback_model_ids", [])
 
@@ -265,6 +302,41 @@ def save_task_config(
         raise AIConfigError(
             "FOOD_PRICE_SEARCH must use Agent Service for production price research"
         )
+
+    if (
+        task_type is AITaskType.DEBUG_AGENT
+        and payload.enabled
+        and execution_backend != AIExecutionBackend.AGENT_SERVICE
+    ):
+        raise AIConfigError("Unified debugging requires Agent Service CLI authentication")
+
+    if debug_connector_id is not None:
+        if task_type is not AITaskType.DEBUG_AGENT:
+            raise AIConfigError("Execution targets are only supported for debug_agent")
+        from app.debugging.runtime_profiles import authorized_target
+
+        try:
+            authorized_target(db, debug_connector_id)
+        except ValueError:
+            raise AIConfigError("The selected execution target is not authorized") from None
+
+    if task_type is AITaskType.DEBUG_AGENT:
+        from app.debugging.limits import validate_runtime_config
+
+        try:
+            validate_runtime_config(
+                {
+                    "execution_backend": execution_backend,
+                    "timeout_seconds": payload.timeout_seconds,
+                    "max_output_tokens": payload.max_output_tokens,
+                }
+            )
+        except ValueError:
+            raise AIConfigError("Unsupported debug_agent runtime limits") from None
+        if fallback_model_ids:
+            raise AIConfigError("Automatic model fallback is not supported for debug_agent")
+        if effective("max_cost_per_request") is not None:
+            raise AIConfigError("Per-request cost limits are not supported for debug_agent")
 
     if payload.enabled and execution_backend == AIExecutionBackend.AGENT_SERVICE:
         if task_type not in _AGENT_SERVICE_TASKS:
@@ -282,8 +354,31 @@ def save_task_config(
         )
         if verification is None:
             raise AIConfigError("The selected Agent Service profile must pass its task test first")
+        if task_type is AITaskType.DEBUG_AGENT:
+            from app.debugging.runtime_profiles import authorized_target
+
+            if debug_connector_id is None:
+                raise AIConfigError("Select a laptop execution target independently of the agent")
+            connector = authorized_target(db, debug_connector_id)
+            if connector.capabilities.get("execution_role") != "repository_worker":
+                raise AIConfigError("The selected target must be a repository-only laptop worker")
+            if agent_profile_id.startswith("connector:"):
+                raise AIConfigError("Select a profile from Agent Service, not a laptop AI profile")
     elif payload.enabled:
-        if credential is None:
+        if task_type is AITaskType.DEBUG_AGENT:
+            from app.debugging.runtime_profiles import connected_connectors
+
+            if not any(
+                row.id == debug_connector_id
+                and row.capabilities.get("supports_api")
+                and row.capabilities.get("api_provider") == "openrouter"
+                and row.capabilities.get("api_credential_revision")
+                for row in connected_connectors(db)
+            ):
+                raise AIConfigError(
+                    "Verify the dedicated Germany model connection before enabling debug_agent"
+                )
+        elif credential is None:
             raise AIConfigError("A provider credential is required before enabling this task")
         if primary_model_id is None:
             raise AIConfigError("A primary model is required before enabling this task")
@@ -311,6 +406,7 @@ def save_task_config(
         "agent_name": agent_name,
         "agent_model_id": agent_model_id,
         "agent_profile_id": agent_profile_id,
+        "debug_connector_id": debug_connector_id,
         "enabled": payload.enabled,
         "primary_model_id": primary_model_id,
         "fallback_model_ids": list(fallback_model_ids),
@@ -345,7 +441,7 @@ def save_task_config(
     )
     db.commit()
     db.refresh(config)
-    return config_detail(config, task_type=task_type, credential=credential)
+    return task_config_detail(db, config, task_type, credential)
 
 
 def decrypted_key(
@@ -756,7 +852,11 @@ async def get_agent_service_capabilities(
         client,
         settings=settings,
         method="GET",
-        path="/v1/capabilities",
+        path=(
+            "/v1/capabilities?task_kind=debug_agent"
+            if task_type is AITaskType.DEBUG_AGENT
+            else "/v1/capabilities"
+        ),
         timeout_seconds=max(30.0, settings.agent_service_connect_timeout_seconds),
     )
     try:

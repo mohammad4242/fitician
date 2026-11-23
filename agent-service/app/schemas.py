@@ -19,6 +19,7 @@ class AgentName(StrEnum):
 
 
 class AgentTaskKind(StrEnum):
+    DEBUG_AGENT = "debug_agent"
     WORKOUT_PLAN_GENERATION = "workout_plan_generation"
     BODY_PHOTO_ANALYSIS = "body_photo_analysis"
     FOOD_PHOTO_ESTIMATION = "food_photo_estimation"
@@ -40,7 +41,7 @@ class AgentModelProfile(BaseModel):
     display_name: str = Field(min_length=1, max_length=300)
     model_id: str = Field(min_length=1, max_length=300)
     effort: ReasoningEffort | None = None
-    task_kinds: tuple[AgentTaskKind, ...] = Field(min_length=1, max_length=4)
+    task_kinds: tuple[AgentTaskKind, ...] = Field(min_length=1, max_length=len(AgentTaskKind))
     fingerprint: str = Field(pattern=r"^[a-f0-9]{16,64}$")
     supports_text_input: bool = True
     supports_image_input: bool = False
@@ -63,9 +64,9 @@ class AgentGenerationInput(BaseModel):
     timeout_seconds: float = Field(gt=0, le=600)
     web_access: Literal["disabled", "live"] = "disabled"
     # Multipart transport metadata. Backend task semantics remain in the fields above.
-    image_labels: tuple[
-        Annotated[str, StringConstraints(min_length=1, max_length=40)], ...
-    ] | None = Field(
+    image_labels: (
+        tuple[Annotated[str, StringConstraints(min_length=1, max_length=40)], ...] | None
+    ) = Field(
         default=None,
         max_length=5,
     )
@@ -133,6 +134,17 @@ class RunnerModelCapabilities(BaseModel):
 class RunnerCapabilities(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    debug_status: (
+        Literal[
+            "available",
+            "mock",
+            "not_installed",
+            "authentication_required",
+            "models_unavailable",
+            "native_tool_isolation_unavailable",
+        ]
+        | None
+    ) = Field(default=None, exclude_if=lambda value: value is None)
     agent: AgentName
     installed: bool
     version: str | None = None

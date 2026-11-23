@@ -108,9 +108,13 @@ class RunnerRegistry:
         if agent in self._runners:
             self._auth_states[agent] = state
 
-    async def capabilities(self) -> list[RunnerCapabilities]:
+    async def capabilities(
+        self, *, agent: AgentName | None = None, exclude: frozenset[AgentName] = frozenset()
+    ) -> list[RunnerCapabilities]:
         result: list[RunnerCapabilities] = []
         for runner in self._runners.values():
+            if runner.name in exclude or (agent is not None and runner.name != agent):
+                continue
             try:
                 capabilities = await runner.capabilities()
             except Exception:

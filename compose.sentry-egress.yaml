@@ -1,0 +1,35 @@
+# Separate, authenticated CONNECT service; no application volume or shell exposure.
+services:
+  proxy:
+    image: ${SENTRY_PROXY_IMAGE:?Set the tested immutable Squid image digest}
+    pull_policy: never
+    entrypoint: [/usr/sbin/squid]
+    command: [-N, -f, /etc/squid/squid.conf]
+    user: '13:13'
+    read_only: true
+    init: true
+    restart: unless-stopped
+    ports:
+      - '${SENTRY_PROXY_BIND_IP:?Set the verified private Tailscale address}:${SENTRY_PROXY_PORT:-3188}:3128'
+    volumes:
+      - '${SENTRY_PROXY_CONFIG_DIR:?Set the private configuration directory}/squid.conf:/etc/squid/squid.conf:ro'
+      - '${SENTRY_PROXY_CONFIG_DIR}/proxy.htpasswd:/run/secrets/proxy.htpasswd:ro'
+    tmpfs:
+      - /run/squid:uid=13,gid=13,mode=0700,size=4m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 96m
+    cpus: 0.25
+    stop_grace_period: 5s
+    ulimits:
+      core: 0
+      nofile: 1024
+    logging:
+      driver: json-file
+      options: {max-size: 1m, max-file: '2'}
+    healthcheck:
+      test: [CMD, /usr/sbin/squid, -k, check, -f, /etc/squid/squid.conf]
+      interval: 15s
+      timeout: 3s
+      retries: 3

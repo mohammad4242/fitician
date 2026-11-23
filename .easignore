@@ -2,7 +2,14 @@
 .worktrees/
 .superpowers/
 .codex*/
-.env
+.env*
+credentials.json
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+*.key
 .venv/
 __pycache__/
 .pytest_cache/

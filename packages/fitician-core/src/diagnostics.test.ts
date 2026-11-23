@@ -22,6 +22,14 @@ function event(index = 1) {
 }
 
 describe("client diagnostics", () => {
+  it("keeps native iOS distinct from an iOS PWA", () => {
+    const native = createClientDiagnosticEvent({ ...base, platform: "ios" });
+    expect(native).toMatchObject({ platform: "ios" });
+    expect(isClientDiagnosticEvent(native)).toBe(true);
+    expect(createClientDiagnosticEvent({ ...base, platform: "ios_pwa" }))
+      .toMatchObject({ platform: "ios_pwa" });
+  });
+
   it("accepts the closed event schema and rejects arbitrary fields and unsafe tokens", () => {
     expect(isClientDiagnosticEvent(event())).toBe(true);
     expect(isClientDiagnosticEvent({ ...event(), message: "private data" })).toBe(false);

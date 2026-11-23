@@ -1,3 +1,5 @@
+import { DebugAutomationSetup } from "../diagnostics/DebugAutomation";
+import { DebugConnectors } from "../diagnostics/DebugConnectors";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -39,6 +41,7 @@ const agentTasks: AdminAiTaskType[] = [
   "body_photo_analysis",
   "food_photo_estimation",
   "food_price_search",
+  "debug_agent",
 ];
 
 export function AdminAiSettingsPage() {
@@ -216,6 +219,7 @@ export function AdminAiSettingsPage() {
       agent_name: target.agent_name,
       agent_model_id: target.agent_model_id,
       agent_profile_id: target.agent_profile_id,
+      debug_connector_id: target.debug_connector_id ?? null,
       enabled: target.enabled,
       primary_model_id: target.primary_model_id,
       fallback_model_ids: target.fallback_model_ids,
@@ -225,8 +229,8 @@ export function AdminAiSettingsPage() {
       minimum_confidence: target.minimum_confidence,
       max_cost_per_request: target.max_cost_per_request,
       routing_restrictions: target.routing_restrictions,
-      replace_credential: replacementKey.length > 0,
-      ...(replacementKey ? { api_key: replacementKey } : {}),
+      replace_credential: target.task_type !== "debug_agent" && replacementKey.length > 0,
+      ...(target.task_type !== "debug_agent" && replacementKey ? { api_key: replacementKey } : {}),
     };
     void saveAdminAiTaskConfig(taskAtStart, payload)
       .then((saved) => {
@@ -279,6 +283,11 @@ export function AdminAiSettingsPage() {
         .finally(() => finishOperation(taskAtStart, epochAtStart, operation));
       return;
     }
+    if (taskAtStart === "debug_agent") {
+      setLocalError(i18n.resolvedLanguage === "en" ? "Select Agent Service for unified debugging." : "برای دیباگ یکپارچه، Agent Service را انتخاب کنید.");
+      finishOperation(taskAtStart, epochAtStart, operation);
+      return;
+    }
     void testAdminAiProvider(apiKey || undefined)
       .then((result) => {
         if (!isActiveOperation(taskAtStart, epochAtStart, operation)) return;
@@ -312,14 +321,16 @@ export function AdminAiSettingsPage() {
     const operation = beginOperation("refresh");
     setMessage(null);
     clearErrors();
-    void refreshAdminAiModels()
+    void (taskAtStart === "debug_agent" ? Promise.resolve() : refreshAdminAiModels())
       .then(() => {
         if (!isActiveOperation(taskAtStart, epochAtStart, operation)) return;
         return loadModels(taskAtStart, "", epochAtStart);
       })
       .then(() => {
         if (isActiveOperation(taskAtStart, epochAtStart, operation)) {
-          setMessage(t("admin.aiSettings.refreshed"));
+          setMessage(taskAtStart === "debug_agent"
+            ? (i18n.resolvedLanguage === "en" ? "Cached model catalog reloaded. Test the selected runtime to verify availability." : "فهرست ذخیره‌شده دوباره خوانده شد؛ برای بررسی دسترسی واقعی، مدل را روی runtime منتخب تست کنید.")
+            : t("admin.aiSettings.refreshed"));
         }
       })
       .catch((requestError: unknown) => {
@@ -402,9 +413,13 @@ export function AdminAiSettingsPage() {
         ))}
       </nav>
 
+      {selectedTask === "debug_agent" && <DebugConnectors english={i18n.resolvedLanguage === "en"} showExecutionTarget selectedTarget={config?.debug_connector_id} onSelectTarget={id => patchConfig({ debug_connector_id: id })} />}
+      {selectedTask === "debug_agent" && <DebugAutomationSetup english={i18n.resolvedLanguage === "en"} />}
       <form className="admin-ai-settings-form" onSubmit={handleSave}>
         <section className="admin-panel">
           <h2>{t(`admin.aiSettings.tasks.${selectedTask}`)}</h2>
+          {selectedTask === "debug_agent" && !agentMode && <p role="status">{i18n.resolvedLanguage === "en" ? "Select Agent Service to configure unified debugging. Previous API settings remain recorded but cannot start new unified runs." : "برای تنظیم دیباگ یکپارچه، Agent Service را انتخاب کنید. تنظیمات API قبلی حفظ می‌شوند اما برای اجرای جدید استفاده نمی‌شوند."}</p>}
+          {selectedTask === "debug_agent" && <p role="note">{i18n.resolvedLanguage === "en" ? "The selected agent runs in Agent Service. Repository tools and tests run on the independently selected laptop. The laptop needs no AI login. Offline targets block execution; no automatic fallback. Publishing and deployment require separate authorization." : "ایجنت منتخب در Agent Service اجرا می‌شود. ابزارهای مخزن و آزمون‌ها روی لپ‌تاپ منتخب اجرا می‌شوند؛ لپ‌تاپ به ورود حساب AI نیاز ندارد. اتصال آفلاین اجرا را متوقف می‌کند. انتشار PR و استقرار مجوز جداگانه می‌خواهند."}</p>}
           <fieldset className="admin-ai-backend-switch">
             <legend>{t("admin.aiSettings.executionBackend")}</legend>
             <label className={foodPriceAgentOnly ? "is-disabled" : undefined}>
@@ -413,7 +428,7 @@ export function AdminAiSettingsPage() {
                 name="execution-backend"
                 value="api"
                 checked={config.execution_backend === "api"}
-                disabled={foodPriceAgentOnly}
+                disabled={foodPriceAgentOnly || selectedTask === "debug_agent"}
                 onChange={() => {
                   setAuthAgent(null);
                   patchConfig({ execution_backend: "api" });
@@ -438,7 +453,7 @@ export function AdminAiSettingsPage() {
             {!agentTaskSupported && <p className="admin-ai-inline-note">{t("admin.aiSettings.agentUnsupported")}</p>}
             {foodPriceAgentOnly && <p className="admin-ai-inline-note">{t("admin.aiSettings.foodPriceAgentOnly")}</p>}
           </fieldset>
-          {!agentMode && <>
+          {!agentMode && selectedTask !== "debug_agent" && <>
             <label className="admin-ai-setting-field"><span>{t("admin.aiSettings.provider")}</span><input value="OpenRouter" disabled /></label>
             <label className="admin-ai-setting-field" htmlFor="ai-api-key">
               <span>{t("admin.aiSettings.apiKey")}</span>
@@ -453,6 +468,7 @@ export function AdminAiSettingsPage() {
             </label>
           </>}
           {agentMode && <AgentServicePanel
+            debugMode={selectedTask === "debug_agent"}
             runners={agentCapabilities}
             loading={agentCapabilitiesLoading}
             unavailable={agentCapabilitiesLoadError !== null}
@@ -466,13 +482,15 @@ export function AdminAiSettingsPage() {
             onTest={handleConnectionTest}
             testDisabled={busy !== null || !targetAgentIsReady(config)}
           />}
+
+          {agentMode && selectedTask === "debug_agent" && <><button type="button" disabled={agentCapabilitiesLoading} onClick={loadAgentCapabilities}>{i18n.resolvedLanguage === "en" ? "Refresh agent capabilities" : "تازه‌سازی قابلیت‌های ایجنت‌ها"}</button>{selectedRunner && !(selectedRunner.profiles ?? []).some(profile => profile.task_kinds.includes("debug_agent")) && <p role="status">{i18n.resolvedLanguage === "en" ? "This agent has no available debug profile. Installation and login alone do not prove native-tool isolation or model availability." : "این ایجنت پروفایل دیباگ در دسترس ندارد. نصب و ورود به‌تنهایی جداسازی امن ابزارها یا دسترسی مدل را تأیید نمی‌کنند."}</p>}</>}
           {agentCapabilitiesLoadError !== null && <AppErrorNotice audience="admin" context="generic" error={agentCapabilitiesLoadError} locale={i18n.resolvedLanguage === "en" ? "en" : "fa"} />}
           <dl className="admin-ai-observability">
             <div><dt>{t("admin.aiSettings.lastConnection")}</dt><dd>{config.last_successful_connection_test_at ?? "—"}</dd></div>
             <div><dt>{t("admin.aiSettings.lastCatalogRefresh")}</dt><dd>{config.last_model_catalog_refresh_at ?? "—"}</dd></div>
             <div><dt>{t("admin.aiSettings.lastError")}</dt><dd>{config.last_error_code ?? "—"}{config.last_error_message ? ` — ${config.last_error_message}` : ""}</dd></div>
           </dl>
-          {!agentMode && <div className="admin-ai-settings-actions">
+          {!agentMode && selectedTask !== "debug_agent" && <div className="admin-ai-settings-actions">
             <button type="button" disabled={busy !== null} onClick={handleConnectionTest}>{t("admin.aiSettings.test")}</button>
             <button type="button" disabled={busy !== null || !config.credential.configured} onClick={handleRefresh}>{t("admin.aiSettings.refresh")}</button>
           </div>}
@@ -483,6 +501,7 @@ export function AdminAiSettingsPage() {
 
         <section className="admin-panel">
           {catalogStale && !agentMode && <p className="form-error" role="status">{t("admin.aiSettings.catalogStale")}</p>}
+          <fieldset disabled={selectedTask === "debug_agent" && !agentMode} style={{ border: 0, minWidth: 0, margin: 0, padding: 0 }}>
           <AiModelSelector
             id="primary-model"
             label={agentMode ? t("admin.aiSettings.agentModel") : t("admin.aiSettings.primaryModel")}
@@ -501,12 +520,13 @@ export function AdminAiSettingsPage() {
               });
             }}
           />
+          </fieldset>
           {agentMode && selectedProfile && <p className="admin-ai-inline-note" role="status">
             {t("admin.aiSettings.agentService.profileStatus", {
               status: t(`admin.aiSettings.agentService.status.${selectedProfile.verification_status}`),
             })}
           </p>}
-          {!agentMode && <AiModelSelector id="fallback-models" label={t("admin.aiSettings.fallbackModels")} models={models.filter((model) => model.model_id !== config.primary_model_id)} value="" onChange={() => undefined} multiple values={config.fallback_model_ids} onMultipleChange={(values) => patchConfig({ fallback_model_ids: values })} />}
+          {!agentMode && selectedTask !== "debug_agent" && <AiModelSelector id="fallback-models" label={t("admin.aiSettings.fallbackModels")} models={models.filter((model) => model.model_id !== config.primary_model_id)} value="" onChange={() => undefined} multiple values={config.fallback_model_ids} onMultipleChange={(values) => patchConfig({ fallback_model_ids: values })} />}
           <div className="admin-ai-capabilities" aria-label={t("admin.aiSettings.selectedCapabilities")}>
             {selectableModels.filter((model) => model.model_id === (agentMode ? (config.agent_profile_id ?? config.agent_model_id) : config.primary_model_id)).map((model) => <div key={model.model_id}><span>{t("admin.aiSettings.imageInput")}: {model.supports_image_input ? t("admin.aiSettings.yes") : t("admin.aiSettings.no")}</span><span>{t("admin.aiSettings.structuredOutput")}: {model.supports_structured_output ? t("admin.aiSettings.yes") : t("admin.aiSettings.warningUnavailable")}</span><span>{t("admin.aiSettings.context")}: {model.context_length ?? t("admin.aiSettings.unknown")}</span><span>{t("admin.aiSettings.pricing")}: {model.input_price_per_token ?? "—"} / {model.output_price_per_token ?? "—"}</span></div>)}
           </div>
@@ -517,13 +537,14 @@ export function AdminAiSettingsPage() {
             <label htmlFor="ai-task-enabled"><input id="ai-task-enabled" type="checkbox" checked={config.enabled} disabled={(foodPriceAgentOnly && !agentMode) || (agentMode && !config.enabled && selectedProfile?.verification_status !== "passed")} onChange={(event) => patchConfig({ enabled: event.target.checked })} /> {t("admin.aiSettings.enabled")}</label>
             <SettingHelp label={t("admin.aiSettings.enabled")} guide={t("admin.aiSettings.guides.enabled")} />
           </div>
-          <NumberField id="ai-temperature" label={t("admin.aiSettings.temperature")} guide={t("admin.aiSettings.guides.temperature")} value={config.temperature} step="0.1" disabled={agentMode} onChange={(value) => patchConfig({ temperature: value })} />
-          <NumberField id="ai-max-tokens" label={t("admin.aiSettings.maxTokens")} guide={t("admin.aiSettings.guides.maxTokens")} value={config.max_output_tokens} disabled={agentMode} onChange={(value) => patchConfig({ max_output_tokens: value })} />
+          <NumberField id="ai-temperature" label={t("admin.aiSettings.temperature")} guide={t("admin.aiSettings.guides.temperature")} value={config.temperature} step="0.1" disabled={agentMode || selectedTask === "debug_agent"} onChange={(value) => patchConfig({ temperature: value })} />
+          <NumberField id="ai-max-tokens" label={t("admin.aiSettings.maxTokens")} guide={t("admin.aiSettings.guides.maxTokens")} value={config.max_output_tokens} min={selectedTask === "debug_agent" ? 128 : undefined} max={selectedTask === "debug_agent" ? 16384 : undefined} disabled={agentMode} onChange={(value) => patchConfig({ max_output_tokens: value })} />
           {agentMode && <p className="admin-ai-inline-note" role="note">{t("admin.aiSettings.agentTuningUnsupported")}</p>}
-          <NumberField id="ai-timeout" label={t("admin.aiSettings.timeout")} guide={t("admin.aiSettings.guides.timeout")} value={config.timeout_seconds} onChange={(value) => patchConfig({ timeout_seconds: value })} />
-          <NumberField id="ai-confidence" label={t("admin.aiSettings.confidence")} guide={t("admin.aiSettings.guides.confidence")} value={config.minimum_confidence} step="0.01" onChange={(value) => patchConfig({ minimum_confidence: value })} />
+          <NumberField id="ai-timeout" label={t("admin.aiSettings.timeout")} guide={t("admin.aiSettings.guides.timeout")} value={config.timeout_seconds} min={selectedTask === "debug_agent" ? 10 : undefined} max={selectedTask === "debug_agent" ? 600 : undefined} onChange={(value) => patchConfig({ timeout_seconds: value })} />
+          {selectedTask === "debug_agent" && !agentMode && <p role="note">{i18n.resolvedLanguage === "en" ? "Run timeout: 10–600 seconds. API output budget: 128–16384 tokens across tool rounds. Usage is provider-reported; missing usage reserves the full requested allocation." : "مهلت اجرا: ۱۰ تا ۶۰۰ ثانیه. بودجهٔ خروجی API: مجموع ۱۲۸ تا ۱۶۳۸۴ توکن در مراحل ابزار. مصرف از گزارش سرویس محاسبه می‌شود؛ بدون گزارش، کل سهم درخواست‌شده از بودجه کم می‌شود."}</p>}
+          <NumberField id="ai-confidence" label={t("admin.aiSettings.confidence")} guide={t("admin.aiSettings.guides.confidence")} value={config.minimum_confidence} step="0.01" disabled={selectedTask === "debug_agent"} onChange={(value) => patchConfig({ minimum_confidence: value })} />
           {!agentMode && <>
-            <div className="admin-ai-setting-field"><SettingLabel htmlFor="ai-cost" label={t("admin.aiSettings.cost")} guide={t("admin.aiSettings.guides.cost")} /><input id="ai-cost" type="number" min="0" step="0.01" value={config.max_cost_per_request ?? ""} onChange={(event) => patchConfig({ max_cost_per_request: event.target.value || null })} /></div>
+            <div className="admin-ai-setting-field"><SettingLabel htmlFor="ai-cost" label={t("admin.aiSettings.cost")} guide={t("admin.aiSettings.guides.cost")} /><input id="ai-cost" disabled={selectedTask === "debug_agent"} type="number" min="0" step="0.01" value={config.max_cost_per_request ?? ""} onChange={(event) => patchConfig({ max_cost_per_request: event.target.value || null })} /></div>
             <div className="admin-ai-setting-field"><SettingLabel htmlFor="ai-restrictions" label={t("admin.aiSettings.restrictions")} guide={t("admin.aiSettings.guides.restrictions")} /><input id="ai-restrictions" value={config.routing_restrictions.join(", ")} onChange={(event) => patchConfig({ routing_restrictions: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} /></div>
           </>}
         </section>
@@ -545,8 +566,8 @@ export function AdminAiSettingsPage() {
   );
 }
 
-function NumberField({ id, label, guide, value, step = "1", disabled = false, onChange }: { id: string; label: string; guide: string; value: number; step?: string; disabled?: boolean; onChange: (value: number) => void }) {
-  return <div className="admin-ai-setting-field"><SettingLabel htmlFor={id} label={label} guide={guide} /><input id={id} type="number" step={step} value={value} disabled={disabled} onChange={(event) => onChange(Number(event.target.value))} /></div>;
+function NumberField({ id, label, guide, value, step = "1", disabled = false, min, max, onChange }: { id: string; label: string; guide: string; value: number; step?: string; disabled?: boolean; min?: number; max?: number; onChange: (value: number) => void }) {
+  return <div className="admin-ai-setting-field"><SettingLabel htmlFor={id} label={label} guide={guide} /><input id={id} type="number" step={step} min={min} max={max} value={value} disabled={disabled} onChange={(event) => onChange(Number(event.target.value))} /></div>;
 }
 
 function SettingLabel({ htmlFor, label, guide }: { htmlFor: string; label: string; guide: string }) {
@@ -580,7 +601,10 @@ function toAgentCatalogModels(
   if (runner.profiles) {
     return runner.profiles
       .filter((profile) => {
-        if (!runner.installed || !profile.task_kinds.includes(task)) return false;
+        const explicitMock = task === "debug_agent" && runner.agent === "claude"
+          && runner.debug_status === "mock" && profile.profile_id === "claude-mock-debug"
+          && profile.model_id === "mock-claude";
+        if ((!runner.installed && !explicitMock) || !profile.task_kinds.includes(task)) return false;
         const needsImage = task === "body_photo_analysis" || task === "food_photo_estimation";
         const needsLiveWeb = task === "food_price_search";
         return profile.supports_structured_output

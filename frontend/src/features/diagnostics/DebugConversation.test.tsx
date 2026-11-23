@@ -1,0 +1,165 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { webcrypto } from "node:crypto";
+import { afterEach, expect, it, vi } from "vitest";
+import { DebugConversation } from "./DebugConversation";
+import { request } from "../../shared/apiClient";
+vi.mock("../../shared/apiClient", () => ({ request: vi.fn() }));
+afterEach(() => { vi.clearAllMocks(); sessionStorage.clear(); vi.unstubAllGlobals(); });
+
+it("keeps the model and occurrence beside the reply after refresh", async () => {
+  vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [{ id: "linked-reply", run_id: "linked-run", role: "assistant", content: "Checked synthetic source", created_at: "2026-11-20" }],
+    runs: [{ id: "linked-run", state: "completed", error_code: null, config: { primary_model_id: "selected/model" }, occurrence_id: "selected-occurrence", evidence_id: null }], next_cursor: null,
+  } as never);
+  const { unmount } = render(<DebugConversation issueId="linked-issue" english />);
+  const answer = await screen.findByText("Checked synthetic source");
+  expect(answer.closest("article")).toHaveTextContent("selected/model");
+  expect(answer.closest("article")).toHaveTextContent("selected-occurrence");
+  unmount();
+  render(<DebugConversation issueId="linked-issue" english />);
+  expect((await screen.findByText("Checked synthetic source")).closest("article")).toHaveTextContent("selected/model");
+});
+
+it("loads persisted replies and submits a real API run with an idempotency identity", async () => {
+  vi.stubGlobal("crypto", webcrypto);
+  const mocked = vi.mocked(request);
+  mocked.mockImplementation(async (_path, options) => options?.method === "POST" ? { id: "run-1", state: "queued" } as never : {
+    messages: [{ id: "message-1", role: "assistant", content: "Existing investigation", created_at: "2026-11-12" }], runs: [], next_cursor: null,
+  } as never);
+  render(<DebugConversation issueId="issue-1" english />);
+  expect(await screen.findByText("Existing investigation")).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Inspect evidence" } });
+  fireEvent.click(screen.getByText("Send for analysis"));
+  await waitFor(() => expect(mocked).toHaveBeenCalledWith("/api/v1/admin/diagnostics/issues/issue-1/messages", expect.objectContaining({
+    method: "POST", headers: { "Idempotency-Key": expect.any(String) }, body: JSON.stringify({ content: "Inspect evidence", action: "analyze", occurrence_id: null }),
+  })));
+  expect(screen.getByLabelText("Your message")).toHaveValue("");
+});
+
+it("explains missing independent runtime login in Persian without implying a model ran", async () => {
+  vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [], runs: [{ id: "auth-blocked", state: "blocked", config: { agent_model_id: "selected-model" }, error_code: "dedicated_codex_authentication_required" }], next_cursor: null,
+  } as never);
+  render(<DebugConversation issueId="auth-issue" english={false} />);
+  expect(await screen.findByText(/ورود مستقل Codex برقرار نیست/)).toBeInTheDocument();
+  expect(screen.getByText("dedicated_codex_authentication_required")).toBeInTheDocument();
+});
+
+it("submits the selected occurrence and binds the retry identity to it", async () => {
+  vi.stubGlobal("crypto", webcrypto);
+  vi.mocked(request).mockImplementation(async (_path, options) => options?.method === "POST" ? { id: "run-2", state: "queued" } as never : { messages: [], runs: [], next_cursor: null } as never);
+  render(<DebugConversation issueId="issue-2" occurrenceId="occurrence-2" english />);
+  fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Inspect selected occurrence" } });
+  fireEvent.click(screen.getByText("Send for analysis"));
+  await waitFor(() => expect(request).toHaveBeenCalledWith(expect.stringContaining("/messages"), expect.objectContaining({
+    body: JSON.stringify({ content: "Inspect selected occurrence", action: "analyze", occurrence_id: "occurrence-2" }),
+  })));
+});
+
+it("shows recorded tool evidence with its citation identity after reload", async () => {
+  vi.mocked(request).mockImplementation(async (path) => path.includes("/events?") ? {
+    events: [{ id: "evidence-42", sequence: 1, kind: "tool_completed", payload: { tool: "fitician_read_file", output: "bug.py:2: return a + b", provenance: "connector_tool" } }], next_cursor: 1,
+  } as never : { messages: [], runs: [{ id: "run-42", state: "completed", config: {}, error_code: null }], next_cursor: null } as never);
+  render(<DebugConversation issueId="issue-42" english />);
+  expect(await screen.findByText("bug.py:2: return a + b")).toBeInTheDocument();
+  expect(screen.getByText("evidence-42")).toBeInTheDocument();
+});
+
+it("labels passive server observations honestly after refresh", async () => {
+  vi.mocked(request).mockImplementation(async (path) => path.includes("/events?") ? {
+    events: [{ id: "server-evidence-1", sequence: 1, kind: "tool_completed", payload: { tool: "fitician_server_evidence", output: '{"current_status":"not_verified"}', provenance: "server_observation" } }], next_cursor: 1,
+  } as never : { messages: [], runs: [{ id: "server-run", state: "completed", config: {}, error_code: null }], next_cursor: null } as never);
+  render(<DebugConversation issueId="server-issue" english={false} />);
+  expect(await screen.findByText(/مشاهدات ثبت‌شدهٔ سرور؛ سلامت فعلی تأیید نشده است/)).toBeInTheDocument();
+  expect(screen.getByText("server-evidence-1")).toBeInTheDocument();
+});
+
+it("shows the retained execution target and an honest Persian offline state", async () => {
+  vi.mocked(request).mockImplementation(async (path) => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [], next_cursor: null,
+    runs: [{ id: "run-offline", state: "blocked", error_code: "execution_target_offline", config: { agent_model_id: "chosen-model", connector_name: "Germany server" }, evidence_id: null, occurrence_id: "occurrence-server" }],
+  } as never);
+  render(<DebugConversation issueId="issue-offline" english={false} occurrenceId="occurrence-server" />);
+  expect(await screen.findByText(/اتصال اجرای منتخب آفلاین است/)).toBeInTheDocument();
+  expect(screen.getByText("Germany server")).toBeInTheDocument();
+  expect(screen.getByText("chosen-model")).toBeInTheDocument();
+});
+
+it.each([
+  ["trusted_main_unavailable", "نسخهٔ فعلی main در دسترس نیست"],
+  ["workspace_capacity_reached", "ظرفیت فضای اجرای ایجنت پر است"],
+  ["exact_release_commit_required", "نسخهٔ دقیق خطادار برای بررسی آماده نیست"],
+])("explains the %s blocker in Persian without claiming an investigation completed", async (code, explanation) => {
+  vi.mocked(request).mockImplementation(async (path) => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [], next_cursor: null,
+    runs: [{ id: "run-blocked", state: "blocked", error_code: code, config: {}, evidence_id: null }],
+  } as never);
+  render(<DebugConversation issueId="issue-blocked" english={false} />);
+  expect(await screen.findByText(new RegExp(explanation))).toBeInTheDocument();
+});
+
+it("explains rejected private payloads without displaying their contents", async () => {
+  vi.stubGlobal("crypto", webcrypto);
+  vi.mocked(request).mockImplementation(async (_path, options) => {
+    if (options?.method === "POST") throw { code: "sensitive_message_rejected" };
+    return { messages: [], runs: [], next_cursor: null } as never;
+  });
+  render(<DebugConversation issueId="privacy-issue" english />);
+  fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Inspect selected evidence" } });
+  fireEvent.click(screen.getByText("Send for analysis"));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Remove private payloads and reference evidence IDs");
+});
+
+it("keeps historical run evidence available after loading an older page", async () => {
+  vi.mocked(request).mockImplementation(async (path) => {
+    if (path.includes('/events?')) return { events: [], next_cursor: 0 } as never;
+    if (path.includes('before=')) return {
+      messages: [{ id: 'old-message', role: 'user', content: 'Earlier investigation', created_at: '2026-11-01' }],
+      runs: [{ id: 'historical-run', state: 'completed', config: { primary_model_id: 'historical-selected-model' }, occurrence_id: 'historical-occurrence' }], next_cursor: null,
+    } as never;
+    return { messages: [], runs: [], next_cursor: 'older-cursor' } as never;
+  });
+  render(<DebugConversation issueId="history-issue" english />);
+  fireEvent.click(await screen.findByText('Older messages'));
+  expect(await screen.findByText('Earlier investigation')).toBeInTheDocument();
+  expect(await screen.findByText('historical-selected-model')).toBeInTheDocument();
+  expect(screen.getByText('historical-occurrence')).toBeInTheDocument();
+});
+
+const unifiedBlockers = [
+  ["agent_authentication_required", "ورود ایجنت منتخب در Agent Service برقرار نیست", "The selected agent is not authenticated in Agent Service"],
+  ["agent_profile_unavailable", "پروفایل یا مدل منتخب در Agent Service در دسترس نیست", "The selected Agent Service profile or model is unavailable"],
+  ["native_tool_isolation_unavailable", "جداسازی ابزارهای داخلی این نسخهٔ ایجنت تأیید نشده است", "Native-tool isolation is not verified for this agent version"],
+  ["repository_worker_required", "اتصال منتخب باید worker مخزن روی لپ‌تاپ باشد", "The selected connector must be a laptop repository worker"],
+  ["pinned_validation_policy_required", "تصویر ثابت و سیاست آزمون لپ‌تاپ تنظیم یا تأیید نشده است", "The laptop validation image and policy are not configured or verified"],
+  ["laptop_model_execution_forbidden", "اجرای مدل روی لپ‌تاپ مجاز نیست", "Model execution on the laptop is not allowed"],
+];
+for (const english of [true, false]) {
+  it.each(unifiedBlockers)(`explains unified %s with english=${english}`, async (code, persian, englishText) => {
+    vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+      messages: [], next_cursor: null,
+      runs: [{ id: "unified-blocked", state: "blocked", error_code: code, config: {}, evidence_id: null }],
+    } as never);
+    render(<DebugConversation issueId="unified-blocked-issue" english={english} />);
+    expect(await screen.findByText(content => content.includes(english ? englishText : persian))).toBeInTheDocument();
+    expect(screen.getByText(code)).toBeInTheDocument();
+  });
+}
+
+it("retains an explicit MOCK execution label after refreshing a conversation", async () => {
+  vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [{ id: "mock-reply", run_id: "mock-run", role: "assistant", content: "Synthetic response", created_at: "2026-11-23" }],
+    runs: [{ id: "mock-run", state: "completed", error_code: null, config: { runtime_mode: "mock", agent_model_id: "mock-claude" }, occurrence_id: "mock-occurrence", evidence_id: null }], next_cursor: null,
+  } as never);
+  render(<DebugConversation issueId="mock-issue" english />);
+  expect(await screen.findAllByText("MOCK — no model or tools executed")).not.toHaveLength(0);
+});
+
+
+it("exposes an exact accessible label for the repair action selector", async () => {
+  vi.mocked(request).mockResolvedValue({ messages: [], runs: [], next_cursor: null } as never);
+  render(<DebugConversation issueId="issue-actions" english />);
+  const action = await screen.findByLabelText("Requested action", { exact: true });
+  expect(action).toHaveValue("analyze");
+  expect(action).toHaveAttribute("aria-label", "Requested action");
+});

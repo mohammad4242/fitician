@@ -423,3 +423,27 @@ def test_auth_process_can_press_fixed_escape_in_pty_mode(tmp_path: Path) -> None
 
     run(scenario())
     assert "ESCAPED" in "".join(output)
+
+
+def test_bounded_debug_process_stops_excess_output(tmp_path):
+    import asyncio
+    import sys
+
+    import pytest
+
+    from app.process import ProcessExecutionError, run_process
+
+    with pytest.raises(ProcessExecutionError, match="output limit"):
+        asyncio.run(
+            run_process(
+                [
+                    sys.executable,
+                    "-c",
+                    'import sys,time;sys.stdout.write("x"*100000);'
+                    "sys.stdout.flush();time.sleep(30)",
+                ],
+                workspace=tmp_path,
+                timeout_seconds=3,
+                max_output_bytes=4096,
+            )
+        )

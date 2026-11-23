@@ -2,6 +2,7 @@ from enum import StrEnum
 
 
 class AITaskType(StrEnum):
+    DEBUG_AGENT = "debug_agent"
     WORKOUT_PLAN_GENERATION = "workout_plan_generation"
     BODY_PHOTO_ANALYSIS = "body_photo_analysis"
     PROGRESS_COMPARISON = "progress_comparison"

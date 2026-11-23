@@ -173,14 +173,14 @@ def _metadata_query(fingerprints: set[str]) -> str:
     )
     return f"""
 SELECT
- 'SELECT json_build_object(''counts'', json_build_object('
- || string_agg(format('%L, (SELECT count(*) FROM public.%I)', tablename, tablename), ',')
- || '), ''tables'', (SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables WHERE schemaname=''public''), '
- || '''fingerprints'', json_build_object('
+ 'SELECT json_build_object(''counts'', (SELECT json_object_agg(n,c) FROM ('
+ || string_agg(format('SELECT %L AS n, count(*) AS c FROM public.%I', tablename, tablename), ' UNION ALL ')
+ || ') inventory), ''tables'', (SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables WHERE schemaname=''public''), '
+ || '''fingerprints'', (SELECT coalesce(json_object_agg(n,h), ''{{}}''::json) FROM ('
  || coalesce(string_agg(
-      format('%L, (SELECT md5(coalesce(string_agg(h, %L ORDER BY h), %L)) FROM (SELECT md5(row_to_json(t)::text) h FROM public.%I t) s)',
-             tablename, '', '', tablename), ',') FILTER (WHERE tablename = ANY({fingerprint_array})), '')
- || '), ''alembic'', (SELECT json_agg(version_num ORDER BY version_num) FROM public.alembic_version), '
+      format('SELECT %L AS n, (SELECT md5(coalesce(string_agg(h, %L ORDER BY h), %L)) FROM (SELECT md5(row_to_json(t)::text) h FROM public.%I t) s) AS h',
+             tablename, '', '', tablename), ' UNION ALL ') FILTER (WHERE tablename = ANY({fingerprint_array})), 'SELECT NULL::text AS n, NULL::text AS h WHERE false')
+ || ') fingerprints), ''alembic'', (SELECT json_agg(version_num ORDER BY version_num) FROM public.alembic_version), '
  || '''unvalidated_foreign_keys'', (SELECT count(*) FROM pg_constraint WHERE contype=''f'' AND NOT convalidated))::text'
 FROM pg_tables WHERE schemaname = 'public'
 \\gexec

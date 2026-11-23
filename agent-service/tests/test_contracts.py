@@ -72,6 +72,7 @@ def test_runner_contract_matches_the_frozen_protocol() -> None:
         "image_paths",
         "effort",
         "web_access",
+        "external_tools_only",
     ]
     assert [field.name for field in fields(RunnerResult)] == [
         "payload",

@@ -42,11 +42,7 @@ def profile_id_for(
 
     model = re.sub(r"[^a-z0-9._-]+", "-", model_id.strip().lower()).strip("-")
     effort_value = effort.value if isinstance(effort, ReasoningEffort) else effort
-    suffix = (
-        f"-{effort_value}"
-        if effort_value and not model.endswith(f"-{effort_value}")
-        else ""
-    )
+    suffix = f"-{effort_value}" if effort_value and not model.endswith(f"-{effort_value}") else ""
     return f"{agent.value}-{model}{suffix}"
 
 
@@ -121,7 +117,8 @@ def _profile(
     kinds = tuple(
         kind
         for kind in requested_kinds
-        if supports_live_web or kind is not AgentTaskKind.FOOD_PRICE_SEARCH
+        if kind is not AgentTaskKind.DEBUG_AGENT
+        and (supports_live_web or kind is not AgentTaskKind.FOOD_PRICE_SEARCH)
     )
     if not kinds:
         raise ValueError("a profile must support at least one task")
@@ -234,6 +231,30 @@ def claude_profiles(
             )
         )
     return tuple(profiles)
+
+
+def debug_profiles(
+    profiles: Iterable[AgentModelProfile], *, version: str | None
+) -> tuple[AgentModelProfile, ...]:
+    """Separate IDs keep existing generation verification and routing intact."""
+    from .runners.debug_policy import supports_external_tools
+
+    return tuple(
+        profile.model_copy(
+            update={
+                "profile_id": profile.profile_id + "-debug",
+                "display_name": profile.display_name + " · Debug",
+                "task_kinds": (AgentTaskKind.DEBUG_AGENT,),
+                "supports_image_input": False,
+                "supports_live_web": False,
+                "fingerprint": hashlib.sha256(
+                    (profile.fingerprint + "|external-tools-v1").encode()
+                ).hexdigest()[:16],
+            }
+        )
+        for profile in profiles
+        if supports_external_tools(profile.agent, version)
+    )
 
 
 class ProfileCatalog:

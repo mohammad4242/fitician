@@ -6,7 +6,6 @@ import sys
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "ops/check-db-connection-budget.py"
 
@@ -33,6 +32,16 @@ class DbConnectionBudgetTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("connection budget exceeded", result.stderr)
+
+    def test_diagnostics_connections_count_against_the_same_application_budget(
+        self,
+    ) -> None:
+        result = self._run("--additional-worker-connections", "3")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["possible_connections"], 35)
+        limited = self._run("--additional-worker-connections", "3", "--budget", "38")
+        self.assertNotEqual(limited.returncode, 0)
+        self.assertIn("connection budget exceeded", limited.stderr)
 
 
 if __name__ == "__main__":

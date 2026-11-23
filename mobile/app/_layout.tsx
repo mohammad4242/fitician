@@ -1,3 +1,4 @@
+import "../platform/sentry";
 import { useEffect, useMemo, useRef } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as Notifications from "expo-notifications";

@@ -30,7 +30,18 @@ def test_capabilities_rejects_malformed_or_wrong_token(header: str) -> None:
 
 
 def test_capabilities_accepts_correct_token_without_inventing_models() -> None:
-    response = client().get("/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"})
+    # This security check must not discover the developer's actual CLI account.
+    isolated = TestClient(
+        create_app(
+            Settings(
+                agent_service_token=SecretStr(TOKEN),
+                agent_codex_executable="/does-not-exist/codex",
+                agent_claude_executable="/does-not-exist/claude",
+                agent_antigravity_executable="/does-not-exist/agy",
+            )
+        )
+    )
+    response = isolated.get("/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"})
     assert response.status_code == 200
     body = response.json()
     assert {runner["agent"] for runner in body["runners"]} == {"antigravity", "codex", "claude"}
