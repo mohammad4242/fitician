@@ -26,7 +26,7 @@ from provider storage after 12 hours. No live payment is needed for these checks
 
 ## 2. Production API key (requires deployment approval)
 
-- [ ] Approve the reviewed release and additive migration after sandbox acceptance.
+- [ ] Approve the reviewed release and additive migration after sandbox acceptance. Record a fallback backend image that can read `tetrapay` billing history; pre-integration images cannot read those enum values.
 - [ ] On the **Iran application server**, edit the existing private file `/opt/fitician-iran/.env` using a secure editor. Do not replace the file or print/copy it into Git.
 - [ ] Preserve every unrelated setting and existing secret. Set exactly:
 
@@ -64,6 +64,6 @@ TETRAPAY_WEBHOOK_URL=https://fitician.fit/api/v1/billing/webhooks/tetrapay
 - [ ] For an approved **direct Android** build only, set build env `FITICIAN_EXTERNAL_BILLING_ENABLED=true` and `FITICIAN_DISTRIBUTION_CHANNEL=direct`; rebuild the app. EAS `production` always stays closed. Review any regional store policy separately.
 - [ ] If payments malfunction, disable new purchases through admin offer availability first; keep verification/scheduler running to recover existing payments.
 - [ ] Reconcile outstanding money with TetraPay before disabling credentials or rolling back workers. Retain all transaction history.
-- [ ] Apply the recorded prior images through existing regional rollback procedures after approval. Keep the additive migration; never drop payment records as a rollback step.
+- [ ] After draining pending payments, roll back this feature by disabling TetraPay/webhooks while keeping a TetraPay-compatible backend and the additive schema. Never use a pre-TetraPay backend after TetraPay billing rows exist. A full binary rollback requires an approved compatible fallback image and worker recovery plan; never delete or rewrite payment history to make an old image work.
 
 Detailed architecture, testing and release controls: [tetrapay.md](tetrapay.md).
