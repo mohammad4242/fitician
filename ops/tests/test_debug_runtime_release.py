@@ -63,6 +63,21 @@ def bundle(folder):
 
 
 class RuntimeReleaseTests(unittest.TestCase):
+    def test_broker_smoke_creates_configuration_as_runtime_user_without_privilege(self):
+        spec = importlib.util.spec_from_file_location(
+            "runtime_smoke", ROOT / "ops/smoke-debug-runtime-release.py"
+        )
+        smoke = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(smoke)
+        command = smoke.broker_fixture_command(
+            "sha256:" + "a" * 64, Path("/owned/private")
+        )
+        self.assertIn("--user=10001:10001", command)
+        self.assertIn("--cap-drop=ALL", command)
+        self.assertIn("--network=none", command)
+        self.assertFalse(any(value.startswith("--cap-add") for value in command))
+        self.assertIn("type=bind,src=/owned/private,dst=/fixture", command)
+
     def test_broker_only_selects_no_inference_connector(self):
         release = module()
         self.assertEqual(release.selected_services(False, True), ["automation"])

@@ -27,6 +27,28 @@ def ownership_script(uid: int, gid: int, root: str = "/fixture") -> str:
     )
 
 
+def broker_fixture_command(image: str, directory: Path) -> list[str]:
+    return [
+        "run",
+        "--rm",
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--user=10001:10001",
+        "--mount",
+        f"type=bind,src={directory},dst=/fixture",
+        "--entrypoint=python",
+        image,
+        "-c",
+        (
+            "import os\n"
+            "for name in ('worker.json','github.json'):\n"
+            " fd=os.open('/fixture/'+name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)\n"
+            " with os.fdopen(fd,'w') as output: output.write('{}')\n"
+        ),
+    ]
+
+
 def run(directory: Path, commit: str, output: Path) -> dict:
     spec = importlib.util.spec_from_file_location(
         "runtime_release", ROOT / "ops/deploy-debug-runtime.py"
@@ -207,26 +229,7 @@ def run(directory: Path, commit: str, output: Path) -> dict:
             assert release.non_runtime_identity() == others
             # Exercise Option A's broker-only component path using empty fixture
             # configuration, no real credentials, no outbound network or AI calls.
-            for filename in ("worker.json", "github.json"):
-                file = root / "automation-private" / filename
-                file.write_text("{}")
-                file.chmod(0o600)
-            release.docker(
-                "run",
-                "--rm",
-                "--network=none",
-                "--read-only",
-                "--cap-drop=ALL",
-                "--cap-add=CHOWN",
-                "--user=0:0",
-                "--mount",
-                f"type=bind,src={root / 'automation-private'},dst=/fixture",
-                "--entrypoint=python",
-                image,
-                "-c",
-                "import os; [os.chown('/fixture/'+name,10001,10001) "
-                "for name in ('worker.json','github.json')]",
-            )
+            release.docker(*broker_fixture_command(image, root / "automation-private"))
             protected = release.non_runtime_identity(["automation"])
             broker_receipt = release.deploy(
                 root,

@@ -81,7 +81,10 @@ concurrency,3072MiB-plus-transfer, memory and authentication-volume guards remai
 The existing actual Docker rollout/rollback smoke now also exercises broker-only replacement,
 idempotent replay and rollback while checking the legacy connector's identity. Publication
 requires those additional proof flags. Empty isolated fixture configuration deliberately tests
-liveness without claiming provider authentication or enrollment. Hosted execution remains a
+liveness without claiming provider authentication or enrollment. A real local Docker probe
+also confirmed that the host cannot write UID10001 private directories and that the fixture
+creates both0600 files as10001:10001, without extra capabilities. The existing CI already
+stops its own Buildx builder before exercising production resource guards. Hosted execution remains a
 fresh-CI gate; unit tests alone do not establish live broker deployment.
 
 The stateless Agent Service can be updated first. Broker registration and the selected laptop's
@@ -118,6 +121,9 @@ image-only rollback to that application is not assumed safe after debug configur
 Activate debugging only after the new application is healthy; retain a compatible release and
 use a reviewed roll-forward after configuration/audit is in use. Any database restore requires
 an explicit write-freeze/reconciliation procedure to avoid losing subsequent user writes.
+The existing regional failure guard stops application writers after a schema-changing failure;
+it does not automatically revert the schema or assume old-image compatibility. That guard is
+retained. Its availability/recovery procedure must be accepted before any live cutover.
 
 ## Fresh production observations
 
@@ -143,7 +149,7 @@ layers and a separately owner-approved storage plan are required before rollout 
 - [x] Disable automatic CD without disabling manual owner-gated release.
 - [x] Recheck all existing regional service health and original production schema.
 - [x] Broker-mode and action-pin regressions observed failing before correction.
-- [x] Local release checks:428 ops tests,410 focused backend tests (3 explicit local skips),
+- [x] Local release checks:429 ops tests,410 focused backend tests (3 explicit local skips),
   1397 frontend tests, OpenAPI, actionlint, Ruff and secret checks.
 - [ ] Fresh exact-head CI and actual broker rollout smoke after release hardening.
 - [ ] Merge normally; verify trusted workflows and full CI on actual merged main.
@@ -153,6 +159,9 @@ layers and a separately owner-approved storage plan are required before rollout 
   Refresh the snapshot if cutover is delayed beyond the existing release freshness guard.
 - [ ] Resolve Germany capacity with separate owner approval; no deletion assumed.
 - [ ] Deploy exact tested images, enroll workers/connectors, verify live panel workflow.
+  The saved Germany broker credential matches the authorized local credential, has0600 mode
+  and10001:10001 ownership, and repository/Actions/PR reads returned200. Its production
+  `worker.json` is absent; enrollment follows the new Iran schema/API, without copying AI auth.
 - [ ] Production Sentry/model/repair/CI/PR acceptance; SMS stays disabled.
 
 Private evidence is under ignored `.codex-tmp/main-integration/`. No credential, raw production
