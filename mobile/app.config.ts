@@ -254,6 +254,11 @@ const config: ExpoConfig = {
     },
   },
   extra: {
+    externalBillingEnabled: process.env.FITICIAN_EXTERNAL_BILLING_ENABLED === "true"
+      && process.env.FITICIAN_DISTRIBUTION_CHANNEL === "direct"
+      && process.env.EAS_BUILD_PROFILE !== "production",
+    billingDistribution: process.env.EAS_BUILD_PROFILE === "production" ? "store"
+      : (process.env.FITICIAN_DISTRIBUTION_CHANNEL ?? "store"),
     environment: appVariant,
     apiBaseUrl: productionApiConfig.resolveApiBaseUrl(
       process.env.EXPO_PUBLIC_API_BASE_URL,

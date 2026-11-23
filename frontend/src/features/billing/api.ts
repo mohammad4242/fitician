@@ -1,5 +1,6 @@
 import type {
   BillingCheckout,
+  CheckoutMethods,
   BillingOffer,
   BillingOrder,
   BillingPaymentResult,
@@ -61,5 +62,15 @@ export function verifyPayment(
   return request<BillingPaymentResult>(`${billingPath}/providers/${provider}/verify`, {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export function getCheckoutMethods(): Promise<CheckoutMethods> {
+  return request<CheckoutMethods>(`${billingPath}/checkout-methods`);
+}
+
+export function verifyTetraPayReturn(token: string): Promise<BillingPaymentResult> {
+  return request<BillingPaymentResult>(`${billingPath}/tetrapay/return`, {
+    method: "POST", body: JSON.stringify({ token }),
   });
 }

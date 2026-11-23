@@ -9,6 +9,8 @@ jest.mock("expo-video", () => ({ VideoView: () => null, useVideoPlayer: () => ({
 jest.mock("@expo/vector-icons", () => ({ MaterialCommunityIcons: () => null }));
 jest.mock("../auth/MobileAuthProvider", () => ({ useMobileAuth: jest.fn() }));
 jest.mock("../entitlements/EntitlementProvider", () => ({ useMobileEntitlements: jest.fn() }));
+jest.mock("expo-secure-store", () => ({ getItemAsync: jest.fn(() => Promise.resolve(null)), setItemAsync: jest.fn(() => Promise.resolve()) }));
+jest.mock("../config/nativeRuntimeConfig", () => ({ getMobileRuntimeConfig: () => ({environment: "development"}) }));
 jest.mock("./billingApi", () => ({ createBillingApi: jest.fn() }));
 jest.mock("./purchaseService", () => ({ createPurchaseService: jest.fn() }));
 
@@ -87,6 +89,7 @@ beforeEach(() => {
     createOrder: mockCreateOrder,
     getOffer: jest.fn(),
     getOffers: mockGetOffers,
+    getCheckoutMethods: jest.fn<() => Promise<unknown>>().mockResolvedValue({providers: ["fake"], default_provider: "fake"}),
     getOrder: jest.fn(),
     getOrders: jest.fn(),
     verifyPayment: jest.fn(),

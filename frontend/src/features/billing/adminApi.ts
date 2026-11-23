@@ -25,6 +25,10 @@ export type UpdateAdminBillingOfferInput = {
 };
 
 export type AdminBillingTransaction = {
+  readonly provider_evidence?: Readonly<Record<string, string | null>> | null;
+  readonly provider_mode?: string | null;
+  readonly reconcile_attempts?: number;
+  readonly next_reconcile_at?: string | null;
   readonly id: string;
   readonly order_id: string;
   readonly provider: PaymentProviderCode;

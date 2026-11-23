@@ -1,3 +1,4 @@
+import { isTetraPayCheckoutUrl } from "@fitician/core/billing";
 import type {
   BillingCheckout,
   BillingPaymentResult,
@@ -19,7 +20,10 @@ export function createPurchaseService(
   return {
     async completeCheckout(checkout) {
       if (checkout.checkout_kind === "native") return null;
-      if (checkout.checkout_url?.match(/^https?:\/\//i)) {
+      if (checkout.provider === "tetrapay" && (!checkout.checkout_url || !isTetraPayCheckoutUrl(checkout.checkout_url))) {
+        throw new Error("Invalid TetraPay checkout destination");
+      }
+      if (checkout.checkout_url?.match(/^https:\/\//i)) {
         if (openExternal === undefined) throw new Error("An external checkout opener is required");
         await openExternal(checkout.checkout_url);
         return null;

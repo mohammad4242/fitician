@@ -14,6 +14,7 @@ it("normalizes the native API, trusted web origin, and optional Google client co
       googleWebClientId: "web-client.apps.googleusercontent.com",
     }),
   ).toEqual({
+    externalBillingEnabled: false, billingDistribution: "store",
     appLinkHost: "fitician.fit",
     apiBaseUrl: "https://api.fitician.example",
     environment: "preview",
@@ -27,6 +28,7 @@ it("normalizes the native API, trusted web origin, and optional Google client co
 
 it("uses the safe public origin when development configuration is absent", () => {
   expect(mobileRuntimeConfigFromExtra({})).toEqual({
+    externalBillingEnabled: false, billingDistribution: "store",
     appLinkHost: "fitician.fit",
     apiBaseUrl: "https://fitician.fit",
     environment: "development",

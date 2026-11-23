@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { useAuth } from "./AuthContext";
+import { authPath } from "./returnTo";
 
 export function ProtectedRoute() {
   const { t, i18n } = useTranslation();
@@ -35,7 +36,7 @@ export function ProtectedRoute() {
   }
 
   if (user === null) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to={authPath("/login", location.pathname + location.search)} replace state={{ from: location.pathname + location.search }} />;
   }
 
   return <Outlet />;

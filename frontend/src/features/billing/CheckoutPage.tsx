@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { paymentProviderCodes, type BillingOffer } from "@fitician/core/billing";
+import { isTetraPayCheckoutUrl, type BillingOffer, type PaymentProviderCode } from "@fitician/core/billing";
 
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
 
-import { createCheckout, createOrder, getOffers } from "./api";
+import { createCheckout, createOrder, getOffers, getCheckoutMethods } from "./api";
 import "./billing.css";
 
 export function CheckoutPage() {
@@ -21,9 +21,17 @@ export function CheckoutPage() {
   const [state, setState] = useState<"loading" | "ready" | "submitting" | "error">(offer ? "ready" : "loading");
   const [error, setError] = useState<unknown | null>(null);
   const [loadError, setLoadError] = useState<unknown | null>(null);
-  const idempotencyKey = useRef(createIdempotencyKey());
+  const idempotencyKey = useRef(persistedIdempotencyKey(offerCode ?? "unknown"));
   const english = i18n.resolvedLanguage === "en";
-  const provider = paymentProviderCodes[0];
+  const [provider, setProvider] = useState<PaymentProviderCode | null>(null);
+  useEffect(() => {
+    let active = true;
+    void getCheckoutMethods().then((methods) => {
+      if (active) setProvider(methods.default_provider !== null && methods.providers.includes(methods.default_provider)
+        ? methods.default_provider : null);
+    }).catch((cause: unknown) => { if (active) setLoadError(cause); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (offer !== null || offerCode === undefined) return;
@@ -45,7 +53,7 @@ export function CheckoutPage() {
   }, [offer, offerCode]);
 
   async function beginCheckout() {
-    if (offer === null || !offer.is_available) return;
+    if (offer === null || !offer.is_available || provider === null) return;
     setState("submitting");
     setError(null);
     try {
@@ -54,7 +62,16 @@ export function CheckoutPage() {
         provider,
         client_idempotency_key: idempotencyKey.current,
       });
+      if (["paid", "refunded", "expired", "cancelled", "failed"].includes(order.status)) {
+        sessionStorage.removeItem(`fitician-billing-key:${offer.offer_code}`);
+        idempotencyKey.current = persistedIdempotencyKey(offer.offer_code);
+        if (order.status === "paid") { navigate("/billing/history"); return; }
+        throw new Error("Previous purchase is closed; please try again");
+      }
       const checkout = await createCheckout(order.id, { provider: order.provider });
+      if (checkout.provider === "tetrapay" && (checkout.checkout_url === null || !isTetraPayCheckoutUrl(checkout.checkout_url))) {
+        throw new Error("Invalid checkout destination");
+      }
       if (checkout.checkout_url !== null) {
         const target = new URL(checkout.checkout_url, window.location.origin);
         if (target.origin === window.location.origin) {
@@ -94,7 +111,7 @@ export function CheckoutPage() {
             </div>
             <button
               className="billing-button billing-button--primary"
-              disabled={!offer.is_available || state === "submitting"}
+              disabled={!offer.is_available || provider === null || state === "submitting"}
               onClick={() => void beginCheckout()}
               type="button"
             >
@@ -120,4 +137,13 @@ function formatAmount(amount: number, currency: string, english: boolean) {
 function createIdempotencyKey() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
   return `web-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function persistedIdempotencyKey(offer: string): string {
+  const storageKey = `fitician-billing-key:${offer}`;
+  const existing = sessionStorage.getItem(storageKey);
+  if (existing) return existing;
+  const key = createIdempotencyKey();
+  sessionStorage.setItem(storageKey, key);
+  return key;
 }

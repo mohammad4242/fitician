@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { LayoutAnimation, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, LayoutAnimation, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import {
@@ -15,7 +15,7 @@ import {
 } from "@fitician/core";
 import fa from "@fitician/core/i18n/fa";
 import { formatTehranDate } from "@fitician/core";
-import { paymentProviderCodes, type BillingOffer } from "@fitician/core/billing";
+import { type PaymentProviderCode, type BillingOffer } from "@fitician/core/billing";
 
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { useMobileEntitlements } from "../entitlements/EntitlementProvider";
@@ -25,6 +25,9 @@ import { mobileRequestErrorMessage } from "../ui/requestState";
 import { RTL_ROW, RTL_TEXT } from "../ui/rtl";
 import { fiticianTokens } from "../ui/tokens";
 import { createBillingApi } from "./billingApi";
+import * as SecureStore from "expo-secure-store";
+import { getMobileRuntimeConfig } from "../config/nativeRuntimeConfig";
+import { createPaymentRecovery, externalBillingAllowed } from "./paymentRecovery";
 import { createPurchaseService } from "./purchaseService";
 
 const billing = fa.translation.billing;
@@ -51,15 +54,29 @@ export function PlansScreen() {
   const router = useRouter();
   const api = useMemo(() => createBillingApi(auth.request), [auth.request]);
   const purchaseService = useMemo(() => createPurchaseService(api, (url) => Linking.openURL(url)), [api]);
+  const recovery = useMemo(() => createPaymentRecovery(api, {
+    get: SecureStore.getItemAsync, set: SecureStore.setItemAsync,
+  }, auth.user?.id ?? "signed-out"), [api, auth.user?.id]);
+  const runtime = getMobileRuntimeConfig();
+  const externalAllowed = externalBillingAllowed(Platform.OS, runtime.externalBillingEnabled === true, runtime.billingDistribution ?? "store");
+  const [provider, setProvider] = useState<PaymentProviderCode | null>(null);
   const [offers, setOffers] = useState<BillingOffer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown | null>(null);
   const [busyOffer, setBusyOffer] = useState<string | null>(null);
-  const [message, setMessage] = useState<"success" | "pending" | null>(null);
+  const [message, setMessage] = useState<"success" | "pending" | "failed" | "expired" | null>(null);
   const [category, setCategory] = useState<BillingCategory>(() => defaultBillingCategory(entitlements.snapshot?.primary_package));
   const [selectedDurations, setSelectedDurations] = useState<Partial<Record<BillingPackageCode, BillingOffer["duration_weeks"]>>>({});
   const [expandedPackages, setExpandedPackages] = useState<Partial<Record<BillingPackageCode, boolean>>>({});
   const snapshot = entitlements.snapshot;
+
+  useEffect(() => {
+    if (entitlements.paymentStatus === "verified") setMessage("success");
+    else if (entitlements.paymentStatus === "pending") setMessage("pending");
+    else if (entitlements.paymentStatus === "failed") setMessage("failed");
+    else if (entitlements.paymentStatus === "expired") setMessage("expired");
+    else if (entitlements.paymentStatus === null) setMessage((current) => current === "pending" ? null : current);
+  }, [entitlements.paymentStatus, snapshot]);
 
   useEffect(() => { setCategory(defaultBillingCategory(snapshot?.primary_package)); }, [snapshot?.primary_package]);
 
@@ -78,18 +95,22 @@ export function PlansScreen() {
     return () => { active = false; };
   }, [api]);
 
+  useEffect(() => {
+    let active = true;
+    void api.getCheckoutMethods().then((methods) => {
+      if (active) setProvider(externalAllowed && methods.providers.includes("tetrapay") ? "tetrapay"
+        : runtime.environment === "development" && methods.providers.includes("fake") ? "fake" : null);
+    }).catch((cause: unknown) => { if (active) setError(cause); });
+    return () => { active = false; };
+  }, [api, externalAllowed, runtime.environment]);
+
   async function buy(offer: BillingOffer) {
-    if (!offer.is_available || busyOffer !== null) return;
+    if (!offer.is_available || busyOffer !== null || provider === null) return;
     setBusyOffer(offer.offer_code);
     setMessage(null);
     setError(null);
     try {
-      const order = await api.createOrder({
-        client_idempotency_key: `mobile-${offer.offer_code}-${Date.now()}`,
-        offer_code: offer.offer_code,
-        provider: paymentProviderCodes[0],
-      });
-      const checkout = await api.createCheckout(order.id, { provider: order.provider });
+      const checkout = await recovery.begin(offer.offer_code, provider);
       const result = await purchaseService.completeCheckout(checkout);
       if (result?.verified) {
         entitlements.refresh();
@@ -130,6 +151,8 @@ export function PlansScreen() {
       </View>
       {message === "success" ? <Notice message={billing.accessActive} variant="success" /> : null}
       {message === "pending" ? <Notice message={billing.paymentPending} variant="info" /> : null}
+      {message === "failed" ? <Notice message={billing.paymentFailed} variant="danger" /> : null}
+      {message === "expired" ? <Notice message="مهلت پرداخت تمام شده" variant="info" /> : null}
       {error !== null ? <Notice message={mobileRequestErrorMessage(error, billing.loadError, { audience: "member", context: "billing" })} variant="danger" /> : null}
       {loading ? <Skeleton accessibilityLabel={billing.loading} height={180} /> : null}
       {!loading && !error && offers.length === 0 ? <Notice message={billing.noOffers} variant="info" /> : null}
@@ -143,7 +166,7 @@ export function PlansScreen() {
             return (
               <PackageCard
                 active={snapshot?.primary_package === packageCode}
-                busyOffer={busyOffer}
+                busyOffer={provider === null ? "unavailable" : busyOffer}
                 expanded={expandedPackages[packageCode] ?? false}
                 key={packageCode}
                 offers={packageOffers}
@@ -240,14 +263,14 @@ function PackageCard({ active, busyOffer, expanded, offers, onBuy, onSelectDurat
         ) : null}
         <Text style={styles.offerPrice}>{selectedOffer.price_irr === null || selectedOffer.currency === null ? billing.offerUnavailable : formatAmount(selectedOffer.price_irr, selectedOffer.currency)}</Text>
         {!selectedOffer.is_available ? <Text style={styles.unavailableText}>{billing.offerUnavailable}</Text> : null}
-        <Button
+        {busyOffer === "unavailable" ? <Text style={styles.unavailableText}>خرید در این نسخه فعال نیست</Text> : <Button
           disabled={!selectedOffer.is_available || busyOffer !== null}
           label={interpolate(billing.buySelectedPackage, { duration, package: details.name })}
           loading={busyOffer === selectedOffer.offer_code}
           onPress={() => onBuy(selectedOffer)}
         >
           {billing.buy}
-        </Button>
+        </Button>}
       </View>
     </Card>
   );

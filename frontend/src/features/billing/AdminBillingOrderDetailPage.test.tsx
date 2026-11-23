@@ -87,3 +87,12 @@ it("shows safe admin diagnostics for a failed order lookup", async () => {
   expect(alert).toHaveTextContent("admin-billing-request-1");
   expect(alert).not.toHaveTextContent("private payment details");
 });
+
+it("shows sanitized provider amount evidence for administrator review", async () => {
+  adminApi.getAdminBillingOrder.mockResolvedValue({...order, transactions: [{...order.transactions[0], provider_evidence: {received_amount: "500000", reason: "PAYMENT_INCOMPLETE"}}]});
+  render(<MemoryRouter initialEntries={["/admin/billing/orders/order-1"]}><Routes>
+    <Route path="/admin/billing/orders/:orderId" element={<AdminBillingOrderDetailPage />} />
+  </Routes></MemoryRouter>);
+  expect(await screen.findByText("PAYMENT_INCOMPLETE")).toBeInTheDocument();
+  expect(screen.getByText("500000")).toBeInTheDocument();
+});

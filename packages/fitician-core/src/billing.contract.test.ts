@@ -24,7 +24,7 @@ it("keeps the provider-neutral billing contract stable", () => {
     "refunded",
   ]);
   expect(billingTransactionStatuses).toContain("verified");
-  expect(paymentProviderCodes).toEqual(["fake"]);
+  expect(paymentProviderCodes).toEqual(["fake", "tetrapay"]);
 
   const offer = {
     offer_code: "training_4w",
