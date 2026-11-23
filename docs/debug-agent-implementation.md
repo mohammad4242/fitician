@@ -138,7 +138,7 @@ Final local checks for Option A (November23):
 - Agent Service: `.venv/bin/python -m pytest -q tests` — **298 passed**.
 - Frontend: `npm run test --workspace frontend -- --run src/features/diagnostics
   src/features/admin/AdminAiSettingsPage.test.tsx src/features/admin/AgentServicePanel.test.tsx`
-  — **88 passed**; full `npm run build --workspace frontend` passed (351 prerendered pages).
+  — **100 passed**; full `npm run build --workspace frontend` passed (351 prerendered pages).
 - `python3 -m unittest ops/tests/test_debug_validation.py -q` — **9 passed**;
   `python3 -m unittest discover -s ops/tests -q` — **421 passed**. Initial hosted
   CI45081230138 found the missing transitive `laptop_validation` module in the legacy runtime
@@ -167,6 +167,23 @@ Official references checked: [Codex configuration](https://developers.openai.com
 [Claude CLI](https://code.claude.com/docs/en/cli-reference), and
 [Antigravity hooks](https://antigravity.google/docs/hooks/). Current documentation is not proof
 that an older installed CLI implements a feature; the agy canary demonstrated that distinction.
+
+Hosted evidence for the implementation/package correction is
+[CI45081649387](https://github.com/mohammad4242/fitician/actions/runs/45081649387)
+and [SEO45081649395](https://github.com/mohammad4242/fitician/actions/runs/45081649395).
+Both completed successfully. The full backend shards, Android debug build, mobile contracts,
+Chromium/WebKit, Agent Service, topology and migration/validation jobs passed. Production
+image publication and deployment jobs were skipped; no production release was performed. The backend controlled-validation
+artifact14777272120 was downloaded and its SHA256 verified against GitHub:
+`085a94ff75faecd8a1eb0bbab7535371cefebcc6557d5cacf4e8b8efb8f410fb`.
+It reports127 passed,0 skipped. Tested PR merge commit`fab57fbf052c78a6dd93c003d238f7004cd18895`
+has exactly the same Git source tree as branch commit`39eea40b951eb4617471e30ebf951c95b89421ca`.
+This is CI validation evidence, not production deployment or a broker-created repair PR.
+
+Twelve additional UI regressions failed first and passed after adding Persian/English
+explanations for Agent Service authentication/profile availability, native-tool isolation,
+repository-worker role and test policy errors. The messages direct AI login to Agent Service,
+never to the repository laptop, and do not suggest weakening safety limits.
 
 ## Permanent enrollment readiness — November22 continuation
 

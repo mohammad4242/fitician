@@ -125,3 +125,23 @@ it("keeps historical run evidence available after loading an older page", async 
   expect(await screen.findByText('historical-selected-model')).toBeInTheDocument();
   expect(screen.getByText('historical-occurrence')).toBeInTheDocument();
 });
+
+const unifiedBlockers = [
+  ["agent_authentication_required", "ورود ایجنت منتخب در Agent Service برقرار نیست", "The selected agent is not authenticated in Agent Service"],
+  ["agent_profile_unavailable", "پروفایل یا مدل منتخب در Agent Service در دسترس نیست", "The selected Agent Service profile or model is unavailable"],
+  ["native_tool_isolation_unavailable", "جداسازی ابزارهای داخلی این نسخهٔ ایجنت تأیید نشده است", "Native-tool isolation is not verified for this agent version"],
+  ["repository_worker_required", "اتصال منتخب باید worker مخزن روی لپ‌تاپ باشد", "The selected connector must be a laptop repository worker"],
+  ["pinned_validation_policy_required", "تصویر ثابت و سیاست آزمون لپ‌تاپ تنظیم یا تأیید نشده است", "The laptop validation image and policy are not configured or verified"],
+  ["laptop_model_execution_forbidden", "اجرای مدل روی لپ‌تاپ مجاز نیست", "Model execution on the laptop is not allowed"],
+];
+for (const english of [true, false]) {
+  it.each(unifiedBlockers)(`explains unified %s with english=${english}`, async (code, persian, englishText) => {
+    vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+      messages: [], next_cursor: null,
+      runs: [{ id: "unified-blocked", state: "blocked", error_code: code, config: {}, evidence_id: null }],
+    } as never);
+    render(<DebugConversation issueId="unified-blocked-issue" english={english} />);
+    expect(await screen.findByText(content => content.includes(english ? englishText : persian))).toBeInTheDocument();
+    expect(screen.getByText(code)).toBeInTheDocument();
+  });
+}

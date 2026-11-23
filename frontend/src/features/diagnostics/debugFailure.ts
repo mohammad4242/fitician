@@ -1,6 +1,20 @@
 /** Fixed operational facts and next actions; unknown codes do not imply a cause. */
 export function explainDebugFailure(code: string | null, english: boolean): string | null {
   switch (code) {
+    case "agent_authentication_required":
+      return english ? "The selected agent is not authenticated in Agent Service. Complete its login there; the laptop does not need an AI login." : "ورود ایجنت منتخب در Agent Service برقرار نیست. ورود همان ایجنت را آنجا تکمیل کنید؛ لپ‌تاپ به ورود هوش مصنوعی نیاز ندارد.";
+    case "agent_profile_unavailable":
+      return english ? "The selected Agent Service profile or model is unavailable. Refresh capabilities and test that exact selection in AI Settings." : "پروفایل یا مدل منتخب در Agent Service در دسترس نیست. قابلیت‌ها را تازه و همان انتخاب را در تنظیمات هوش مصنوعی آزمایش کنید.";
+    case "native_tool_isolation_unavailable":
+      return english ? "Native-tool isolation is not verified for this agent version. Debugging is blocked until a compatible policy is verified; keep the safety limits enabled." : "جداسازی ابزارهای داخلی این نسخهٔ ایجنت تأیید نشده است. عیب‌یابی تا تأیید سیاست سازگار متوقف می‌ماند؛ محدودیت‌های ایمنی را حفظ کنید.";
+    case "repository_worker_required":
+      return english ? "The selected connector must be a laptop repository worker. Select and test it independently from the AI agent." : "اتصال منتخب باید worker مخزن روی لپ‌تاپ باشد. آن را جدا از ایجنت هوش مصنوعی انتخاب و آزمایش کنید.";
+    case "pinned_validation_policy_required":
+    case "validation_policy_unavailable":
+    case "immutable_validation_image_required":
+      return english ? "The laptop validation image and policy are not configured or verified. Configure the reviewed policy and immutable images before running these tests." : "تصویر ثابت و سیاست آزمون لپ‌تاپ تنظیم یا تأیید نشده است. پیش از این آزمون‌ها، سیاست بررسی‌شده و تصاویر ثابت را تنظیم کنید.";
+    case "laptop_model_execution_forbidden":
+      return english ? "Model execution on the laptop is not allowed. Use Agent Service for inference and the laptop only for repository tools." : "اجرای مدل روی لپ‌تاپ مجاز نیست. مدل باید در Agent Service اجرا شود و لپ‌تاپ فقط ابزارهای مخزن را اجرا کند.";
     case "dedicated_model_credential_required":
     case "dedicated_model_credential_invalid":
     case "dedicated_model_credential_changed":
