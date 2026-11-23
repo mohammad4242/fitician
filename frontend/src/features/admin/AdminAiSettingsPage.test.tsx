@@ -180,6 +180,7 @@ it("offers only the explicit Claude mock debug profile without a real installati
   expect(screen.getByRole("combobox", { name: "Model" })).toHaveTextContent("claude-mock-debug");
   expect(screen.getByRole("button", { name: "Test Agent" })).toBeEnabled();
   expect(screen.queryByRole("button", { name: "Authenticate Claude" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/API output budget/)).not.toBeInTheDocument();
 });
 
 it("shows the settings load error instead of staying on the loading state", async () => {

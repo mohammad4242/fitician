@@ -157,6 +157,91 @@ No fix, PR, SMS or deployment was claimed from this read-only browser run. The s
 repair loop above remains isolated fixture evidence. Full publication still requires the
 reviewed protected-main validation policy, currently unavailable there; it is not bypassed.
 
+### Final real Sentry-to-repair acceptance (November23)
+
+The preserved Option A architecture was tested through the actual staging application, not a
+mocked chat response. A single isolated seed commit in a private laptop worktree contained a
+small arithmetic regression and two unittest assertions. It was never merged, pushed or
+installed in production. Two local issues/occurrences were captured from its original chained
+exception using the configured backend Sentry project and a separate `debug-acceptance`
+environment. Both exact events were read back through the existing authenticated Germany
+proxy, linked to Fitician, and matched the seed release. No production credential changed.
+
+Real testing found and fixed three integration gaps:
+
+- Python SDK frames can put only a basename in `filename` and the useful location in
+  `abs_path`. Both identical backend/Agent Service scrubbers now preserve only the allowed
+  repository-relative suffix from either field, stripping host paths, locals and source
+  context. Privacy regressions failed before the fix. Fresh Sentry events retained
+  `app/debugging/acceptance_fixture.py:4`; the older missing-path events remain unchanged.
+- Cited final diagnoses now populate the existing Findings journal/cards as unverified
+  observed-fact, hypothesis and next-check proposals. Same-transaction receipts and payload
+  deduplication prevent duplicate findings on recovery. This never confirms a cause or
+  resolves an issue. Regression tests exercise replay and scoped evidence.
+- The repair-action dropdown now has an explicit bilingual accessible label, including
+  Chromium/WebKit regression coverage. CLI settings no longer show the legacy API token-budget
+  note when those controls are unsupported.
+
+| Panel workflow | Real Antigravity1.5.14 | Real Codex0.151.0 |
+| --- | --- | --- |
+| Configured model/profile | gemini-3.8-flash-low | gpt-5.6-luna, low profile |
+| Confirmed Sentry event, original chain/path, exact release | Passed | Passed |
+| Panel-authorized isolated repair |6 real model turns |8 real model turns |
+| Actual laptop source inspection |1 source read |2 source reads and code search |
+| Reproduction, edit, same test again |2 tests failed before;2 passed after |2 tests failed before;2 passed after |
+| Focused diff |Only the seeded application module changed; test file unchanged |Same |
+| Persistent Persian diagnosis/findings after refresh |8 proposals, passed |6 proposals, passed |
+| Exact CI validation of that repair and panel Draft PR |Blocked by reviewed-main policy gate |Same |
+
+The two repairs used separate worktrees. The initial seed and primary checkout were preserved.
+Only AI inference ran in the existing Germany Agent Service container. Code edits, Docker
+unittests and diff inspection ran on the laptop; it needed no AI authentication.
+
+The HTTP staging process now exercises normal application lifespan with the pinned SDK and
+its checksum-verified pure-Python dependency wheels loaded only from its temporary test path.
+No installed production package/image or authentication directory was replaced, and no second
+persistent Agent Service container was created. This improves on the earlier lifespan-disabled
+probe above; it is still not a production rollout or full new-image acceptance.
+
+Additional actual browser acceptance passed:
+
+- Saving an offline laptop preserved the selected Codex model/profile. The run blocked with
+  `execution_target_offline` before any model turn or tool call; no fallback occurred.
+- Claude's explicit MOCK smoke and conversation ran with zero tool calls. Prior real replies
+  retained their original provider/model provenance after settings changed.
+- An explicit staging-admin review accepted matching real failing/passing regression evidence.
+  The finding became reviewed; the issue was not automatically resolved or marked deployed.
+- Persian RTL at390px had no horizontal overflow. Refresh and an isolated backend/worker
+  restart preserved4 runs,7 messages,105 events and12 tool calls, with no duplicate actions.
+  Mid-mutation crash/recovery remains fault-injection regression coverage, not a new live test.
+
+Private, ignored evidence: `.codex-tmp/final-debug-acceptance/repair-acceptance.json`,
+`ui-edges.json`, `conversation-checkpoint.json`, `restart-browser.json`, and both
+`*-persian-after-restart.png` screenshots. Provider receipts and Docker outputs distinguish
+real execution from mocks. Expected failed test reproductions and earlier browser-harness
+readiness/selector failures are retained; only successful final assertions count as acceptance.
+
+Current regression results:410 focused backend tests passed with3 explicit local skips;
+22 Sentry/privacy tests passed;314 Agent Service tests passed;1398 full frontend tests passed.
+Frontend build, strict type checks, OpenAPI and secret checks are recorded separately for the
+final candidate. No schema migration was added. The previous complete CI for83a95edf passed
+4860 backend tests with one opt-in Zen live-test skip:
+[45136398955](https://github.com/mohammad4242/fitician/actions/runs/45136398955).
+That previous green run does not substitute for CI on the final changes.
+
+**Remaining publication blocker:** actual `GitHubAutomation.preflight()` authenticated but
+returned `github_workflow_not_installed`; protected main7c03e50d lacks the reviewed
+`debug-validation.yml` policy. The broker intentionally refuses feature-branch policy or an
+unrelated CI artifact as authorization. No panel Draft PR, tested-repair CI artifact, merge or
+deployment is claimed. PR41 remains Draft. Installing the reviewed policy on protected main
+requires the owner's separate review/merge process; it was not bypassed for this test.
+The private seed commit is also not current main. It must not be repackaged as a production
+repair to evade the current-base guard; live publication acceptance needs an approved safe
+fixture compatible with that unchanged policy.
+Production enrollment, full image startup, production Sentry/SMS acceptance and native crash
+acceptance remain outside these non-production results. Production services/credentials and
+CLI authentication sessions are preserved; no VPS upgrade was performed.
+
 ### Recovery and verification safeguards
 
 Fresh task enablement rechecks actual Agent Service authentication, exact debug profile/model,

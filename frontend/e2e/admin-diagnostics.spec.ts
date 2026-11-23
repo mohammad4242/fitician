@@ -41,6 +41,7 @@ for (const language of ["fa", "en"] as const) {
       await page.setViewportSize({width: 390, height: 1000});
       const message = page.getByRole("textbox", {name: language === "fa" ? "پیام شما" : "Your message", exact: true});
       await expect(message).toBeVisible();
+      await expect(page.getByLabel(language === "fa" ? "درخواست مجاز" : "Requested action", { exact: true })).toHaveValue("analyze");
       expect((await message.boundingBox())!.width).toBeGreaterThan(290);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
       await page.setViewportSize({width: 1440, height: 1000});

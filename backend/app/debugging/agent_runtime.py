@@ -104,6 +104,37 @@ async def tool_loop(
     raise ValueError("tool_run_budget_exhausted")
 
 
+def persist_diagnosis_proposals(db: Session, run: DebugRun, action: dict[str, Any]) -> None:
+    """Cited model statements remain proposals, never verified causes or resolution."""
+    from .findings import proposal_payload
+
+    references = action.get("evidence_ids", [])
+    existing = list(
+        db.scalars(
+            select(DebugRunEvent.payload).where(
+                DebugRunEvent.run_id == run.id, DebugRunEvent.kind == "finding_proposed"
+            )
+        )
+    )
+    for field, classification in (
+        ("facts", "observed_fact"),
+        ("hypotheses", "hypothesis"),
+        ("next_checks", "next_check"),
+    ):
+        # Uncited hypotheses/checks can remain in chat, but not in the evidence cards.
+        if field != "facts" and not references:
+            continue
+        for text in action.get(field, []):
+            proposal = proposal_payload(
+                db,
+                run,
+                {"classification": classification, "text": text, "evidence_ids": references},
+            )
+            if proposal not in existing:
+                append_event(db, run, "finding_proposed", proposal)
+                existing.append(proposal)
+
+
 async def run_agent(
     settings: Settings,
     engine: Connection | Engine,
@@ -228,19 +259,8 @@ async def run_agent(
                 if run is None or run.lease_token != lease:
                     raise ValueError("run_lease_lost")
                 _authorize_run(db, run)
-                if action.get("kind") == "diagnosis" and action.get("facts"):
-                    from .findings import proposal_payload
-
-                    for fact in action["facts"]:
-                        proposal_payload(
-                            db,
-                            run,
-                            {
-                                "classification": "observed_fact",
-                                "text": fact,
-                                "evidence_ids": action.get("evidence_ids", []),
-                            },
-                        )
+                if action.get("kind") == "diagnosis":
+                    persist_diagnosis_proposals(db, run, action)
                 append_event(
                     db,
                     run,

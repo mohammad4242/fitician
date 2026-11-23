@@ -154,3 +154,12 @@ it("retains an explicit MOCK execution label after refreshing a conversation", a
   render(<DebugConversation issueId="mock-issue" english />);
   expect(await screen.findAllByText("MOCK — no model or tools executed")).not.toHaveLength(0);
 });
+
+
+it("exposes an exact accessible label for the repair action selector", async () => {
+  vi.mocked(request).mockResolvedValue({ messages: [], runs: [], next_cursor: null } as never);
+  render(<DebugConversation issueId="issue-actions" english />);
+  const action = await screen.findByLabelText("Requested action", { exact: true });
+  expect(action).toHaveValue("analyze");
+  expect(action).toHaveAttribute("aria-label", "Requested action");
+});

@@ -45,13 +45,15 @@ def sanitize_event(event: dict[str, Any], hint: dict[str, Any]) -> dict[str, Any
         }
         frames = []
         for frame in exception.get("stacktrace", {}).get("frames", [])[-100:]:
-            filename = str(frame.get("filename", ""))
-            filename = filename.replace("\\", "/")
-            # Absolute host/user paths are never exported.
-            match = re.search(r"(?:^|/)(app/[^?#]+|src/[^?#]+|platform/[^?#]+)$", filename)
             safe: dict[str, Any] = {}
-            if match and ".." not in match[1].split("/"):
-                safe["filename"] = match[1][:240]
+            # Python SDK frames can have a basename in filename and the original
+            # source location in abs_path. Export only its repository-relative suffix.
+            for candidate in (frame.get("filename"), frame.get("abs_path")):
+                filename = str(candidate or "").replace("\\", "/")
+                match = re.search(r"(?:^|/)((?:app|src|platform)/[A-Za-z0-9_./-]+)$", filename)
+                if match and ".." not in match[1].split("/"):
+                    safe["filename"] = match[1][:240]
+                    break
             function = _token(frame.get("function"))
             if function:
                 safe["function"] = function
