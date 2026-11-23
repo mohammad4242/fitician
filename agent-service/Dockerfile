@@ -2,9 +2,9 @@ FROM node:22.18.0-bookworm-slim AS node-runtime
 
 FROM python:3.12-slim-bookworm
 
-ARG AGY_VERSION=1.1.22
-ARG AGY_SHA256_AMD64=1e1a219a86e75d7c6351f96d182ca2105302d5c34d8fa9c31265dc0adf24145f
-ARG AGY_SHA256_ARM64=a68925bc7336eb0b90de1e1aefd44d535f5487b7cf606a76fdb982207aef9a2e
+ARG AGY_VERSION=1.5.14
+ARG AGY_SHA256_AMD64=d58386322d2073e96b33f7cc32b4e9ae2db6228f58440369725967b2de48c7b5
+ARG AGY_SHA256_ARM64=e5f69a3123fac66974b303d9a201f381a0fb32b3ef869d9139da85d5caf67a2a
 ARG CODEX_VERSION=0.151.0
 ARG CLAUDE_VERSION=2.1.220
 ARG TARGETARCH
@@ -13,6 +13,7 @@ ENV HOME=/home/agent \
     PATH=/opt/fitician-agent/bin:/home/agent/.local/bin:/app/.venv/bin:/opt/venv/bin:$PATH \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
+    AGY_CLI_DISABLE_AUTO_UPDATE=true \
     CLAUDE_CODE_DISABLE_AUTOUPDATE=1
 
 RUN apt-get update \
@@ -59,7 +60,10 @@ RUN set -eux; \
     && test "$(claude --version | head -n 1)" = "${CLAUDE_VERSION} (Claude Code)"
 
 COPY --chown=agent:agent docker/entrypoint.sh /usr/local/bin/fitician-agent-entrypoint
+USER root
+RUN chown -R root:root /opt/fitician-agent && chmod -R go-w /opt/fitician-agent
 RUN chmod 0755 /usr/local/bin/fitician-agent-entrypoint
+USER agent
 
 ARG APP_BUILD_SHA=
 ENV APP_BUILD_SHA=${APP_BUILD_SHA}

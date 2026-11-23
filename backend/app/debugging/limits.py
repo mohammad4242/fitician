@@ -42,6 +42,7 @@ API_RUN_ERRORS = API_SETUP_ERRORS | {
 }
 CONNECTOR_BLOCKERS = frozenset(
     {
+        "mock_execution_not_authorized",
         "agent_authentication_required",
         "agent_profile_unavailable",
         "native_tool_isolation_unavailable",

@@ -601,7 +601,10 @@ function toAgentCatalogModels(
   if (runner.profiles) {
     return runner.profiles
       .filter((profile) => {
-        if (!runner.installed || !profile.task_kinds.includes(task)) return false;
+        const explicitMock = task === "debug_agent" && runner.agent === "claude"
+          && runner.debug_status === "mock" && profile.profile_id === "claude-mock-debug"
+          && profile.model_id === "mock-claude";
+        if ((!runner.installed && !explicitMock) || !profile.task_kinds.includes(task)) return false;
         const needsImage = task === "body_photo_analysis" || task === "food_photo_estimation";
         const needsLiveWeb = task === "food_price_search";
         return profile.supports_structured_output

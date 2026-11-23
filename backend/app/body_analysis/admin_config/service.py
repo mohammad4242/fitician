@@ -852,7 +852,11 @@ async def get_agent_service_capabilities(
         client,
         settings=settings,
         method="GET",
-        path="/v1/capabilities",
+        path=(
+            "/v1/capabilities?task_kind=debug_agent"
+            if task_type is AITaskType.DEBUG_AGENT
+            else "/v1/capabilities"
+        ),
         timeout_seconds=max(30.0, settings.agent_service_connect_timeout_seconds),
     )
     try:

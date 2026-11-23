@@ -18,6 +18,10 @@ if TYPE_CHECKING:
     from .service import AgentService
 
 
+class DebugTurnOutput(AgentGenerationOutput):
+    execution_mode: Literal["real", "mock"]
+
+
 class DebugMessage(BaseModel):
     model_config = ConfigDict(extra="forbid")
     role: Literal["system", "user", "assistant", "tool"]
@@ -79,7 +83,11 @@ class DebugAction(BaseModel):
 
 async def debug_turn(
     service: AgentService, request: DebugTurnInput, request_id: str
-) -> AgentGenerationOutput:
+) -> DebugTurnOutput:
+    if request.agent == AgentName.CLAUDE:
+        from .debug_mock import mock_turn
+
+        return mock_turn(request, request_id)
     runner = service._runner(request.agent)
     capabilities = await runner.capabilities()
     if not supports_external_tools(request.agent, capabilities.version):
@@ -93,7 +101,7 @@ async def debug_turn(
         raise AgentServiceError(
             ErrorCode.INVALID_REQUEST, "profile does not support debugging", 422
         )
-    auth = await service.registry.capabilities()
+    auth = await service.registry.capabilities(agent=request.agent)
     if not any(c.agent == request.agent and c.auth_state == AuthState.AUTHENTICATED for c in auth):
         raise AgentServiceError(ErrorCode.UNAUTHORIZED, "agent authentication required", 401)
     await service._check_capability(resolved.profile, request.agent, image=False)
@@ -126,8 +134,9 @@ async def debug_turn(
     action = DebugAction.model_validate(result.payload)
     if action.kind == "tool_call" and action.tool not in {t.name for t in request.tools}:
         raise AgentServiceError(ErrorCode.INVALID_OUTPUT, "tool is not authorized", 502)
-    return AgentGenerationOutput(
+    return DebugTurnOutput(
         payload=action.model_dump(),
+        execution_mode="real",
         agent=request.agent,
         model_id=result.model_id,
         profile_id=request.profile_id,

@@ -166,6 +166,12 @@ async def run_task_smoke(
                 and response.get("agent") == agent.value
                 and response.get("payload", {}).get("kind") == "diagnosis"
             )
+            if agent is AIAgentName.CLAUDE:
+                passed = passed and (
+                    profile.profile_id == "claude-mock-debug"
+                    and profile.model_id == "mock-claude"
+                    and response.get("execution_mode") == "mock"
+                )
             return TaskSmokeResult(
                 passed=passed,
                 stage="passed" if passed else "failed",

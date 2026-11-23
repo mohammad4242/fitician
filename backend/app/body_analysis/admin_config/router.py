@@ -174,8 +174,15 @@ async def update_task_config(
             )
             verified = any(
                 runner.agent == effective("agent_name")
-                and runner.installed
-                and runner.auth_state == "authenticated"
+                and (
+                    (runner.installed and runner.auth_state == "authenticated")
+                    or (
+                        runner.agent.value == "claude"
+                        and runner.debug_status == "mock"
+                        and profile.profile_id == "claude-mock-debug"
+                        and profile.model_id == "mock-claude"
+                    )
+                )
                 and profile.profile_id == effective("agent_profile_id")
                 and profile.model_id == effective("agent_model_id")
                 and AITaskType.DEBUG_AGENT in profile.task_kinds

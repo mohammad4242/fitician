@@ -68,11 +68,33 @@ class AgentService:
         self.workspace_limits = workspace_limits
         self.private_media = private_media
 
-    async def capabilities(self) -> list[RunnerCapabilities]:
+    async def capabilities(
+        self, *, task_kind: AgentTaskKind | None = None
+    ) -> list[RunnerCapabilities]:
         from .runners.debug_policy import supports_external_tools
 
         result = []
-        for runner in await self.registry.capabilities():
+        mock_only = task_kind == AgentTaskKind.DEBUG_AGENT
+        runners = await self.registry.capabilities(
+            exclude=frozenset({AgentName.CLAUDE}) if mock_only else frozenset()
+        )
+        if mock_only:
+            runners.append(RunnerCapabilities(agent=AgentName.CLAUDE, installed=False))
+        for runner in runners:
+            if runner.agent == AgentName.CLAUDE:
+                from .debug_mock import mock_profile
+
+                profiles = [
+                    p
+                    for p in runner.profiles or []
+                    if AgentTaskKind.DEBUG_AGENT not in p.task_kinds
+                ]
+                result.append(
+                    runner.model_copy(
+                        update={"debug_status": "mock", "profiles": [*profiles, mock_profile()]}
+                    )
+                )
+                continue
             if not runner.installed:
                 status = "not_installed"
             elif not supports_external_tools(runner.agent, runner.version):

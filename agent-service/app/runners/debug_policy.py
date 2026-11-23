@@ -11,9 +11,8 @@ from ..schemas import AgentName
 _VERSIONS = {
     AgentName.CODEX: frozenset({"0.151.0"}),
     AgentName.CLAUDE: frozenset({"2.1.220"}),
-    # agy 1.1.22 only exposes global permission settings. Never overwrite a
-    # shared authenticated generation runner's settings to enable debugging.
-    AgentName.ANTIGRAVITY: frozenset(),
+    # Per-request settings + hook denial; finish only formats schema output.
+    AgentName.ANTIGRAVITY: frozenset({"1.5.14"}),
 }
 
 

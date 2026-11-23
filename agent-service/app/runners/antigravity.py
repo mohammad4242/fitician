@@ -5,6 +5,7 @@ import re
 import shutil
 import tempfile
 import time
+from contextlib import ExitStack
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, cast
@@ -16,6 +17,7 @@ from ..process import ProcessExecutionError, ProcessTimeoutError, run_process
 from ..profiles import (
     AgentModelProfile,
     antigravity_profiles_from_output,
+    debug_profiles,
 )
 from ..proxy import ProxyRuntime
 from ..schemas import (
@@ -25,6 +27,7 @@ from ..schemas import (
     RunnerCapabilities,
     RunnerModelCapabilities,
 )
+from .antigravity_debug import native_policy
 from .base import (
     AgentRunner,
     RunnerError,
@@ -32,6 +35,7 @@ from .base import (
     RunnerResult,
     resolve_image_paths,
 )
+from .debug_policy import supports_external_tools
 from .probes import CliMetadataProbe
 
 _PYDANTIC_DECIMAL_PATTERN = r"^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$"
@@ -118,7 +122,7 @@ class AntigravityRunner(AgentRunner):
                 )
                 for profile in profiles
             ],
-            profiles=list(profiles),
+            profiles=[*profiles, *debug_profiles(profiles, version=version)],
         )
 
     async def _profiles(self, version: str | None) -> tuple[AgentModelProfile, ...]:
@@ -166,7 +170,9 @@ class AntigravityRunner(AgentRunner):
         return shutil.which(self.executable) is not None
 
     async def run(self, request: RunnerRequest) -> RunnerResult:
-        if request.external_tools_only:
+        if request.external_tools_only and not supports_external_tools(
+            self.name, await self._metadata.version()
+        ):
             raise RunnerError("invalid_request", "native tool isolation unavailable")
         if request.effort is not None and request.effort not in {
             "low",
@@ -181,6 +187,7 @@ class AntigravityRunner(AgentRunner):
         image_paths = self._image_paths(request.image_paths, workspace)
         started = time.perf_counter()
         schema_path: Path | None = None
+        policy_stack = ExitStack()
 
         try:
             try:
@@ -188,6 +195,11 @@ class AntigravityRunner(AgentRunner):
             except Exception as exc:
                 raise RunnerError("invalid_request", "response schema is invalid") from exc
             prompt = self._prompt(request, image_paths)
+            settings = (
+                policy_stack.enter_context(native_policy(workspace))
+                if request.external_tools_only
+                else None
+            )
             with tempfile.NamedTemporaryFile(
                 mode="w",
                 encoding="utf-8",
@@ -223,8 +235,20 @@ class AntigravityRunner(AgentRunner):
             # image inspection and web tools to run without an interactive
             # permission prompt. The subprocess environment is separately
             # restricted to the safe allow-list above.
-            command.extend(["--sandbox", "--dangerously-skip-permissions"])
-            log_snapshot = self._cli_log_snapshot()
+            if settings is not None:
+                command.extend(
+                    [
+                        "--sandbox",
+                        "--disable-slash-commands",
+                        "--settings",
+                        settings,
+                        "--log-file",
+                        str(workspace / ".fitician-agy.log"),
+                    ]
+                )
+            else:
+                command.extend(["--sandbox", "--dangerously-skip-permissions"])
+            log_snapshot = {} if request.external_tools_only else self._cli_log_snapshot()
             result = await run_process(
                 command,
                 workspace=workspace,
@@ -236,6 +260,7 @@ class AntigravityRunner(AgentRunner):
                 + "\n",
                 env=self._subprocess_environment(),
                 inherit_environment=False,
+                **({"max_output_bytes": 1_048_576} if request.external_tools_only else {}),
             )
         except ProcessTimeoutError as exc:
             raise RunnerError("timeout", "runner timed out") from exc
@@ -248,9 +273,12 @@ class AntigravityRunner(AgentRunner):
         finally:
             if schema_path is not None:
                 schema_path.unlink(missing_ok=True)
+            policy_stack.close()
 
         elapsed = time.perf_counter() - started
-        cli_diagnostics = self._cli_log_diagnostics(log_snapshot)
+        cli_diagnostics = (
+            "" if request.external_tools_only else self._cli_log_diagnostics(log_snapshot)
+        )
         if result.returncode != 0:
             raise self._classified_error(result.stdout, f"{result.stderr}\n{cli_diagnostics}")
 
@@ -299,6 +327,7 @@ class AntigravityRunner(AgentRunner):
         environment = {
             key: value for key, value in os.environ.items() if key in self._SAFE_ENVIRONMENT_KEYS
         }
+        environment["AGY_CLI_DISABLE_AUTO_UPDATE"] = "true"
         # /tmp is mounted noexec and the compose volume can leave the default
         # cache root-owned. Keep browser and embedded-tool caches on the
         # writable Agent Service volume where executables can run.

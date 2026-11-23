@@ -145,3 +145,12 @@ for (const english of [true, false]) {
     expect(screen.getByText(code)).toBeInTheDocument();
   });
 }
+
+it("retains an explicit MOCK execution label after refreshing a conversation", async () => {
+  vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [{ id: "mock-reply", run_id: "mock-run", role: "assistant", content: "Synthetic response", created_at: "2026-11-23" }],
+    runs: [{ id: "mock-run", state: "completed", error_code: null, config: { runtime_mode: "mock", agent_model_id: "mock-claude" }, occurrence_id: "mock-occurrence", evidence_id: null }], next_cursor: null,
+  } as never);
+  render(<DebugConversation issueId="mock-issue" english />);
+  expect(await screen.findAllByText("MOCK — no model or tools executed")).not.toHaveLength(0);
+});

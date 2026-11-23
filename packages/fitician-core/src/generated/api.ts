@@ -6474,7 +6474,7 @@ export type components = {
              */
             auth_state: "unknown" | "authenticated" | "unauthenticated";
             /** Debug Status */
-            debug_status?: ("available" | "not_installed" | "authentication_required" | "models_unavailable" | "native_tool_isolation_unavailable") | null;
+            debug_status?: ("available" | "mock" | "not_installed" | "authentication_required" | "models_unavailable" | "native_tool_isolation_unavailable") | null;
             /** Installed */
             installed: boolean;
             /** Models */

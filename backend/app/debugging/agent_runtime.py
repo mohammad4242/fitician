@@ -112,6 +112,12 @@ async def run_agent(
     config: dict[str, Any],
     messages: list[dict[str, str]],
 ) -> str:
+    mock = config.get("agent_name") == "claude"
+    if mock and (
+        config.get("agent_model_id") != "mock-claude"
+        or config.get("agent_profile_id") != "claude-mock-debug"
+    ):
+        raise ValueError("agent_profile_unavailable")
     caps = config.get("connector_capabilities", {})
     tools = tool_catalog(
         allow_write=config.get("authorized_action") == "prepare_fix",
@@ -127,6 +133,8 @@ async def run_agent(
         for t in tools
         if t["name"] not in {"fitician_commit", "fitician_create_pr", "fitician_ci_publish_pr"}
     ]
+    if mock:
+        tools = []
     async with httpx.AsyncClient(
         trust_env=False, headers={"X-Correlation-ID": str(run_id)}
     ) as client:
@@ -202,6 +210,12 @@ async def run_agent(
             raw_action = result["payload"]
             if not isinstance(raw_action, dict):
                 raise ValueError("provider_invalid_response")
+            if mock and (
+                result.get("execution_mode") != "mock"
+                or raw_action.get("kind") != "diagnosis"
+                or raw_action.get("facts")
+            ):
+                raise ValueError("mock_execution_not_authorized")
             if raw_action.get("kind") == "tool_call":
                 raw = json.dumps(raw_action, ensure_ascii=False)
                 if sanitize_text(raw, limit=100000) != raw:
@@ -234,6 +248,7 @@ async def run_agent(
                     {
                         "key": key,
                         "action": action,
+                        "execution_mode": "mock" if mock else "real",
                         "service_request_id": sanitize_text(
                             str(result.get("request_id", "")), limit=128
                         ),

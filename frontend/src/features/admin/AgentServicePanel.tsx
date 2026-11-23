@@ -67,9 +67,10 @@ export function AgentServicePanel({
         {agentNames.map((agent) => {
           const runner = runnerByAgent.get(agent) ?? unavailableRunner(agent);
           const label = t(`admin.aiSettings.agents.${agent}`);
-          const authSupported = runner.auth_mode === "browser_link";
+          const mock = debugMode && agent === "claude" && runner.debug_status === "mock";
+          const authSupported = !mock && runner.auth_mode === "browser_link";
           const authenticated = runner.auth_state === "authenticated" && authSupported;
-          const authAction = authenticated
+          const authAction = mock ? "MOCK" : authenticated
             ? t("admin.aiSettings.agentService.reauthenticate")
             : t("admin.aiSettings.agentService.authenticate");
           return (
@@ -93,17 +94,17 @@ export function AgentServicePanel({
               <dl className="admin-agent-card__details">
                 <div>
                   <dt>{t("admin.aiSettings.agentService.installation")}</dt>
-                  <dd>{runner.installed
+                  <dd>{mock ? (i18n.resolvedLanguage === "en" ? "Not required (MOCK)" : "لازم نیست (MOCK)") : runner.installed
                     ? t("admin.aiSettings.agentInstalled")
                     : t("admin.aiSettings.agentService.notInstalled")}</dd>
                 </div>
                 <div>
                   <dt>{t("admin.aiSettings.agentService.version")}</dt>
-                  <dd>{runner.version ?? t("admin.aiSettings.agentService.none")}</dd>
+                  <dd>{mock ? "MOCK" : runner.version ?? t("admin.aiSettings.agentService.none")}</dd>
                 </div>
                 <div>
                   <dt>{t("admin.aiSettings.agentService.authentication")}</dt>
-                  <dd>{t(`admin.aiSettings.auth.${runner.auth_state}`)}</dd>
+                  <dd>{mock ? "MOCK" : t(`admin.aiSettings.auth.${runner.auth_state}`)}</dd>
                 </div>
                 <div>
                   <dt>{t("admin.aiSettings.agentService.authenticationMethod")}</dt>
@@ -128,7 +129,7 @@ export function AgentServicePanel({
               >
                 {t("admin.aiSettings.agentService.logout")}
               </button>}
-              {runner.installed && !authSupported && <p className="admin-agent-card__auth-note" role="note">
+              {runner.installed && !authSupported && !mock && <p className="admin-agent-card__auth-note" role="note">
                 {t("admin.aiSettings.agentService.browserAuthUnavailable")}
               </p>}
             </article>
@@ -179,6 +180,7 @@ function unavailableRunner(agent: AdminAiAgentName): AdminAiAgentRunnerCapabilit
 
 function debugStatusLabel(status: AdminAiAgentRunnerCapability["debug_status"], english: boolean) {
   const labels: Record<string, [string, string]> = {
+    mock: ["MOCK — no model or tools execute. No login is required.", "MOCK — هیچ مدل یا ابزاری اجرا نمی‌شود؛ ورود لازم نیست."],
     available: ["Debug profile available; test before enabling.", "پروفایل دیباگ در دسترس است؛ پیش از فعال‌سازی تست کنید."],
     not_installed: ["CLI is not installed.", "CLI نصب نشده است."],
     authentication_required: ["Agent login is required in Agent Service.", "ورود ایجنت در Agent Service لازم است."],

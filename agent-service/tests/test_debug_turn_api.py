@@ -57,7 +57,7 @@ class DebugRunner:
         )
 
 
-@pytest.mark.parametrize("agent", [AgentName.CODEX, AgentName.CLAUDE])
+@pytest.mark.parametrize("agent", [AgentName.CODEX])
 def test_debug_turn_uses_selected_profile_without_repository_access(tmp_path: Path, agent):
     runner = DebugRunner(agent)
     client = TestClient(

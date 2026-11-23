@@ -137,6 +137,7 @@ class RunnerCapabilities(BaseModel):
     debug_status: (
         Literal[
             "available",
+            "mock",
             "not_installed",
             "authentication_required",
             "models_unavailable",

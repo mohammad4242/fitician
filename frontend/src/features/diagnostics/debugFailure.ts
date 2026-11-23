@@ -1,6 +1,8 @@
 /** Fixed operational facts and next actions; unknown codes do not imply a cause. */
 export function explainDebugFailure(code: string | null, english: boolean): string | null {
   switch (code) {
+    case "mock_execution_not_authorized":
+      return english ? "MOCK cannot invoke a model, repository tools, or prepare a real fix. Select a real available agent." : "MOCK نمی‌تواند مدل یا ابزار مخزن را اجرا یا اصلاح واقعی آماده کند. یک ایجنت واقعیِ در دسترس را انتخاب کنید.";
     case "agent_authentication_required":
       return english ? "The selected agent is not authenticated in Agent Service. Complete its login there; the laptop does not need an AI login." : "ورود ایجنت منتخب در Agent Service برقرار نیست. ورود همان ایجنت را آنجا تکمیل کنید؛ لپ‌تاپ به ورود هوش مصنوعی نیاز ندارد.";
     case "agent_profile_unavailable":

@@ -159,6 +159,29 @@ it("preserves the selected laptop when Agent Service becomes the execution backe
   await waitFor(() => expect(api.saveAdminAiTaskConfig).toHaveBeenCalledWith("debug_agent", expect.objectContaining({ execution_backend: "agent_service", debug_connector_id: "retired-api-target" })));
 });
 
+it("offers only the explicit Claude mock debug profile without a real installation", async () => {
+  api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig, {
+    ...bodyConfig, task_type: "debug_agent", execution_backend: "agent_service", agent_name: "claude",
+  }]);
+  api.getAdminAiAgentServiceCapabilities.mockResolvedValue({ runners: [{
+    agent: "claude", installed: false, version: null, auth_state: "unknown", auth_mode: "unknown",
+    debug_status: "mock", models: [], profiles: [{
+      profile_id: "claude-mock-debug", model_id: "mock-claude", agent: "claude",
+      display_name: "Claude MOCK — no model execution", task_kinds: ["debug_agent"],
+      supports_text_input: true, supports_image_input: false, supports_structured_output: true,
+      supports_live_web: false, verification_status: "untested", fingerprint: "a".repeat(16),
+    }],
+  }] });
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Debug agent" }));
+  await user.click(await screen.findByRole("combobox", { name: "Model" }));
+  await user.click(await screen.findByRole("option", { name: /Claude MOCK/ }));
+  expect(screen.getByRole("combobox", { name: "Model" })).toHaveTextContent("claude-mock-debug");
+  expect(screen.getByRole("button", { name: "Test Agent" })).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Authenticate Claude" })).not.toBeInTheDocument();
+});
+
 it("shows the settings load error instead of staying on the loading state", async () => {
   api.getAdminAiTaskConfigs.mockRejectedValue(new ApiError(500, "Request failed"));
   renderPage();

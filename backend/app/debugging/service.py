@@ -148,6 +148,7 @@ def submit_message(
         verification.profile_fingerprint if verification else None
     )
     snapshot["architecture"] = "agent_service_laptop_v1"
+    snapshot["runtime_mode"] = "mock" if snapshot.get("agent_name") == "claude" else "real"
     snapshot["authorized_action"] = action
     # JSON provenance cannot contain a native UUID or credentials.
     snapshot["debug_connector_id"] = (

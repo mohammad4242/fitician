@@ -25,7 +25,7 @@ from .auth.schemas import (
 )
 from .concurrency import ConcurrencyController
 from .config import Settings, get_settings
-from .debug_turn import DebugTurnInput, debug_turn, while_connected
+from .debug_turn import DebugTurnInput, DebugTurnOutput, debug_turn, while_connected
 from .errors import AgentServiceError, handle_service_error
 from .observability import emit_log
 from .private_media import PrivateMediaResolver
@@ -35,6 +35,7 @@ from .schemas import (
     AgentGenerationInput,
     AgentGenerationOutput,
     AgentName,
+    AgentTaskKind,
     AuthState,
     CapabilitiesResponse,
     ErrorCode,
@@ -300,8 +301,10 @@ def create_app(
         return ProxyRuntimeStatusSchema.model_validate(status.__dict__)
 
     @app.get("/v1/capabilities", response_model=CapabilitiesResponse)
-    async def capabilities(_: None = Depends(require_internal_auth)) -> CapabilitiesResponse:
-        return CapabilitiesResponse(runners=await agent_service.capabilities())
+    async def capabilities(
+        _: None = Depends(require_internal_auth), task_kind: AgentTaskKind | None = None
+    ) -> CapabilitiesResponse:
+        return CapabilitiesResponse(runners=await agent_service.capabilities(task_kind=task_kind))
 
     @app.post("/v1/auth/start", response_model=AuthSessionView)
     async def auth_start(
@@ -383,12 +386,12 @@ def create_app(
         request.state.task_kind = "test"
         return await agent_service.test(payload, request.state.request_id)
 
-    @app.post("/v1/debug/turn", response_model=AgentGenerationOutput)
+    @app.post("/v1/debug/turn", response_model=DebugTurnOutput)
     async def run_debug_turn(
         request: Request,
         payload: DebugTurnInput,
         _: None = Depends(require_internal_auth),
-    ) -> AgentGenerationOutput:
+    ) -> DebugTurnOutput:
         request.state.agent = payload.agent.value
         request.state.model = payload.model_id
         request.state.task_kind = "debug_agent"

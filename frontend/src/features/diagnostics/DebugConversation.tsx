@@ -3,7 +3,7 @@ import type { FormEvent } from "react";
 import { request } from "../../shared/apiClient";
 import { explainDebugFailure } from "./debugFailure";
 
-interface Run { id: string; state: string; error_code: string | null; config: { primary_model_id?: string; agent_model_id?: string; connector_name?: string | null }; evidence_id: string | null; occurrence_id?: string | null }
+interface Run { id: string; state: string; error_code: string | null; config: { primary_model_id?: string; agent_model_id?: string; connector_name?: string | null; runtime_mode?: "real" | "mock" }; evidence_id: string | null; occurrence_id?: string | null }
 interface Message { id: string; run_id?: string | null; role: string; content: string; created_at: string }
 interface Conversation { messages: Message[]; runs: Run[]; next_cursor: string | null }
 const activeStates = new Set(["queued", "investigating", "editing", "testing", "awaiting_authorization", "deploying", "verifying"]);
@@ -90,13 +90,14 @@ export function DebugConversation({ issueId, english, occurrenceId = "" }: { iss
       <time style={{ display: "block", fontSize: "0.8rem" }}>{message.created_at}</time>
       {linkedRun && <small style={{ display: "block", overflowWrap: "anywhere" }}>
         {english ? "Model" : "مدل"}: <code dir="ltr">{linkedRun.config.primary_model_id ?? linkedRun.config.agent_model_id ?? (english ? "Unknown" : "نامشخص")}</code>
+        {linkedRun.config.runtime_mode === "mock" && <><span> · </span><strong>{english ? "MOCK — no model or tools executed" : "MOCK — هیچ مدل یا ابزاری اجرا نشده است"}</strong></>}
         {linkedRun.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code dir="ltr">{linkedRun.occurrence_id}</code></>}
         {linkedRun.config.connector_name && <> · {english ? "Execution target" : "محل اجرا"}: <bdi>{linkedRun.config.connector_name}</bdi></>}
       </small>}
       {message.role === "assistant" && !linkedRun && <small>{english ? "The model and occurrence for this historical reply are unknown." : "مدل و رخداد این پاسخ قدیمی مشخص نیست."}</small>}
       <p dir="auto" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message.content}</p>
     </article>; })}</div>
-    {runs.map(run => <p key={run.id} dir={english ? "ltr" : "rtl"} style={{ overflowWrap: "anywhere" }}><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.config.connector_name && <> · {english ? "Execution target" : "محل اجرا"}: <bdi>{run.config.connector_name}</bdi></>}{explainDebugFailure(run.error_code, english) && <> · {explainDebugFailure(run.error_code, english)}</>}{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
+    {runs.map(run => <p key={run.id} dir={english ? "ltr" : "rtl"} style={{ overflowWrap: "anywhere" }}><code>{run.state}</code> · <code dir="ltr">{run.config.primary_model_id ?? run.config.agent_model_id ?? "unconfigured"}</code>{run.config.runtime_mode === "mock" && <> · <strong>{english ? "MOCK — no model or tools executed" : "MOCK — هیچ مدل یا ابزاری اجرا نشده است"}</strong></>}{run.config.connector_name && <> · {english ? "Execution target" : "محل اجرا"}: <bdi>{run.config.connector_name}</bdi></>}{explainDebugFailure(run.error_code, english) && <> · {explainDebugFailure(run.error_code, english)}</>}{run.error_code && <> · <code>{run.error_code}</code></>}{run.occurrence_id && <> · {english ? "Occurrence" : "رخداد"}: <code>{run.occurrence_id}</code></>}{run.evidence_id && <> · <code>{run.evidence_id}</code></>}</p>)}
     {runs.map((run, index) => <RunProgress key={run.id} base={base} run={run} english={english} autoLoad={index < 5} onRunUpdate={updateHistoricalRun} />)}
     {error && <p role="alert">{privatePayloadRejected ? (english ? "Remove private payloads and reference evidence IDs. This message was not stored or sent to the model." : "اطلاعات خصوصی را حذف کنید و شناسهٔ شواهد را بنویسید. این پیام ذخیره یا برای مدل ارسال نشد.") : (english ? "The request could not be completed. You can retry; repeated submissions use the same request identity." : "درخواست انجام نشد. می‌توانید دوباره تلاش کنید؛ ارسال تکراری با همان شناسه پیگیری می‌شود.")}</p>}
     <form onSubmit={event => void submit(event)}>

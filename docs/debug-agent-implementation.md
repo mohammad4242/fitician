@@ -59,27 +59,86 @@ local AI paths; the legacy AI runtime retains its executable safety check. Both 
 coverage, including an observed failure before this correction.
 Persian/English explanations and explicit blocked states are preserved.
 
-Codex models come from its CLI metadata cache or bounded `app-server model/list`, or an explicit
-operator allowlist. Claude uses an explicit CLI model preference/allowlist. These are candidates,
+Codex models come from its CLI metadata cache, bounded `app-server model/list`, or an explicit
+operator allowlist. Antigravity models come from its actual `agy models` output. Candidates are
 not subscription guarantees: a real task smoke is required. Debug profiles have separate IDs
-and fingerprints; existing generation profiles and verification fingerprints remain intact.
-Unsupported temperature/token options are not asserted effective. No app model is pinned to SOL.
+and fingerprints; existing generation profile verification remains intact. Unsupported
+options are not asserted effective. No application model is pinned to SOL.
 
-Current verified native-tool policies: Codex0.151.0 disables shell/unified execution, image tools,
-apps, subagents, plugins, web and configured MCP servers for debug inference; Claude2.1.220 disables built-in tools,
-uses empty strict MCP config, safe mode and noninteractive deny. Generation commands keep their
-previous policy. Debug subprocess output is bounded and cancellation kills only its process group.
-Unknown versions fail closed.
+**Owner-approved runtime update: Antigravity1.5.14; Claude debugging remains MOCK.**
+The image recipe pins official AMD64/ARM64 archive checksums. The AMD64 archive/binary and
+`agy --version` were verified in an isolated candidate directory inside the existing Germany
+container. The installed generation binary remains1.1.22 until an approved release; it is
+still blocked for debugging. The earlier1.1.22 hook failure remains valid historical evidence.
+Codex0.151.0 and its authentication were preserved. No real Claude login, inference, model
+probe or installation was attempted for this update. Debug-scoped capability discovery skips
+Claude's CLI entirely and exposes only `claude-mock-debug` / `mock-claude`; the panel labels
+MOCK and provides no usable Claude login action. Generic generation behavior remains separate.
+Mock turns have zero provider tokens and cannot execute tools or assert observed facts.
 
-**Antigravity1.1.22 is blocked for debugging.** Actual testing in a temporary request workspace
-inside the existing container showed that its documented workspace `PreToolUse` hook was not
-invoked and a synthetic canary write occurred. The temporary workspace was removed; no production
-source or credentials were targeted. Installing/authenticating agy alone is not sufficient to
-safely enable tools. No global permission/authentication settings were overwritten. A compatible
-verified request-scoped restriction or owner-approved CLI upgrade is still required; the UI
-reports this blocker instead of presenting unsafe execution as supported. A second read-only
-probe of the documented request-local custom-primary-agent alternative also returned no discovered
-agent on1.1.22, with and without an empty isolated Git root. No global customizations were written.
+The1.5.14 request-local `PreToolUse` policy denies every native tool except the builtin `finish`
+schema-output formatter. Debug invocations use strict session settings, sandbox mode, disabled
+slash commands, a fresh request-local hook, bounded output and no permission-bypass flag.
+Global account settings/hooks are not overwritten. Codex's verified0.151.0 debug restrictions
+remain in effect. Unknown versions fail closed.
+
+A real staging failure revealed AGY self-updating its candidate binary to1.5.15 between turns;
+the version guard blocked the run. Only the isolated candidate was restored from its verified
+1.5.14 binary. `AGY_CLI_DISABLE_AUTO_UPDATE=true` is now forced in child environments and the
+image; the future image CLI directory is root-owned and runtime read-only. A read-only staged
+candidate then completed seven real turns successfully. No live binary or account was replaced.
+
+The request workspace's255MiB free space is a bounded tmpfs, not Germany's host disk. A fresh
+host-backed cache preflight measured2439MiB free disk and1335MiB available RAM. The261MiB
+candidate was placed only in the existing executable cache after reserving1536MiB disk and
+768MiB memory. No production images, volumes, backups or files were deleted. This narrow CLI
+probe does not bypass or satisfy the separate3072MiB full-staging-stack resource gate.
+
+### Antigravity update verification (November23)
+
+- Agent Service:313 passed; mypy37 source files passed.
+- Backend:409 passed,3 skipped on isolated PostgreSQL, including settings, task smoke,
+  authorization, durable debugging, diagnostics and privacy regressions. Skips are one legacy
+  standalone CLI requirement and two opt-in Docker-image tests; prior explicit laptop Docker
+  acceptance is recorded separately, not counted as these skipped tests passing.
+- Frontend:103 focused tests passed; frontend build and TypeScript checks passed.
+- Ops:421 tests passed. OpenAPI/shared-contract generation and check passed. No new migration.
+- Official references: [1.5.14 release](https://github.com/google-antigravity/antigravity-cli/releases/tag/1.5.14),
+  [hooks](https://antigravity.google/docs/hooks/),
+  [structured finish](https://antigravity.google/docs/dynamic-workflows/),
+  [auto-update opt-out](https://github.com/google-antigravity/antigravity-cli/issues/1046).
+- Private proof: ignored `.codex-tmp/agy1514/real-tool-loop/acceptance.json` records tool
+  receipts, before/after exit codes, model and preserved checkout. AI ran remotely inside
+  Agent Service; repository edits/tests ran only on the laptop. No PR was published by this test.
+- CI at previous committed head8af6188a completed successfully:
+  [45112422600](https://github.com/mohammad4242/fitician/actions/runs/45112422600).
+  New candidate CI and panel acceptance must be reported separately from that prior green run.
+
+### Actual staging panel acceptance
+
+A temporary authenticated, deadline-bounded HTTP test process ran inside the existing Agent
+Service container, using separate test credentials and empty media/request directories. It
+was reachable only through the existing Docker-private network and a strict SSH loopback
+forward; no public port or production route/configuration was added. A local staging backend
+used the already-owned isolated PostgreSQL database, fake notifications and the actual
+outbound repository-worker client. This was not a new persistent Agent Service container.
+
+The actual390px browser used AI Settings to run a genuine task smoke, saved the verified
+Antigravity profile, created a controlled error from `/admin/diagnostics`, selected its
+occurrence, and sent a read-only investigation. Two real `gemini-3.8-flash-low` turns and a
+completed `fitician_read_file` call for `backend/app/observability/synthetic_probe.py` were
+persisted. The Persian reply cited scoped evidence, retained the exact occurrence/model and
+survived refresh. No horizontal overflow was observed. Private proof and screenshot:
+`.codex-tmp/agy1514/panel-stage/acceptance.json`, `panel-mobile.png`.
+
+This test exposed an obsolete installed image without `app.sentry`. Production startup was
+not modified. The temporary HTTP test intentionally disabled lifespan/external telemetry;
+therefore it verifies the real inference/HTTP/tool/persistence path, **not** Sentry ingestion,
+full image startup or production activation. Optional profile/role requests returned404/403
+for the minimal synthetic administrator; no diagnostics request or JavaScript exception failed.
+No fix, PR, SMS or deployment was claimed from this read-only browser run. The separate actual
+repair loop above remains isolated fixture evidence. Full publication still requires the
+reviewed protected-main validation policy, currently unavailable there; it is not bypassed.
 
 ### Recovery and verification safeguards
 
@@ -113,11 +172,11 @@ Draft PR publication. Closing the browser does not authorize a second run or pub
 
 | Capability | Code/local test | Actual external evidence | Production |
 | --- | --- | --- | --- |
-| Backend orchestration, independent laptop selection, leases/cancellation, privacy | Automated PostgreSQL and frontend tests | Not yet panel-initiated | Not deployed |
+| Backend orchestration, independent laptop selection, leases/cancellation, privacy | Automated PostgreSQL and frontend tests | Actual staging browser: controlled error, selected occurrence, real AGY HTTP turn, durable laptop read, Persian reply, refresh,390px no overflow | Not deployed |
 | Codex structured tool loop | Actual existing container CLI0.151.0, discovered gpt-5.6-luna | Seven real turns: read twice, search, isolated edit, actual Docker unittest, diff, Persian diagnosis; failed before / passed after; original checkout preserved | Isolated adapter test only |
 | Final Codex debug profile | Separate `codex-gpt-5.6-luna-low-debug` | Actual final-policy tool-request response in5.851s; prior profile probe8.183s | Not enrolled/activated by this change |
-| Claude adapter | Mocked structured turns and native-tool restriction tests | Existing CLI2.1.220: actual auth status `loggedIn=false`, exit1,3.314s; no explicit model allowlist | Real inference blocked pending owner login/model selection |
-| Antigravity | Discovered installed1.1.22; authenticated | Real deny-hook canary failed; intentionally unavailable for debugging | Blocked, not claimed supported |
+| Claude debug | Explicit deterministic MOCK; installation/auth probes excluded; model/tool escalation rejected | No real Claude execution, intentionally | MOCK only after approved rollout |
+| Antigravity | Official pinned1.5.14, real authenticated candidate; deny-hook canary and structured formatter verified | Seven real turns: read/search/edit/laptop Docker unittest/diff/Persian diagnosis; failed before, passed after | Installed production1.1.22 unchanged; candidate not deployed |
 | Laptop validation | Real unittest failure→repair→pass and cancellation; full backend sandbox also fails before/passes after with one exercised regression | PostgreSQL and immutable test images run on laptop, no production dependencies | Private worker policy/enrollment still needs rollout |
 | Draft PR authorization | Exact snapshot/CI validation, idempotency and explicit administrator action tested | No synthetic repair PR published in this continuation | No merge/deployment |
 | Sentry/evidence and existing AI workflows | Relevant regression checks; capture code unchanged | No new production Sentry→panel→Agent acceptance claimed | Existing production version unchanged |
