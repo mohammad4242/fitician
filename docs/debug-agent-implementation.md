@@ -1,18 +1,22 @@
 # Diagnostics and debug-agent implementation status
 
-Current operator boundary: do not deploy to production or change paid VPS capacity without
-new explicit owner approval. Existing verification gates and GitHub Environment gates remain.
-The current regional CD flags are enabled; manual full/Agent releases retain their owner
-environment gate and automatic delivery is limited to eligible main CI/component paths.
+Current operator boundary: the owner has authorized reviewed main integration and production
+rollout after exact-commit CI, backup/restore, capacity and Environment approval gates.
+Paid infrastructure changes, destructive cleanup and automatic SMS remain unauthorized.
+Manual regional CD remains enabled; `REGIONAL_AUTO_CD_ENABLED` was explicitly set to false
+for this release. Existing branch protections and owner Environment gates remain unchanged.
 No external delivery, symbolication, native crash acceptance,
 repair runtime, GitHub access or deployment is established merely by enabling an SDK.
 
 ## Unified Option A — November 23 (active architecture)
 
 This section supersedes the historical independent Germany repair runtime and laptop-hosted
-AI designs below. Production has **not** been changed. PR41 must remain Draft. No account
+AI designs below. Production application has **not** been changed. PR41 remains Draft until the release review
+and fresh exact-head checks pass; the owner now authorizes its guarded merge. No account
 was logged out, no CLI credentials were copied to the laptop, and no production service,
-configuration, migration, SMS activation or deployment was changed.
+configuration, migration, SMS activation or deployment was changed during that staging acceptance.
+The subsequent authorized release audit is tracked in
+[debug-agent-release-audit-2026-11-23.md](debug-agent-release-audit-2026-11-23.md).
 
 ### Execution and trust boundaries
 

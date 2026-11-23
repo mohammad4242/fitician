@@ -289,12 +289,10 @@ def consume_quota(
     occurred_at: datetime | None = None,
     now: datetime | None = None,
 ) -> bool:
+    reference = _utc_now(now or occurred_at)
     user = db.scalar(select(User).where(User.id == user_id).with_for_update())
     if user is None:
         raise ValueError(f"User not found: {user_id}")
-    # A default timestamp taken before this lock can exclude a competing commit made
-    # while we waited, defeating serialization despite the row lock itself.
-    reference = _utc_now(now or occurred_at)
 
     code, policy = _quota_policy(entitlement)
     if policy is None:
