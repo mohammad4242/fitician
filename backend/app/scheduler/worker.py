@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.account_deletion.scheduler import account_deletion_scheduler_loop
+from app.billing.reconciliation import reconciliation_loop
 from app.body_analysis.admin_config.crypto import CredentialEncryptionError
 from app.body_analysis.admin_config.service import sync_agent_service_proxy
 from app.config import Settings, get_settings
@@ -73,6 +74,8 @@ async def run_scheduler(
                     account_deletion_scheduler_loop(settings, stop_event=requested_stop)
                 )
             )
+        if settings.tetrapay_enabled:
+            loops.append(asyncio.create_task(reconciliation_loop(settings, requested_stop)))
         try:
             await asyncio.gather(*loops)
         finally:

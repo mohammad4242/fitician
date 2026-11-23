@@ -43,3 +43,4 @@ class BillingTransactionStatus(StrEnum):
 
 class PaymentProviderCode(StrEnum):
     FAKE = "fake"
+    TETRAPAY = "tetrapay"

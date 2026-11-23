@@ -2,14 +2,15 @@ from app.billing.enums import PaymentProviderCode
 from app.billing.exceptions import BillingProviderUnavailableError
 from app.billing.providers.base import PaymentProvider
 from app.billing.providers.fake import FakePaymentProvider
+from app.billing.providers.tetrapay import TetraPayProvider
 from app.config import Settings
 
 
 def build_payment_providers(settings: Settings) -> dict[PaymentProviderCode, PaymentProvider]:
     if settings.app_env in {"local", "test"} and settings.billing_default_provider == "fake":
-        return {
-            PaymentProviderCode.FAKE: FakePaymentProvider(settings.billing_callback_base_url)
-        }
+        return {PaymentProviderCode.FAKE: FakePaymentProvider(settings.billing_callback_base_url)}
+    if settings.tetrapay_enabled and settings.billing_default_provider == "tetrapay":
+        return {PaymentProviderCode.TETRAPAY: TetraPayProvider(settings)}
     return {}
 
 

@@ -178,6 +178,7 @@ class BillingTransaction(Base):
             "provider", "provider_reference", name="uq_billing_transactions_provider_reference"
         ),
         Index("ix_billing_transactions_order_status", "order_id", "status"),
+        Index("ix_billing_transactions_reconcile", "next_reconcile_at"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -202,4 +203,10 @@ class BillingTransaction(Base):
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    provider_mode: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    checkout_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    reconcile_attempts: Mapped[int] = mapped_column(default=0, server_default="0")
+    next_reconcile_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     order: Mapped[BillingOrder] = relationship(back_populates="transactions")
