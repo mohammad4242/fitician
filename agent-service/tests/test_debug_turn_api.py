@@ -87,6 +87,11 @@ def test_debug_turn_uses_selected_profile_without_repository_access(tmp_path: Pa
     assert response.status_code == 200, response.text
     assert response.json()["payload"]["tool"] == "fitician_read_file"
     assert runner.requests[0].external_tools_only is True
+    assert (
+        "tools are JSON action descriptors, not native CLI functions"
+        in runner.requests[0].system_prompt
+    )
+    assert "arguments_json" in runner.requests[0].system_prompt
     assert runner.requests[0].web_access == "disabled"
     assert runner.requests[0].image_paths == ()
     assert not list(tmp_path.iterdir())

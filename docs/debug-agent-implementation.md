@@ -131,6 +131,23 @@ persisted. The Persian reply cited scoped evidence, retained the exact occurrenc
 survived refresh. No horizontal overflow was observed. Private proof and screenshot:
 `.codex-tmp/agy1514/panel-stage/acceptance.json`, `panel-mobile.png`.
 
+An initial Codex browser turn returned an honest missing-tool diagnosis without requesting a
+remote action. Journal inspection caught this before counting tool acceptance. The shared CLI
+prompt now explicitly explains JSON action descriptors (`kind`, `tool`, `arguments_json`) and
+backend result delivery; a regression failed before the correction and passed afterward.
+The repeat real Codex panel run then produced exactly two real turns and one completed laptop
+file read. The earlier no-tool turn remains in history and is not counted as tool success.
+
+The same staging browser subsequently selected Codex independently of the laptop, passed a
+real task smoke in10.876s, and completed two real `gpt-5.6-luna` turns plus a laptop file read.
+Claude's MOCK task smoke completed in1.314s and its conversation completed with exactly one
+mock turn and zero tool calls. Switching agents preserved the selected laptop. All three
+runs retained the same occurrence, refreshed successfully, and displayed their real/mock
+provenance. Persian RTL readback at390px also had no overflow. Additional private proof:
+`panel-stage/all-modes-acceptance.json`, `readback.json`, `panel-persian.png`. Earlier browser
+harness failures (invalid fixture email and incorrect translated selectors) were corrected;
+only the final database and browser assertions are counted as successful acceptance.
+
 This test exposed an obsolete installed image without `app.sentry`. Production startup was
 not modified. The temporary HTTP test intentionally disabled lifespan/external telemetry;
 therefore it verifies the real inference/HTTP/tool/persistence path, **not** Sentry ingestion,
@@ -173,8 +190,8 @@ Draft PR publication. Closing the browser does not authorize a second run or pub
 | Capability | Code/local test | Actual external evidence | Production |
 | --- | --- | --- | --- |
 | Backend orchestration, independent laptop selection, leases/cancellation, privacy | Automated PostgreSQL and frontend tests | Actual staging browser: controlled error, selected occurrence, real AGY HTTP turn, durable laptop read, Persian reply, refresh,390px no overflow | Not deployed |
-| Codex structured tool loop | Actual existing container CLI0.151.0, discovered gpt-5.6-luna | Seven real turns: read twice, search, isolated edit, actual Docker unittest, diff, Persian diagnosis; failed before / passed after; original checkout preserved | Isolated adapter test only |
-| Final Codex debug profile | Separate `codex-gpt-5.6-luna-low-debug` | Actual final-policy tool-request response in5.851s; prior profile probe8.183s | Not enrolled/activated by this change |
+| Codex structured tool loop | Actual existing container CLI0.151.0, discovered gpt-5.6-luna | Seven real turns: read twice, search, isolated edit, actual Docker unittest, diff, Persian diagnosis; failed before / passed after; original checkout preserved | Staging only; not deployed |
+| Final Codex debug profile | Separate `codex-gpt-5.6-luna-low-debug` | Actual final-policy tool-request response in5.851s; real staging panel smoke and two-turn file investigation also passed | Not enrolled/activated by this change |
 | Claude debug | Explicit deterministic MOCK; installation/auth probes excluded; model/tool escalation rejected | No real Claude execution, intentionally | MOCK only after approved rollout |
 | Antigravity | Official pinned1.5.14, real authenticated candidate; deny-hook canary and structured formatter verified | Seven real turns: read/search/edit/laptop Docker unittest/diff/Persian diagnosis; failed before, passed after | Installed production1.1.22 unchanged; candidate not deployed |
 | Laptop validation | Real unittest failure→repair→pass and cancellation; full backend sandbox also fails before/passes after with one exercised regression | PostgreSQL and immutable test images run on laptop, no production dependencies | Private worker policy/enrollment still needs rollout |
