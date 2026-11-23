@@ -26,6 +26,11 @@ Two independent fixes are excluded from PR41's final source diff and preserved a
 - [PR45](https://github.com/mohammad4242/fitician/pull/45): public pagination hydration;
   9 focused frontend tests passed. Its delayed-script browser test remains with that fix.
 
+Fresh clones now ignore the entire root `.codex-tmp/`, including connector state and release
+evidence, without depending on an operator-only `.git/info/exclude`. An isolated Git
+repository regression failed before this correction and passed afterward. No private files
+were staged or removed.
+
 The existing public-browser wait-for-response correction remains in PR41 because the full
 cross-browser release suite must wait for the fixture refresh before navigation cancels it.
 This changes test synchronization, not coverage or application behavior. A food-photo test's
