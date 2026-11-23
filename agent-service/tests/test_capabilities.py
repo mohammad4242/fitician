@@ -50,15 +50,14 @@ def test_capabilities_are_owned_by_runners_and_do_not_run_generation(tmp_path: P
     settings = Settings(agent_service_token=SecretStr(TOKEN), agent_workspace_root=tmp_path)
     runner = FakeRunner()
     app = create_app(settings, registry=RunnerRegistry([runner]))
-    response = TestClient(app).get(
-        "/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"}
-    )
+    response = TestClient(app).get("/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"})
 
     assert response.status_code == 200
     assert response.json() == {
         "runners": [
             {
                 "agent": "antigravity",
+                "debug_status": "native_tool_isolation_unavailable",
                 "installed": True,
                 "version": None,
                 "auth_state": "unknown",
@@ -180,6 +179,7 @@ def test_capability_probe_failure_is_reported_without_a_500(tmp_path: Path) -> N
     assert response.json()["runners"] == [
         {
             "agent": "antigravity",
+            "debug_status": "not_installed",
             "installed": False,
             "version": None,
             "auth_state": "unknown",
@@ -206,9 +206,7 @@ def test_successful_test_marks_runner_authenticated_without_model_quota_probe(
 
     assert response.status_code == 200
     assert runner.run_calls == 1
-    capabilities = client.get(
-        "/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"}
-    )
+    capabilities = client.get("/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"})
     assert capabilities.json()["runners"][0]["auth_state"] == "authenticated"
 
 
@@ -225,9 +223,7 @@ def test_auth_probe_error_is_exposed_as_unknown_instead_of_stale_unauthenticated
     registry.set_auth_state(AgentName.ANTIGRAVITY, AuthState.UNAUTHENTICATED)
     client = TestClient(create_app(settings, registry=registry))
 
-    capabilities = client.get(
-        "/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"}
-    )
+    capabilities = client.get("/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"})
 
     assert capabilities.status_code == 200
     assert capabilities.json()["runners"][0]["auth_state"] == "unknown"
@@ -252,7 +248,5 @@ def test_unauthorized_test_marks_runner_unauthenticated(tmp_path: Path) -> None:
 
     assert response.status_code == 401
     assert "private runner error" not in response.text
-    capabilities = client.get(
-        "/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"}
-    )
+    capabilities = client.get("/v1/capabilities", headers={"Authorization": f"Bearer {TOKEN}"})
     assert capabilities.json()["runners"][0]["auth_state"] == "unauthenticated"

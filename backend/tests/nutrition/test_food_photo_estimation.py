@@ -1066,7 +1066,7 @@ def test_unmapped_food_with_direct_ai_macros_is_complete_and_confirms(
         files={"file": ("joojeh.jpg", _image(), "image/png")},
         headers={**ORIGIN, "X-Fitician-Food-Photo-Consent": "true"},
     )
-    assert resp.status_code == 202
+    assert resp.status_code == 202, resp.json().get("detail", {}).get("code")
     queued = resp.json()
     assert _run_worker_once(db, test_settings) == 1
     body = client.get(

@@ -22,6 +22,10 @@ const api = vi.hoisted(() => ({
   refreshAdminAiModels: vi.fn(),
   saveAdminAiAgentServiceProxy: vi.fn(),
 }));
+const connectorRequest = vi.hoisted(() => vi.fn());
+vi.mock("../../shared/apiClient", async (original) => ({
+  ...await original<typeof import("../../shared/apiClient")>(), request: connectorRequest,
+}));
 
 vi.mock("./api", () => api);
 vi.mock("../../shared/AuthenticatedHeader", () => ({
@@ -87,6 +91,7 @@ const foodPriceConfig: AdminAiTaskConfig = {
 beforeEach(() => {
   void i18n.changeLanguage("en");
   Object.values(api).forEach((mock) => mock.mockReset());
+  connectorRequest.mockReset().mockResolvedValue([]);
   api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig]);
   api.getAdminAiTaskModels.mockResolvedValue({
     refreshed_at: "2026-08-03T12:00:00Z",
@@ -121,6 +126,61 @@ beforeEach(() => {
     last_apply_error: null,
   });
   api.cancelAdminAiAgentAuthSession.mockResolvedValue(undefined);
+});
+
+it("saves the explicitly selected debug execution target through existing AI settings", async () => {
+  const debugConfig: AdminAiTaskConfig = { ...bodyConfig, task_type: "debug_agent", debug_connector_id: "germany" };
+  api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig, debugConfig]);
+  connectorRequest.mockResolvedValue([
+    { id: "germany", name: "Germany", environment: "production", revoked: false, last_seen: null, capabilities: { execution_role: "repository_worker" } },
+    { id: "laptop", name: "Laptop", environment: "production", revoked: false, last_seen: new Date().toISOString(), capabilities: { execution_role: "repository_worker" } },
+  ]);
+  api.saveAdminAiTaskConfig.mockResolvedValue({ ...debugConfig, debug_connector_id: "laptop" });
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Debug agent" }));
+  const target = await screen.findByRole("combobox", { name: "Tool execution target" });
+  expect(target).toHaveValue("germany");
+  await user.selectOptions(target, "laptop");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(api.saveAdminAiTaskConfig).toHaveBeenCalledWith("debug_agent", expect.objectContaining({ debug_connector_id: "laptop", execution_backend: "api" })));
+});
+
+it("preserves the selected laptop when Agent Service becomes the execution backend", async () => {
+  const debugConfig: AdminAiTaskConfig = { ...bodyConfig, task_type: "debug_agent", debug_connector_id: "retired-api-target" };
+  api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig, debugConfig]);
+  api.saveAdminAiTaskConfig.mockResolvedValue({ ...debugConfig, execution_backend: "agent_service", debug_connector_id: "retired-api-target" });
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Debug agent" }));
+  await user.click(screen.getByRole("radio", { name: "Agent Service" }));
+  expect(screen.getByRole("combobox", { name: "Tool execution target" })).toHaveValue("retired-api-target");
+  await user.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() => expect(api.saveAdminAiTaskConfig).toHaveBeenCalledWith("debug_agent", expect.objectContaining({ execution_backend: "agent_service", debug_connector_id: "retired-api-target" })));
+});
+
+it("offers only the explicit Claude mock debug profile without a real installation", async () => {
+  api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig, {
+    ...bodyConfig, task_type: "debug_agent", execution_backend: "agent_service", agent_name: "claude",
+  }]);
+  api.getAdminAiAgentServiceCapabilities.mockResolvedValue({ runners: [{
+    agent: "claude", installed: false, version: null, auth_state: "unknown", auth_mode: "unknown",
+    debug_status: "mock", models: [], profiles: [{
+      profile_id: "claude-mock-debug", model_id: "mock-claude", agent: "claude",
+      display_name: "Claude MOCK — no model execution", task_kinds: ["debug_agent"],
+      supports_text_input: true, supports_image_input: false, supports_structured_output: true,
+      supports_live_web: false, verification_status: "untested", fingerprint: "a".repeat(16),
+    }],
+  }] });
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Debug agent" }));
+  await user.click(await screen.findByRole("combobox", { name: "Model" }));
+  await user.click(await screen.findByRole("option", { name: /Claude MOCK/ }));
+  expect(screen.getByRole("combobox", { name: "Model" })).toHaveTextContent("claude-mock-debug");
+  expect(screen.getByRole("button", { name: "Test Agent" })).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Authenticate Claude" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/API output budget/)).not.toBeInTheDocument();
 });
 
 it("shows the settings load error instead of staying on the loading state", async () => {
@@ -960,3 +1020,26 @@ function renderPage() {
     </MemoryRouter>,
   );
 }
+
+
+it("keeps legacy debug API settings read-only without borrowing an application credential", async () => {
+  const debugConfig: AdminAiTaskConfig = { ...bodyConfig, task_type: "debug_agent", debug_connector_id: "germany", primary_model_id: "vendor/vision-model" };
+  api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig, debugConfig]);
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Debug agent" }));
+  expect(screen.queryByLabelText("API key")).not.toBeInTheDocument();
+  expect(screen.getByRole("radio", { name: "API" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Test connection" })).not.toBeInTheDocument();
+  expect(api.testAdminAiProvider).not.toHaveBeenCalled();
+});
+
+it("requires explicit Agent Service selection before unified model testing", async () => {
+  api.getAdminAiTaskConfigs.mockResolvedValue([bodyConfig, { ...bodyConfig, task_type: "debug_agent" }]);
+  const user = userEvent.setup();
+  renderPage();
+  await user.click(await screen.findByRole("button", { name: "Debug agent" }));
+  expect(await screen.findByText(/Select Agent Service to configure unified debugging/)).toBeInTheDocument();
+  expect(api.refreshAdminAiModels).not.toHaveBeenCalled();
+  expect(api.testAdminAiProvider).not.toHaveBeenCalled();
+});

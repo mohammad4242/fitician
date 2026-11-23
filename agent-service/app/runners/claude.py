@@ -13,7 +13,7 @@ from typing import Any
 from jsonschema import Draft202012Validator  # type: ignore[import-untyped]
 
 from ..process import ProcessExecutionError, ProcessTimeoutError, run_process
-from ..profiles import claude_profiles
+from ..profiles import claude_profiles, debug_profiles
 from ..proxy import ProxyRuntime
 from ..schemas import AgentName, AuthMode, AuthState, RunnerCapabilities, RunnerModelCapabilities
 from .base import AgentRunner, RunnerError, RunnerRequest, RunnerResult, resolve_image_paths
@@ -73,17 +73,33 @@ class ClaudeRunner(AgentRunner):
             workspace=self.workspace,
             environment=self._subprocess_environment,
             auth_status_args=("auth", "status", "--json"),
+            version_timeout_seconds=8,
+            auth_timeout_seconds=8,
             auth_status_parser=self._parse_auth_status,
         )
 
     async def capabilities(self) -> RunnerCapabilities:
         installed = self._is_installed()
         version = await self._metadata.version() if installed else None
-        profiles = claude_profiles(
-            version=version,
-            configured_models=self.configured_models,
-            supports_image_input=self.supports_image_input,
-        ) if installed else ()
+        available_models = (
+            (self.configured_models or self._configured_cli_model()) if installed else ()
+        )
+        profiles = (
+            claude_profiles(
+                version=version,
+                configured_models=self.configured_models,
+                supports_image_input=self.supports_image_input,
+            )
+            if installed
+            else ()
+        )
+        if available_models:
+            discovered = claude_profiles(
+                version=version,
+                configured_models=available_models,
+                supports_image_input=self.supports_image_input,
+            )
+            profiles = (*profiles, *debug_profiles(discovered, version=version))
         return RunnerCapabilities(
             agent=self.name,
             installed=installed,
@@ -98,10 +114,24 @@ class ClaudeRunner(AgentRunner):
                     supports_structured_output=True,
                     supports_live_web=True,
                 )
-                for model_id in self.configured_models
+                for model_id in available_models
             ],
             profiles=list(profiles),
         )
+
+    @staticmethod
+    def _configured_cli_model() -> tuple[str, ...]:
+        # Read only the explicit model preference, never export env/auth fields.
+        settings = Path(os.environ.get("HOME", "")) / ".claude/settings.json"
+        try:
+            if not settings.is_file() or settings.stat().st_size > 1_048_576:
+                return ()
+            model = json.loads(settings.read_text()).get("model")
+            if isinstance(model, str) and re.fullmatch(r"claude-[a-zA-Z0-9._-]{1,140}", model):
+                return (model,)
+        except (OSError, ValueError, TypeError, AttributeError):
+            pass
+        return ()
 
     async def probe_auth_state(self) -> AuthState:
         if not self._is_installed():
@@ -125,11 +155,7 @@ class ClaudeRunner(AgentRunner):
             return AuthState.UNKNOWN
         if not isinstance(document, dict) or not isinstance(document.get("loggedIn"), bool):
             return AuthState.UNKNOWN
-        return (
-            AuthState.AUTHENTICATED
-            if document["loggedIn"]
-            else AuthState.UNAUTHENTICATED
-        )
+        return AuthState.AUTHENTICATED if document["loggedIn"] else AuthState.UNAUTHENTICATED
 
     async def run(self, request: RunnerRequest) -> RunnerResult:
         if request.effort is not None and request.effort not in {
@@ -158,6 +184,7 @@ class ClaudeRunner(AgentRunner):
                     input_text=prompt,
                     env=self._subprocess_environment(),
                     inherit_environment=False,
+                    **({"max_output_bytes": 1_048_576} if request.external_tools_only else {}),
                 )
             except ProcessTimeoutError as exc:
                 raise RunnerError("timeout", "runner timed out") from exc
@@ -178,9 +205,7 @@ class ClaudeRunner(AgentRunner):
             raise RunnerError("invalid_output", "response did not match schema") from exc
 
         duration_seconds = (
-            reported_duration
-            if reported_duration is not None
-            else time.perf_counter() - started
+            reported_duration if reported_duration is not None else time.perf_counter() - started
         )
         return RunnerResult(
             payload=payload,
@@ -234,6 +259,19 @@ class ClaudeRunner(AgentRunner):
             "--permission-mode",
             "plan",
         ]
+        if request.external_tools_only:
+            command[command.index("--permission-mode") + 1] = "dontAsk"
+            command.extend(
+                [
+                    "--tools",
+                    "",
+                    "--strict-mcp-config",
+                    "--mcp-config",
+                    '{"mcpServers":{}}',
+                    "--safe-mode",
+                    "--disable-slash-commands",
+                ]
+            )
         if request.web_access == "live":
             command.extend(["--allowedTools", "WebSearch", "WebFetch"])
         command.extend(["--json-schema", serialized_schema, "-"])
@@ -319,9 +357,7 @@ class ClaudeRunner(AgentRunner):
                 return None
             return nested if isinstance(nested, dict) else None
         if isinstance(value, list):
-            text = "".join(
-                item.get("text", "") for item in value if isinstance(item, dict)
-            )
+            text = "".join(item.get("text", "") for item in value if isinstance(item, dict))
             if not text:
                 return None
             try:

@@ -6,6 +6,7 @@ const agentNames: AdminAiAgentName[] = ["antigravity", "codex", "claude"];
 
 export type AgentServicePanelProps = {
   runners: AdminAiAgentRunnerCapability[];
+  debugMode?: boolean;
   loading: boolean;
   unavailable: boolean;
   selectedAgent: AdminAiAgentName | null;
@@ -21,6 +22,7 @@ export type AgentServicePanelProps = {
 
 export function AgentServicePanel({
   runners,
+  debugMode = false,
   loading,
   unavailable,
   selectedAgent,
@@ -33,7 +35,7 @@ export function AgentServicePanel({
   onTest,
   testDisabled,
 }: AgentServicePanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const runnerByAgent = new Map(runners.map((runner) => [runner.agent, runner]));
   const selectedLabel = selectedAgent
     ? t(`admin.aiSettings.agents.${selectedAgent}`)
@@ -65,9 +67,10 @@ export function AgentServicePanel({
         {agentNames.map((agent) => {
           const runner = runnerByAgent.get(agent) ?? unavailableRunner(agent);
           const label = t(`admin.aiSettings.agents.${agent}`);
-          const authSupported = runner.auth_mode === "browser_link";
+          const mock = debugMode && agent === "claude" && runner.debug_status === "mock";
+          const authSupported = !mock && runner.auth_mode === "browser_link";
           const authenticated = runner.auth_state === "authenticated" && authSupported;
-          const authAction = authenticated
+          const authAction = mock ? "MOCK" : authenticated
             ? t("admin.aiSettings.agentService.reauthenticate")
             : t("admin.aiSettings.agentService.authenticate");
           return (
@@ -87,20 +90,21 @@ export function AgentServicePanel({
                 <span>{t("admin.aiSettings.agentService.selectAgent", { agent: label })}</span>
                 <strong>{label}</strong>
               </button>
+              {debugMode && <p role="status">{debugStatusLabel(runner.debug_status, i18n.resolvedLanguage === "en")}</p>}
               <dl className="admin-agent-card__details">
                 <div>
                   <dt>{t("admin.aiSettings.agentService.installation")}</dt>
-                  <dd>{runner.installed
+                  <dd>{mock ? (i18n.resolvedLanguage === "en" ? "Not required (MOCK)" : "لازم نیست (MOCK)") : runner.installed
                     ? t("admin.aiSettings.agentInstalled")
                     : t("admin.aiSettings.agentService.notInstalled")}</dd>
                 </div>
                 <div>
                   <dt>{t("admin.aiSettings.agentService.version")}</dt>
-                  <dd>{runner.version ?? t("admin.aiSettings.agentService.none")}</dd>
+                  <dd>{mock ? "MOCK" : runner.version ?? t("admin.aiSettings.agentService.none")}</dd>
                 </div>
                 <div>
                   <dt>{t("admin.aiSettings.agentService.authentication")}</dt>
-                  <dd>{t(`admin.aiSettings.auth.${runner.auth_state}`)}</dd>
+                  <dd>{mock ? "MOCK" : t(`admin.aiSettings.auth.${runner.auth_state}`)}</dd>
                 </div>
                 <div>
                   <dt>{t("admin.aiSettings.agentService.authenticationMethod")}</dt>
@@ -125,7 +129,7 @@ export function AgentServicePanel({
               >
                 {t("admin.aiSettings.agentService.logout")}
               </button>}
-              {runner.installed && !authSupported && <p className="admin-agent-card__auth-note" role="note">
+              {runner.installed && !authSupported && !mock && <p className="admin-agent-card__auth-note" role="note">
                 {t("admin.aiSettings.agentService.browserAuthUnavailable")}
               </p>}
             </article>
@@ -172,4 +176,17 @@ function unavailableRunner(agent: AdminAiAgentName): AdminAiAgentRunnerCapabilit
     auth_mode: "unknown",
     models: [],
   };
+}
+
+function debugStatusLabel(status: AdminAiAgentRunnerCapability["debug_status"], english: boolean) {
+  const labels: Record<string, [string, string]> = {
+    mock: ["MOCK — no model or tools execute. No login is required.", "MOCK — هیچ مدل یا ابزاری اجرا نمی‌شود؛ ورود لازم نیست."],
+    available: ["Debug profile available; test before enabling.", "پروفایل دیباگ در دسترس است؛ پیش از فعال‌سازی تست کنید."],
+    not_installed: ["CLI is not installed.", "CLI نصب نشده است."],
+    authentication_required: ["Agent login is required in Agent Service.", "ورود ایجنت در Agent Service لازم است."],
+    models_unavailable: ["No model was discovered or explicitly configured in the CLI.", "مدلی از CLI کشف یا صریحاً تنظیم نشده است."],
+    native_tool_isolation_unavailable: ["This CLI version cannot safely restrict native tools for debugging.", "جداسازی امن ابزارهای داخلی برای دیباگ در این نسخهٔ CLI تأیید نشده است."],
+    unknown: ["Debug capability is unverified.", "قابلیت دیباگ هنوز تأیید نشده است."],
+  };
+  return (labels[status ?? "unknown"] ?? labels.unknown)[english ? 0 : 1];
 }

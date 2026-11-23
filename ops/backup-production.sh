@@ -24,6 +24,11 @@ for command in docker age aws stat sha256sum cut python3; do
 done
 
 umask 077
+if [[ -n "${DB_BACKUP_LOCK_FILE:-}" ]]; then
+  command -v flock >/dev/null || { echo 'flock is required for serialized backups' >&2; exit 1; }
+  exec 9>"$DB_BACKUP_LOCK_FILE"
+  flock -w 300 9 || { echo 'Another database backup is still running' >&2; exit 1; }
+fi
 encrypted=$(mktemp "$app_dir/.db-backup.XXXXXXXX.age")
 downloaded=$(mktemp "$app_dir/.db-backup-check.XXXXXXXX.age")
 snapshot_metadata=$(mktemp "$app_dir/.db-snapshot.XXXXXXXX.json")
@@ -44,7 +49,7 @@ if [ "${FINAL_SYNC:-0}" = "1" ]; then
   age -r "$DB_BACKUP_AGE_RECIPIENT" < "$snapshot_metadata" > "$encrypted_metadata"
 else
   docker compose --project-name "$compose_project" --project-directory "$app_dir" \
-    -f "$compose_file" exec -T db sh -c \
+    --env-file "${FITICIAN_ENV_FILE:-$app_dir/.env}" -f "$compose_file" exec -T db sh -c \
     'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom --no-owner --no-acl' \
     | age -r "$DB_BACKUP_AGE_RECIPIENT" > "$encrypted"
 fi

@@ -30,11 +30,15 @@ from app.rate_limits.service import DistributedRateLimitExceeded
 
 from .diagnostics_models import (
     DiagnosticAlert,
+    DiagnosticAlertAttempt,
+    DiagnosticAlertDelivery,
     DiagnosticEvent,
     DiagnosticIssue,
     DiagnosticStatusHistory,
 )
 from .diagnostics_schemas import (
+    AlertAttemptResponse,
+    AlertDeliveryPage,
     AlertResponse,
     ClientBatch,
     DiagnosticHours,
@@ -46,6 +50,7 @@ from .diagnostics_schemas import (
     IssueResponse,
     IssueStatusUpdate,
     OverviewResponse,
+    SentryHealthResponse,
     StatusHistoryResponse,
 )
 from .diagnostics_service import (
@@ -55,6 +60,7 @@ from .diagnostics_service import (
     quota_integrity,
     record_event,
 )
+from .synthetic_router import router as synthetic_router
 from .trace_router import router as trace_router
 
 router = APIRouter(
@@ -87,6 +93,75 @@ class BoundedTelemetryRoute(APIRoute):
 client_router = APIRouter(
     prefix="/api/v1/diagnostics", tags=["diagnostics"], route_class=BoundedTelemetryRoute
 )
+
+
+@router.get("/sentry-health", response_model=SentryHealthResponse)
+def sentry_health(db: DatabaseSession) -> dict[str, Any]:
+    import os
+
+    from .environment import diagnostics_environment
+    from .evidence_models import DiagnosticDiscoveryCursor, DiagnosticExternalEvent
+
+    environment = diagnostics_environment()
+    organization = os.environ.get("SENTRY_ORG", "")
+    projects = {
+        os.environ.get(name, "")
+        for name in (
+            "SENTRY_PROJECT",
+            "SENTRY_WEB_PROJECT",
+            "SENTRY_MOBILE_PROJECT",
+        )
+    } - {""}
+    states = {
+        state: count
+        for state, count in db.execute(
+            select(
+                DiagnosticExternalEvent.sync_state,
+                func.count(),
+            )
+            .where(
+                DiagnosticExternalEvent.environment == environment,
+                DiagnosticExternalEvent.project_id.in_(projects),
+            )
+            .group_by(
+                DiagnosticExternalEvent.sync_state,
+            )
+        ).all()
+    }
+    now = datetime.now(UTC)
+    scopes = db.scalars(
+        select(DiagnosticDiscoveryCursor)
+        .where(
+            DiagnosticDiscoveryCursor.environment == environment,
+            DiagnosticDiscoveryCursor.organization == organization,
+            DiagnosticDiscoveryCursor.project_id.in_(projects),
+        )
+        .order_by(DiagnosticDiscoveryCursor.project_id)
+        .limit(20)
+    )
+    return {
+        "external_states": states,
+        "native_discovery": [
+            {
+                "project": row.project_id,
+                "environment": row.environment,
+                "state": "stale"
+                if (
+                    row.last_error_code
+                    or not row.last_success_at
+                    or row.last_success_at < now - timedelta(minutes=5)
+                )
+                else "catching_up"
+                if row.cursor
+                else "observed",
+                "last_error_code": row.last_error_code,
+                "last_success_at": row.last_success_at,
+                "watermark": row.watermark,
+                "imported_count": row.imported_count,
+            }
+            for row in scopes
+        ],
+    }
 
 
 @client_router.post("/client", status_code=202)
@@ -188,7 +263,29 @@ async def ingest_client_events(
                 if tracing
                 else "failure",
             )
-            record_event(db, recorded, user_id=user.id, trusted=False)
+            local_event = record_event(db, recorded, user_id=user.id, trusted=False)
+            if event.sentry_event_id and local_event.issue_id is not None:
+                import os
+
+                from .evidence import persist_evidence
+
+                project = os.environ.get(
+                    "SENTRY_MOBILE_PROJECT"
+                    if event.platform in {"android", "ios"}
+                    else "SENTRY_WEB_PROJECT",
+                    "",
+                )
+                if project:
+                    # A client reference is pending until API identity/environment verification.
+                    # It carries no trusted stack and does not increment issue counts on retry.
+                    persist_evidence(
+                        db,
+                        local_event,
+                        {"values": []},
+                        event.sentry_event_id,
+                        project=project,
+                        provenance="client_reference",
+                    )
             if (
                 tracing
                 and event.component == "WebTransport"
@@ -494,6 +591,92 @@ def list_alerts(
     )
 
 
+@router.get("/notification-deliveries", response_model=AlertDeliveryPage)
+def notification_deliveries(
+    db: DatabaseSession,
+    settings: AppSettings,
+    issue_id: UUID | None = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> dict[str, Any]:
+    from .environment import diagnostics_environment
+
+    statement = select(DiagnosticAlertDelivery).where(
+        DiagnosticAlertDelivery.environment == diagnostics_environment()
+    )
+    if issue_id is not None:
+        if db.get(DiagnosticIssue, issue_id) is None:
+            raise HTTPException(404, detail={"code": "DIAGNOSTIC_ISSUE_NOT_FOUND"})
+        statement = statement.where(DiagnosticAlertDelivery.issue_id == issue_id)
+    rows = list(
+        db.scalars(
+            statement.order_by(
+                DiagnosticAlertDelivery.updated_at.desc(), DiagnosticAlertDelivery.id.desc()
+            )
+            .limit(limit + 1)
+            .offset(offset)
+        )
+    )
+    more = len(rows) > limit
+    rows = rows[:limit]
+    attempts = (
+        list(
+            db.scalars(
+                select(DiagnosticAlertAttempt)
+                .where(DiagnosticAlertAttempt.delivery_id.in_([row.id for row in rows]))
+                .order_by(DiagnosticAlertAttempt.started_at.desc())
+                .limit(250)
+            )
+        )
+        if rows
+        else []
+    )
+    return {
+        "items": [
+            {
+                **{
+                    key: getattr(row, key)
+                    for key in (
+                        "id",
+                        "issue_id",
+                        "environment",
+                        "state",
+                        "occurrence_total",
+                        "covered_count",
+                        "provider_message_id",
+                        "error_code",
+                        "available_at",
+                        "last_dispatch_at",
+                    )
+                },
+                "attempts": [
+                    AlertAttemptResponse.model_validate(attempt)
+                    for attempt in attempts
+                    if attempt.delivery_id == row.id
+                ][:5],
+            }
+            for row in rows
+        ],
+        "configuration": {
+            "enabled": settings.diagnostics_alert_enabled,
+            "recipient_configured": bool(
+                settings.diagnostics_alert_phone
+                and settings.diagnostics_alert_phone.get_secret_value().strip()
+            ),
+            "provider_configured": bool(
+                settings.farazsms_api_key
+                and settings.farazsms_api_key.get_secret_value().strip()
+                and settings.farazsms_from_number
+                and settings.farazsms_from_number.strip()
+            ),
+            "cooldown_seconds": settings.diagnostics_alert_cooldown_seconds,
+            "min_interval_seconds": settings.diagnostics_alert_min_interval_seconds,
+            "max_per_hour": settings.diagnostics_alert_max_per_hour,
+        },
+        "next_offset": offset + limit if more else None,
+    }
+
+
 @router.get("/generations", response_model=GenerationMetricsResponse)
 def generation_metrics(
     db: DatabaseSession, hours: DiagnosticHours = DiagnosticHours.DAY
@@ -772,7 +955,7 @@ async def infrastructure(
             except Exception:
                 pass
     if runtime is not None:
-        queues["diagnostics"] = {"queued": runtime.queued_count, "dropped": runtime.dropped_count}
+        queues["diagnostics"] = runtime.health_snapshot()
         signals.append(
             {
                 "component": "diagnostics",
@@ -786,7 +969,27 @@ async def infrastructure(
                 "business_operation_verified": False,
             }
         )
-    return {"signals": signals, "queues": queues}
+    return {
+        "signals": signals,
+        "queues": queues,
+        "capture_losses": runtime.recent_losses() if runtime is not None else [],
+    }
 
 
 router.include_router(trace_router)
+router.include_router(synthetic_router)
+
+
+@router.get("/issues/{issue_id}/evidence")
+def get_issue_evidence(
+    issue_id: UUID, db: DatabaseSession, occurrence_id: UUID | None = None
+) -> dict[str, Any]:
+    from .evidence import evidence_package
+
+    if db.get(DiagnosticIssue, issue_id) is None:
+        raise HTTPException(404, detail={"code": "DIAGNOSTIC_ISSUE_NOT_FOUND"})
+    if occurrence_id is not None:
+        occurrence = db.get(DiagnosticEvent, occurrence_id)
+        if occurrence is None or occurrence.issue_id != issue_id:
+            raise HTTPException(404, detail={"code": "DIAGNOSTIC_OCCURRENCE_NOT_FOUND"})
+    return evidence_package(db, issue_id, occurrence_id)

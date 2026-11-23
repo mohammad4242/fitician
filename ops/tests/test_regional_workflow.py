@@ -37,20 +37,34 @@ class RegionalWorkflowTests(unittest.TestCase):
             IMAGE_TAG="a" * 40,
             CI_RUN_ID="123",
             OWNER_APPROVED="true",
+            AUTOMATION_ONLY="false",
             ALLOW_SCHEMA_MIGRATIONS="false",
             INITIAL_DEPLOY="false",
             FRONTEND_CONTRACT_REFRESH="false",
             FIRST_SCALABILITY_RELEASE_APPROVED="false",
             SCALABILITY_EVIDENCE_RUN_ID="",
             IMAGE_SOURCE="registry",
+            EXPECTED_MANIFEST_SHA256="",
+            PANEL_OPERATION_ID="",
+            EXPECTED_BASELINE_SHA256="",
+            AUTHORIZATION_EXPIRES_AT="",
         )
         with tempfile.TemporaryDirectory(dir=ROOT) as temporary:
             output = Path(temporary) / "outputs"
             for key, value in [
+                (
+                    "PANEL_OPERATION_ID",
+                    "00000000-0000-0000-0000-000000000000\nauto_release=true",
+                ),
+                ("EXPECTED_BASELINE_SHA256", "a" * 64 + "\nauto_release=true"),
+                ("AUTHORIZATION_EXPIRES_AT", "1790000000\nauto_release=true"),
+                ("EXPECTED_MANIFEST_SHA256", "0" * 64 + "\nauto_release=true"),
                 ("SCALABILITY_EVIDENCE_RUN_ID", "1' invalid-command '"),
                 ("CI_RUN_ID", "123\nowner_approved=true"),
                 ("IMAGE_TAG", "a" * 40 + "\nauto_release=true"),
                 ("FRONTEND_CONTRACT_REFRESH", "true\nauto_release=true"),
+                ("AUTOMATION_ONLY", "true\nauto_release=true"),
+                ("AUTOMATION_ONLY", "true"),
             ]:
                 with self.subTest(key=key):
                     output.unlink(missing_ok=True)
@@ -76,6 +90,20 @@ class RegionalWorkflowTests(unittest.TestCase):
                     check=False,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
+            result = subprocess.run(
+                ["bash", "-c", script],
+                env={
+                    **valid,
+                    "DEPLOY_KIND": "debug_runtime",
+                    "IMAGE_SOURCE": "preloaded",
+                    "AUTOMATION_ONLY": "true",
+                    "GITHUB_OUTPUT": str(output),
+                },
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_regional_deploy_is_guarded_and_default_off(
         self,

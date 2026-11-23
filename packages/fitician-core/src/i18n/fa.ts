@@ -1018,6 +1018,7 @@ const fa = {
           body_photo_analysis: "تحلیل عکس بدن",
           progress_comparison: "مقایسهٔ پیشرفت",
           food_photo_estimation: "برآورد عکس غذا",
+          debug_agent: "دستیار بررسی و رفع خطا",
           food_price_search: "جستجوی قیمت مواد غذایی",
         },
         loading: "در حال دریافت تنظیمات هوش مصنوعی…",

@@ -1,0 +1,21 @@
+[Unit]
+Description=Recover the existing Fitician Sentry proxy after private networking is ready
+Requires=docker.service
+Wants=network-online.target tailscaled.service
+After=network-online.target docker.service tailscaled.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/python3 /opt/fitician-agent/sentry-egress/supervision/recover.py
+TimeoutStartSec=90
+Restart=on-failure
+RestartSec=15
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectSystem=strict
+StandardOutput=null
+
+[Install]
+WantedBy=multi-user.target

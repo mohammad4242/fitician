@@ -99,3 +99,22 @@ it("attaches normalized transport kind only to failed terminal observations", as
   expect(events[0]).not.toHaveProperty("transport_kind");
   expect(events[1]).toMatchObject({ stage: "transport_failed", transport_kind: "offline" });
 });
+
+it("coalesces a browser request burst before sending telemetry", async () => {
+  vi.useFakeTimers();
+  const send = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 202 }));
+  vi.stubGlobal("fetch", send);
+  try {
+    configureWebClientDiagnostics(true);
+    for (let i = 0; i < 5; i += 1) {
+      reportWebClientDiagnostic({ component: "Window", operation: `burst_${i}`, stage: "unhandled" }, "CLIENT_RUNTIME_ERROR");
+    }
+    expect(send).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(250);
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(send.mock.calls[0]?.[1]?.body)).events).toHaveLength(5);
+  } finally {
+    configureWebClientDiagnostics(false);
+    vi.useRealTimers();
+  }
+});

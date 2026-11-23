@@ -11,6 +11,7 @@ from app.body_analysis.admin_config.enums import (
     AIExecutionBackend,
     AIProviderName,
     AIRoutingPolicy,
+    AITaskType,
 )
 from app.body_analysis.providers import (
     AgentServiceProvider,
@@ -41,6 +42,8 @@ def build_task_provider(
     api_key: SecretStr | str | None = None,
     timeout_seconds: float | None = None,
 ) -> ConfiguredAIProvider:
+    if getattr(task, "task_type", None) == AITaskType.DEBUG_AGENT:
+        raise ValueError("debug_agent requires the interactive debug runtime")
     backend = AIExecutionBackend(task.execution_backend)
     preferences = _routing_preferences(task.routing_restrictions)
     if backend is AIExecutionBackend.API:

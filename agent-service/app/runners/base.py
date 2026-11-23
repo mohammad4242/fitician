@@ -69,6 +69,7 @@ class RunnerRequest:
     # Set only by Agent Service's allow-listed profile resolver.
     effort: str | None = None
     web_access: Literal["disabled", "live"] = "disabled"
+    external_tools_only: bool = False
 
 
 @dataclass(frozen=True)
