@@ -467,3 +467,25 @@ def test_admin_cannot_enable_debugging_using_an_old_verification_when_service_is
     assert calls == [True]
     config = db.scalar(select(AITaskConfig).where(AITaskConfig.task_type == AITaskType.DEBUG_AGENT))
     assert config is None or not config.enabled
+
+
+@pytest.mark.parametrize("role", ["repository_worker", "legacy_runtime"])
+def test_config_validation_keeps_ai_requirements_out_of_repository_worker(role):
+    from uuid import uuid4
+
+    from app.debugging.connector import validate_configuration
+
+    config = {
+        "id": str(uuid4()),
+        "token": "a" * 48,
+        "server": "https://fitician.example",
+        "repository_name": "mohammad4242/fitician",
+        "execution_role": role,
+        "codex_home": "/legacy-ai-account-must-not-be-read",
+        "codex_executable": "/no-local-ai-installation",
+    }
+    if role == "repository_worker":
+        assert validate_configuration(config) is config
+    else:
+        with pytest.raises(ValueError, match="pinned_codex_executable_required"):
+            validate_configuration(config)

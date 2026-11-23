@@ -54,6 +54,9 @@ In Admin AI Settings, select Agent Service explicitly, choose an agent/debug pro
 independently choose an enrolled repository laptop. Changing either choice preserves the other.
 The page separately exposes Agent Service/CLI installation, authentication, debugging capability,
 model task verification, laptop heartbeat, repository branch/commit and persisted connection tests.
+Repository-worker configuration ignores retained legacy Codex fields without checking or reading
+local AI paths; the legacy AI runtime retains its executable safety check. Both roles have regression
+coverage, including an observed failure before this correction.
 Persian/English explanations and explicit blocked states are preserved.
 
 Codex models come from its CLI metadata cache or bounded `app-server model/list`, or an explicit
@@ -74,7 +77,9 @@ invoked and a synthetic canary write occurred. The temporary workspace was remov
 source or credentials were targeted. Installing/authenticating agy alone is not sufficient to
 safely enable tools. No global permission/authentication settings were overwritten. A compatible
 verified request-scoped restriction or owner-approved CLI upgrade is still required; the UI
-reports this blocker instead of presenting unsafe execution as supported.
+reports this blocker instead of presenting unsafe execution as supported. A second read-only
+probe of the documented request-local custom-primary-agent alternative also returned no discovered
+agent on1.1.22, with and without an empty isolated Git root. No global customizations were written.
 
 ### Recovery and verification safeguards
 
@@ -132,7 +137,7 @@ Final local checks for Option A (November23):
   tests/ai/test_agent_service_provider.py tests/admin/test_agent_service_auth_api.py
   tests/admin/test_agent_service_proxy_api.py tests/admin/test_ai_task_settings_api.py
   tests/test_diagnostics.py tests/test_diagnostics_runtime.py tests/test_diagnostic_evidence.py`
-  — **395 passed,3 skipped**. One skip requires the legacy standalone App Server CLI; two
+  — **397 passed,3 skipped**. One skip requires the legacy standalone App Server CLI; two
   Docker tests ran separately with an explicit immutable test image — **2 passed**, including
   real seeded repair/commit and cancellation without successful test evidence.
 - Agent Service: `.venv/bin/python -m pytest -q tests` — **298 passed**.

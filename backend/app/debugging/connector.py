@@ -79,7 +79,7 @@ def validate_configuration(config: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("pinned_validation_policy_required")
         if images and not re.fullmatch(r"[a-f0-9]{40}", config.get("validation_policy_commit", "")):
             raise ValueError("pinned_validation_policy_required")
-    if config.get("codex_home"):
+    if config.get("execution_role") != "repository_worker" and config.get("codex_home"):
         binary = Path(config.get("codex_executable", ""))
         if (
             not binary.is_absolute()
