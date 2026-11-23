@@ -6211,6 +6211,18 @@
             "title": "Id",
             "type": "string"
           },
+          "next_reconcile_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Reconcile At"
+          },
           "order_id": {
             "format": "uuid",
             "title": "Order Id",
@@ -6218,6 +6230,38 @@
           },
           "provider": {
             "$ref": "#/components/schemas/PaymentProviderCode"
+          },
+          "provider_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Evidence"
+          },
+          "provider_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider Mode"
           },
           "provider_reference": {
             "anyOf": [
@@ -6229,6 +6273,11 @@
               }
             ],
             "title": "Provider Reference"
+          },
+          "reconcile_attempts": {
+            "default": 0,
+            "title": "Reconcile Attempts",
+            "type": "integer"
           },
           "refunded_at": {
             "anyOf": [
@@ -9611,6 +9660,33 @@
           "confidence"
         ],
         "title": "CatalogueNutrientInput",
+        "type": "object"
+      },
+      "CheckoutMethods": {
+        "properties": {
+          "default_provider": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentProviderCode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentProviderCode"
+            },
+            "title": "Providers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "providers",
+          "default_provider"
+        ],
+        "title": "CheckoutMethods",
         "type": "object"
       },
       "ClientBatch": {
@@ -20015,7 +20091,8 @@
       },
       "PaymentProviderCode": {
         "enum": [
-          "fake"
+          "fake",
+          "tetrapay"
         ],
         "title": "PaymentProviderCode",
         "type": "string"
@@ -26999,6 +27076,21 @@
         ],
         "title": "TemplateFocusTag",
         "type": "string"
+      },
+      "TetraPayReturn": {
+        "properties": {
+          "token": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "TetraPayReturn",
+        "type": "object"
       },
       "TicketDetail": {
         "properties": {
@@ -37889,6 +37981,27 @@
         ]
       }
     },
+    "/api/v1/billing/checkout-methods": {
+      "get": {
+        "operationId": "checkout_methods_api_v1_billing_checkout_methods_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutMethods"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Checkout Methods",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
     "/api/v1/billing/offers": {
       "get": {
         "operationId": "offers_api_v1_billing_offers_get",
@@ -38094,6 +38207,36 @@
         ]
       }
     },
+    "/api/v1/billing/pending-checkouts": {
+      "get": {
+        "operationId": "pending_checkouts_api_v1_billing_pending_checkouts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BillingCheckoutResponse"
+                  },
+                  "title": "Response Pending Checkouts Api V1 Billing Pending Checkouts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Pending Checkouts",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
     "/api/v1/billing/providers/{provider}/refund": {
       "post": {
         "operationId": "refund_billing_payment_api_v1_billing_providers__provider__refund_post",
@@ -38201,6 +38344,77 @@
           }
         ],
         "summary": "Verify Billing Payment",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/billing/tetrapay/return": {
+      "post": {
+        "operationId": "tetrapay_return_api_v1_billing_tetrapay_return_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TetraPayReturn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPaymentResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Tetrapay Return",
+        "tags": [
+          "billing"
+        ]
+      }
+    },
+    "/api/v1/billing/webhooks/tetrapay": {
+      "post": {
+        "operationId": "tetrapay_webhook_api_v1_billing_webhooks_tetrapay_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Tetrapay Webhook Api V1 Billing Webhooks Tetrapay Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Tetrapay Webhook",
         "tags": [
           "billing"
         ]

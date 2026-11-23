@@ -12,6 +12,7 @@ depends_on = None
 
 def upgrade() -> None:
     for column in [
+        sa.Column("provider_evidence", sa.JSON(), nullable=True),
         sa.Column("provider_mode", sa.String(16), nullable=True),
         sa.Column("checkout_url", sa.String(2000), nullable=True),
         sa.Column("reconcile_attempts", sa.Integer(), nullable=False, server_default="0"),
@@ -25,5 +26,11 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index("ix_billing_transactions_reconcile", table_name="billing_transactions")
-    for column in ["next_reconcile_at", "reconcile_attempts", "checkout_url", "provider_mode"]:
+    for column in [
+        "next_reconcile_at",
+        "reconcile_attempts",
+        "checkout_url",
+        "provider_mode",
+        "provider_evidence",
+    ]:
         op.drop_column("billing_transactions", column)

@@ -10,6 +10,7 @@ PaymentOutcomeStatus = Literal["verified", "failed", "refunded", "pending", "exp
 
 class PaymentProviderError(Exception):
     retry_after: int | None = None
+    evidence: dict[str, str | None] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,6 +45,7 @@ class ProviderVerificationRequest:
 class ProviderPaymentResult:
     status: PaymentOutcomeStatus
     provider_reference: str
+    evidence: dict[str, str | None] | None = None
 
 
 class PaymentProvider(Protocol):

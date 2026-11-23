@@ -103,6 +103,11 @@ class BillingPaymentResultResponse(BaseModel):
 
 
 class BillingTransactionResponse(BaseModel):
+    provider_evidence: dict[str, str | None] | None = None
+    provider_mode: str | None = None
+    reconcile_attempts: int = 0
+    next_reconcile_at: datetime | None = None
+
     model_config = ConfigDict(extra="forbid")
 
     id: UUID

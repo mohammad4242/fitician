@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -43,8 +44,12 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.get("/offers", response_model=list[BillingOfferResponse])
-def offers(db: DatabaseSession) -> list[BillingOfferResponse]:
-    return list_offer_responses(db)
+def offers(db: DatabaseSession, request: Request) -> list[BillingOfferResponse]:
+    responses = list_offer_responses(db)
+    if not getattr(request.app.state, "billing_providers", {}):
+        for offer in responses:
+            offer.is_available = False
+    return responses
 
 
 @router.post(
@@ -164,7 +169,10 @@ def checkout_methods(request: Request, settings: AppSettings) -> CheckoutMethods
 
 
 class TetraPayReturn(BaseModel):
-    token: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")
+    token: str = Field(
+        min_length=1,
+        max_length=64,
+    )
 
 
 @router.post("/tetrapay/return", response_model=BillingPaymentResultResponse)
@@ -254,12 +262,16 @@ async def tetrapay_webhook(request: Request, db: DatabaseSession) -> dict[str, b
         if transaction is None:
             # A provider event can race the checkout response; ask TetraPay to retry.
             raise HTTPException(503, "Payment mapping pending")
-        order = db.scalar(
-            select(BillingOrder)
-            .where(BillingOrder.id == transaction.order_id)
-            .with_for_update()
-            .execution_options(populate_existing=True)
-        )
+        try:
+            order = db.scalar(
+                select(BillingOrder)
+                .where(BillingOrder.id == transaction.order_id)
+                .with_for_update(nowait=True)
+                .execution_options(populate_existing=True)
+            )
+        except OperationalError:
+            db.rollback()
+            raise HTTPException(503, "Payment reconciliation busy") from None
         db.refresh(transaction)
         if order is None or order.user_id is None:
             raise HTTPException(400, "Invalid payment")
@@ -274,7 +286,10 @@ async def tetrapay_webhook(request: Request, db: DatabaseSession) -> dict[str, b
                     transaction.currency,
                 ),
             )
-        except PaymentProviderError:
+        except PaymentProviderError as error:
+            if error.evidence:
+                transaction.provider_evidence = error.evidence
+                db.commit()
             payment_event("PAYMENT_WEBHOOK_REJECTED", error=True)
             raise HTTPException(400, "Invalid payment") from None
         reconcile_payment(db, transaction, order, selected, trusted_result=result)
@@ -283,3 +298,33 @@ async def tetrapay_webhook(request: Request, db: DatabaseSession) -> dict[str, b
 
     await run_in_threadpool(process)
     return {"received": True}
+
+
+@router.get("/pending-checkouts", response_model=list[BillingCheckoutResponse])
+def pending_checkouts(db: DatabaseSession, user: CurrentUser) -> list[BillingCheckoutResponse]:
+    from app.billing.enums import BillingTransactionStatus
+
+    transactions = db.scalars(
+        select(BillingTransaction)
+        .join(BillingOrder)
+        .where(
+            BillingOrder.user_id == user.id,
+            BillingTransaction.status.in_(
+                [BillingTransactionStatus.CREATED, BillingTransactionStatus.PENDING]
+            ),
+        )
+        .order_by(BillingTransaction.created_at.desc())
+        .limit(10)
+    ).all()
+    return [
+        BillingCheckoutResponse(
+            order_id=tx.order_id,
+            transaction_id=tx.id,
+            provider=tx.provider,
+            checkout_kind="redirect",
+            checkout_url=tx.checkout_url,
+            provider_product_id=None,
+            provider_reference=tx.provider_reference,
+        )
+        for tx in transactions
+    ]

@@ -5,6 +5,7 @@ from enum import Enum as PyEnum
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     CheckConstraint,
@@ -203,6 +204,7 @@ class BillingTransaction(Base):
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    provider_evidence: Mapped[dict[str, str | None] | None] = mapped_column(JSON, nullable=True)
     provider_mode: Mapped[str | None] = mapped_column(String(16), nullable=True)
     checkout_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     reconcile_attempts: Mapped[int] = mapped_column(default=0, server_default="0")

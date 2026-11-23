@@ -1431,6 +1431,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/billing/checkout-methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Checkout Methods */
+        get: operations["checkout_methods_api_v1_billing_checkout_methods_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/billing/offers": {
         parameters: {
             query?: never;
@@ -1500,6 +1517,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/billing/pending-checkouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pending Checkouts */
+        get: operations["pending_checkouts_api_v1_billing_pending_checkouts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/billing/providers/{provider}/refund": {
         parameters: {
             query?: never;
@@ -1528,6 +1562,40 @@ export type paths = {
         put?: never;
         /** Verify Billing Payment */
         post: operations["verify_billing_payment_api_v1_billing_providers__provider__verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/tetrapay/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tetrapay Return */
+        post: operations["tetrapay_return_api_v1_billing_tetrapay_return_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/billing/webhooks/tetrapay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Tetrapay Webhook */
+        post: operations["tetrapay_webhook_api_v1_billing_webhooks_tetrapay_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6445,14 +6513,27 @@ export type components = {
              * Format: uuid
              */
             id: string;
+            /** Next Reconcile At */
+            next_reconcile_at?: string | null;
             /**
              * Order Id
              * Format: uuid
              */
             order_id: string;
             provider: components["schemas"]["PaymentProviderCode"];
+            /** Provider Evidence */
+            provider_evidence?: {
+                [key: string]: string | null;
+            } | null;
+            /** Provider Mode */
+            provider_mode?: string | null;
             /** Provider Reference */
             provider_reference: string | null;
+            /**
+             * Reconcile Attempts
+             * @default 0
+             */
+            reconcile_attempts: number;
             /** Refunded At */
             refunded_at: string | null;
             status: components["schemas"]["BillingTransactionStatus"];
@@ -7677,6 +7758,12 @@ export type components = {
             unit_form: string;
             /** Value Per 100G */
             value_per_100g: number;
+        };
+        /** CheckoutMethods */
+        CheckoutMethods: {
+            default_provider: components["schemas"]["PaymentProviderCode"] | null;
+            /** Providers */
+            providers: components["schemas"]["PaymentProviderCode"][];
         };
         /** ClientBatch */
         ClientBatch: {
@@ -11304,7 +11391,7 @@ export type components = {
          * PaymentProviderCode
          * @enum {string}
          */
-        PaymentProviderCode: "fake";
+        PaymentProviderCode: "fake" | "tetrapay";
         /** PhoneOtpSentResponse */
         PhoneOtpSentResponse: {
             /** Message */
@@ -13484,6 +13571,11 @@ export type components = {
          * @enum {string}
          */
         TemplateFocusTag: "full_body" | "upper_lower" | "push_pull_legs" | "body_part_rotation" | "balanced" | "lower_priority" | "chest_priority" | "back_priority" | "shoulders_priority" | "arms_priority" | "glute_priority" | "quad_priority" | "hamstrings_priority" | "strength_bias" | "compound_focus" | "specialization";
+        /** TetraPayReturn */
+        TetraPayReturn: {
+            /** Token */
+            token: string;
+        };
         /** TicketDetail */
         TicketDetail: {
             /** Messages */
@@ -18423,6 +18515,26 @@ export interface operations {
             };
         };
     };
+    checkout_methods_api_v1_billing_checkout_methods_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckoutMethods"];
+                };
+            };
+        };
+    };
     offers_api_v1_billing_offers_get: {
         parameters: {
             query?: never;
@@ -18562,6 +18674,26 @@ export interface operations {
             };
         };
     };
+    pending_checkouts_api_v1_billing_pending_checkouts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingCheckoutResponse"][];
+                };
+            };
+        };
+    };
     refund_billing_payment_api_v1_billing_providers__provider__refund_post: {
         parameters: {
             query?: never;
@@ -18628,6 +18760,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tetrapay_return_api_v1_billing_tetrapay_return_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TetraPayReturn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingPaymentResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tetrapay_webhook_api_v1_billing_webhooks_tetrapay_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean;
+                    };
                 };
             };
         };

@@ -272,7 +272,7 @@ class Settings(BaseSettings):
     food_price_provider_api_key: SecretStr | None = Field(default=None, repr=False)
     food_price_provider_base_url: str | None = Field(default=None, max_length=500, repr=False)
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
 
     @field_validator("agent_service_token", mode="before")
     @classmethod
@@ -363,10 +363,24 @@ class Settings(BaseSettings):
                 raise ValueError("Enabled TetraPay requires an API key")
             if self.app_env == "production" and self.tetrapay_mode != "live":
                 raise ValueError("Production cannot enable TetraPay sandbox")
-        if self.tetrapay_callback_url != "https://fitician.fit/billing/checkout-result":
-            raise ValueError("TetraPay callback must use the approved Fitician HTTPS route")
-        if self.tetrapay_webhook_url != "https://fitician.fit/api/v1/billing/webhooks/tetrapay":
-            raise ValueError("TetraPay webhook must use the approved Fitician HTTPS route")
+        for value, path in [
+            (self.tetrapay_callback_url, "/billing/checkout-result"),
+            (self.tetrapay_webhook_url, "/api/v1/billing/webhooks/tetrapay"),
+        ]:
+            url = urlsplit(value)
+            host = url.hostname or ""
+            if (
+                url.scheme != "https"
+                or url.path != path
+                or url.query
+                or url.fragment
+                or url.username
+                or url.password
+                or url.port not in {None, 443}
+                or not (host == "fitician.fit" or host.endswith(".fitician.fit"))
+                or (self.app_env == "production" and host != "fitician.fit")
+            ):
+                raise ValueError("TetraPay URLs require approved Fitician HTTPS routes")
         if self.tetrapay_webhook_enabled and (
             not self.tetrapay_enabled
             or not self.tetrapay_webhook_secret

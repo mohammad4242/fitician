@@ -12,6 +12,7 @@ from app.billing.exceptions import BillingPaymentVerificationError, BillingProvi
 from app.billing.models import BillingOrder, BillingTransaction
 from app.billing.providers import build_payment_providers
 from app.billing.providers.base import PaymentProvider
+from app.billing.providers.tetrapay import TetraPayProvider
 from app.billing.service import payment_event, reconcile_payment, resume_checkout, utc_now
 from app.config import Settings
 from app.database.session import get_engine
@@ -20,7 +21,9 @@ from app.database.session import get_engine
 def reconcile_batch(db: Session, providers: dict[PaymentProviderCode, PaymentProvider]) -> int:
     ids = db.execute(
         select(BillingTransaction.id, BillingTransaction.order_id)
+        .join(BillingOrder, BillingOrder.id == BillingTransaction.order_id)
         .where(
+            BillingOrder.user_id.is_not(None),
             BillingTransaction.provider == PaymentProviderCode.TETRAPAY,
             BillingTransaction.next_reconcile_at <= utc_now(),
             BillingTransaction.status.not_in(
@@ -50,6 +53,14 @@ def reconcile_batch(db: Session, providers: dict[PaymentProviderCode, PaymentPro
             or transaction.next_reconcile_at > utc_now()
         ):
             db.rollback()
+            continue
+        if (
+            isinstance(provider, TetraPayProvider)
+            and transaction.provider_mode != provider.settings.tetrapay_mode
+        ):
+            transaction.next_reconcile_at = None
+            transaction.provider_evidence = {"reason": "PAYMENT_ENVIRONMENT_MISMATCH"}
+            db.commit()
             continue
         try:
             if transaction.provider_reference is None:

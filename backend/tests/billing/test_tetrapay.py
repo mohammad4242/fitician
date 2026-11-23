@@ -166,3 +166,31 @@ def test_signature_raw_bytes_timestamp_and_missing_key():
     ]:
         with pytest.raises(PaymentProviderError):
             verify_webhook(body, header, secret, now=now)
+
+
+def test_http_logs_and_configuration_errors_do_not_expose_payment_secrets(caplog):
+    import logging
+
+    request = verification()
+    caplog.set_level(logging.INFO, logger="httpx")
+    provider(lambda _: httpx.Response(200, json=invoice(request))).verify_payment(request)
+    assert TOKEN not in caplog.text
+    assert "test-key" not in caplog.text
+    with pytest.raises(ValueError) as error:
+        Settings(
+            _env_file=None,
+            tetrapay_enabled=True,
+            tetrapay_api_key="private-value",
+            tetrapay_base_url="https://untrusted.example",
+        )
+    assert "private-value" not in str(error.value)
+
+
+def test_rate_limit_body_fallback_and_empty_verify_body():
+    def handler(request):
+        assert request.content == b""
+        return httpx.Response(429, json={"error": {"code": "RATE_LIMITED", "retryAfter": 120}})
+
+    with pytest.raises(PaymentProviderError) as error:
+        provider(handler).verify_payment(verification())
+    assert error.value.retry_after == 120

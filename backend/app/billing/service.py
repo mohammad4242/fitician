@@ -260,6 +260,10 @@ def to_admin_order_response(order: BillingOrder) -> AdminBillingOrderResponse:
                 order_id=transaction.order_id,
                 provider=transaction.provider,
                 provider_reference=transaction.provider_reference,
+                provider_evidence=transaction.provider_evidence,
+                provider_mode=transaction.provider_mode,
+                reconcile_attempts=transaction.reconcile_attempts,
+                next_reconcile_at=transaction.next_reconcile_at,
                 amount_irr=transaction.amount_irr,
                 currency=transaction.currency,
                 status=transaction.status,
@@ -412,10 +416,6 @@ def create_checkout(
         raise BillingOrderNotFoundError
     if order.status in _FINAL_ORDER_STATUSES:
         raise BillingOrderInvalidStateError(order.status.value)
-    if order.expires_at is not None and utc_now(order.expires_at) <= reference:
-        order.status = BillingOrderStatus.EXPIRED
-        db.commit()
-        raise BillingOrderInvalidStateError(BillingOrderStatus.EXPIRED.value)
     if order.provider is not payload.provider or provider.code is not payload.provider:
         raise BillingProviderRequestError("Payment provider does not match the order")
 
@@ -431,6 +431,10 @@ def create_checkout(
         .limit(1)
     )
     if transaction is None:
+        if order.expires_at is not None and utc_now(order.expires_at) <= reference:
+            order.status = BillingOrderStatus.EXPIRED
+            db.commit()
+            raise BillingOrderInvalidStateError(BillingOrderStatus.EXPIRED.value)
         transaction = BillingTransaction(
             order_id=order.id,
             provider=order.provider,
@@ -592,6 +596,7 @@ def reconcile_payment(
     trusted_result: ProviderPaymentResult | None = None,
 ) -> BillingPaymentResultResponse:
     # Caller locks the order first, then refreshes transaction. All replicas use this order.
+    request = _provider_request(transaction, order, provider_reference)
     if transaction.status in {BillingTransactionStatus.VERIFIED, BillingTransactionStatus.REFUNDED}:
         return _payment_result_response(transaction, order)
     if (
@@ -599,7 +604,6 @@ def reconcile_payment(
         and transaction.provider_mode != provider.settings.tetrapay_mode
     ):
         raise BillingPaymentVerificationError("Payment environment mismatch")
-    request = _provider_request(transaction, order, provider_reference)
     if (
         transaction.amount_irr != order.amount_irr_snapshot
         or transaction.currency != order.currency_snapshot
@@ -622,11 +626,20 @@ def reconcile_payment(
             raise PaymentProviderError("Payment reference mismatch")
     except PaymentProviderError as error:
         schedule_retry_after(transaction, error)
+        if error.evidence:
+            transaction.provider_evidence = error.evidence
         db.commit()
-        payment_event("PAYMENT_VERIFICATION_FAILED", error=True)
+        payment_event(
+            error.evidence.get("reason") or "PAYMENT_VERIFICATION_FAILED"
+            if error.evidence
+            else "PAYMENT_VERIFICATION_FAILED",
+            error=True,
+        )
         raise BillingPaymentVerificationError(
             "Payment verification unavailable; retry later"
         ) from None
+    if result.evidence:
+        transaction.provider_evidence = result.evidence
     if result.status == "verified":
         transaction.status = BillingTransactionStatus.VERIFIED
         transaction.verified_at = utc_now(now)
@@ -637,7 +650,18 @@ def reconcile_payment(
         payment_event("PAYMENT_VERIFIED")
         return _payment_result_response(transaction, fulfillment.order)
     if result.status == "refunded":
-        raise BillingPaymentVerificationError("Use the refund verification operation")
+        if order.user_id is None:
+            raise BillingPaymentVerificationError("Payment account is unavailable")
+        return revoke_transaction(
+            db,
+            order.user_id,
+            transaction.provider,
+            VerifyPaymentRequest(
+                transaction_id=transaction.id, provider_reference=transaction.provider_reference
+            ),
+            provider,
+            now=now,
+        )
     if result.status == "pending":
         transaction.status = BillingTransactionStatus.PENDING
         if order.access_grant_id is None:
