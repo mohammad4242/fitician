@@ -63,6 +63,33 @@ def bundle(folder):
 
 
 class RuntimeReleaseTests(unittest.TestCase):
+    def test_automation_preflight_checks_access_as_the_worker_without_exposing_credentials(
+        self,
+    ):
+        release = module()
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as name:
+            directory = Path(name)
+            with patch.object(release, "docker", return_value="") as docker:
+                release.verify_automation_configuration("sha256:" + "a" * 64, directory)
+            args = docker.call_args.args
+            self.assertIn("--user=10001:10001", args)
+            self.assertIn("--cap-drop=ALL", args)
+            self.assertIn("--network=none", args)
+            self.assertIn("--memory=64m", args)
+            self.assertIn(f"type=bind,src={directory},dst=/credentials,readonly", args)
+            self.assertIn("O_NOFOLLOW", args[-1])
+            self.assertNotIn("read_text", args[-1])
+            self.assertFalse(any(value.startswith("--cap-add") for value in args))
+            with (
+                patch.object(
+                    release, "docker", side_effect=ValueError("private detail")
+                ),
+                self.assertRaisesRegex(
+                    ValueError, "^runtime_automation_configuration_required$"
+                ),
+            ):
+                release.verify_automation_configuration("sha256:" + "a" * 64, directory)
+
     def test_broker_smoke_creates_configuration_as_runtime_user_without_privilege(self):
         spec = importlib.util.spec_from_file_location(
             "runtime_smoke", ROOT / "ops/smoke-debug-runtime-release.py"

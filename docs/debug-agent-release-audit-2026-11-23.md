@@ -36,6 +36,9 @@ cross-browser release suite must wait for the fixture refresh before navigation 
 This changes test synchronization, not coverage or application behavior. A food-photo test's
 assertion adds an error code on failure without changing its expected outcome.
 
+The readiness threadpool correction is retained because diagnostic writers use the bounded
+connection pool; health checks must not block the event loop while waiting for that pool.
+
 Generated OpenAPI/shared contracts, pinned Sentry dependencies, the documented CommonJS
 security-fixed decoder compatibility archive, native symbol configuration, backup fixes,
 release/observation/validation guards and regression tests are feature dependencies retained
@@ -80,7 +83,14 @@ The broker has its own active-contract marker and component receipt under
 `releases/<sha>/automation/`. Legacy connector releases remain separate. A later combined
 legacy rollout fails closed rather than assuming both components share a rollback image.
 First-enrollment rollback stops only the new broker; it never passes an empty service list to
-Compose (which would start unrelated services). All original owner, immutable image, archive,
+Compose (which would start unrelated services). An actual hosted smoke at candidate `b991492f` failed before rollout because the unprivileged
+CI operator could not traverse the worker-owned0700 directory. Preflight now uses a bounded,
+networkless64MiB container running as10001:10001 with a read-only credential mount. It opens
+only the two fixed files to check regular-file type, exact0600 mode/ownership and readability;
+it never reads their contents. A real Docker regression passed for valid private files and
+rejected0644 permissions and symlinks. The production permissions were not relaxed.
+
+All original owner, immutable image, archive,
 concurrency,3072MiB-plus-transfer, memory and authentication-volume guards remain.
 
 The existing actual Docker rollout/rollback smoke now also exercises broker-only replacement,
@@ -154,7 +164,7 @@ layers and a separately owner-approved storage plan are required before rollout 
 - [x] Disable automatic CD without disabling manual owner-gated release.
 - [x] Recheck all existing regional service health and original production schema.
 - [x] Broker-mode and action-pin regressions observed failing before correction.
-- [x] Local release checks:429 ops tests,410 focused backend tests (3 explicit local skips),
+- [x] Local release checks:431 ops tests,410 focused backend tests (3 explicit local skips),
   1397 frontend tests, OpenAPI, actionlint, Ruff and secret checks.
 - [ ] Fresh exact-head CI and actual broker rollout smoke after release hardening.
 - [ ] Merge normally; verify trusted workflows and full CI on actual merged main.

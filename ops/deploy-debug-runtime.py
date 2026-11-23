@@ -137,6 +137,50 @@ def selected_services(automation: bool, automation_only: bool) -> list[str]:
     )
 
 
+def verify_automation_configuration(image: str, directory: Path) -> None:
+    # The operator need not be UID10001 or able to traverse the private directory.
+    # Check the worker's actual read access; never read or print credential contents.
+    if (
+        not re.fullmatch(r"sha256:[a-f0-9]{64}", image)
+        or directory.is_symlink()
+        or not directory.is_dir()
+    ):
+        raise ValueError("runtime_automation_configuration_required")
+    script = (
+        "import os,stat\n"
+        "for name in ('github.json','worker.json'):\n"
+        " fd=os.open('/credentials/'+name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)\n"
+        " try:\n"
+        "  s=os.fstat(fd)\n"
+        "  if (not stat.S_ISREG(s.st_mode) or stat.S_IMODE(s.st_mode)!=0o600 "
+        "or s.st_uid!=10001 or s.st_gid!=10001 or s.st_size>16384): raise SystemExit(1)\n"
+        " finally: os.close(fd)\n"
+    )
+    try:
+        docker(
+            "run",
+            "--rm",
+            "--network=none",
+            "--read-only",
+            "--cap-drop=ALL",
+            "--security-opt=no-new-privileges",
+            "--user=10001:10001",
+            "--memory=64m",
+            "--memory-swap=64m",
+            "--cpus=0.1",
+            "--pids-limit=16",
+            "--mount",
+            f"type=bind,src={directory},dst=/credentials,readonly",
+            "--entrypoint=python",
+            image,
+            "-c",
+            script,
+            timeout=20,
+        )
+    except (ValueError, subprocess.SubprocessError):
+        raise ValueError("runtime_automation_configuration_required") from None
+
+
 def non_runtime_identity(services: list[str] | None = None) -> dict[str, Any]:
     selected = services if services is not None else ["connector", "automation"]
     ids = docker("ps", "-q").split()
@@ -314,15 +358,6 @@ def deploy(
         except BlockingIOError:
             raise ValueError("regional_deployment_in_progress") from None
         manifest = verify_bundle(directory, expected, commit, run_id)
-        if "automation" in services:
-            for name in ("github.json", "worker.json"):
-                file = root / "automation-private" / name
-                if (
-                    file.is_symlink()
-                    or not file.is_file()
-                    or file.stat().st_mode & 0o077
-                ):
-                    raise ValueError("runtime_automation_configuration_required")
         active = root / (
             "active-automation-release.json"
             if automation_only
@@ -373,6 +408,10 @@ def deploy(
             "image_id": config_digest_for_image(prior_row["Image"]),
             "services": list(prior_rows),
         }
+        if "automation" in services:
+            verify_automation_configuration(
+                prior_row["Image"], root / "automation-private"
+            )
         prior_identity = non_runtime_identity(services)
         release = root / "releases" / commit
         if automation_only:
