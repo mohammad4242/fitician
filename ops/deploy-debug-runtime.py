@@ -15,6 +15,7 @@ import subprocess
 import sys
 import threading
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -365,7 +366,9 @@ def rollout(
         compose_up(candidate, services)
         return verify_running(services, image_id, commit)
     except (ValueError, subprocess.SubprocessError) as error:
-        report_rollout_failure(error, services)
+        # Observation is best effort and must never prevent recovery.
+        with suppress(Exception):
+            report_rollout_failure(error, services)
         try:
             prior_services = prior.get("services", services)
             added = [name for name in services if name not in prior_services]

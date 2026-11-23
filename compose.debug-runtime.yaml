@@ -49,7 +49,7 @@ services:
     mem_limit: 192m
     cpus: 0.1
     stop_grace_period: 30s
-    tmpfs: [/tmp:uid=10001,gid=10001,mode=0700,size=16m]
+    tmpfs: ['/tmp:uid=10001,gid=10001,mode=0700,size=16m']
     volumes:
       - '${FITICIAN_DEBUG_RUNTIME_ROOT}/automation-state:/state'
       - '${FITICIAN_DEBUG_RUNTIME_ROOT}/automation-private:/run/fitician-automation:ro'

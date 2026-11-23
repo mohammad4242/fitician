@@ -106,6 +106,15 @@ The stateless Agent Service can be updated first. Broker registration and the se
 production enrollment require the new Iran API/schema, so their activation follows that API
 rollout. CLI authentication remains in the existing Agent Service volume throughout.
 
+Hosted run45219967334 exposed a further broker-only startup defect: an unquoted YAML flow
+sequence split the `/tmp` mount options into four mounts. Compose rejected the invalid mount
+before a broker process started. The fixed contract quotes the entire mount string; an actual
+`docker compose config` regression failed with four entries before correction and now verifies
+one private16MiB mount. Release failures emit only closed operation/error families and bounded
+container health fields, never arguments, environment values or probe output. Observer failure
+cannot prevent rollback. Exported failed-smoke images are retained for investigation, but a
+failed run still cannot produce a valid release manifest or pass the deployment gate.
+
 ## Pending schema review (175 to 187)
 
 | Revision | Upgrade behavior |
@@ -146,8 +155,8 @@ Both region observations used existing pinned SSH identities without changing de
 
 | Region | CPU | Available RAM | Free root disk | Application state |
 | --- | --- | --- | --- | --- |
-| Iran |2 |1438 MiB |9866 MiB | Existing API/web/DB/Redis/workers healthy; schema175 |
-| Germany |1 |1349 MiB |2155 MiB | Existing Agent Service healthy; restart count0 |
+| Iran |2 |1507 MiB |9768 MiB | Existing API/web/DB/Redis/workers healthy; schema175 |
+| Germany |1 |1314 MiB |2153 MiB | Existing Agent Service healthy; restart count0 |
 
 These are instantaneous measurements, not peaks or a sum of configured limits. Previous
 container images and authentication volumes remain intact. Older images without verified
@@ -164,7 +173,7 @@ layers and a separately owner-approved storage plan are required before rollout 
 - [x] Disable automatic CD without disabling manual owner-gated release.
 - [x] Recheck all existing regional service health and original production schema.
 - [x] Broker-mode and action-pin regressions observed failing before correction.
-- [x] Local release checks:431 ops tests,410 focused backend tests (3 explicit local skips),
+- [x] Local release checks:435 ops tests,410 focused backend tests (3 explicit local skips),
   1397 frontend tests, OpenAPI, actionlint, Ruff and secret checks.
 - [ ] Fresh exact-head CI and actual broker rollout smoke after release hardening.
 - [ ] Merge normally; verify trusted workflows and full CI on actual merged main.

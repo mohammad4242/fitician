@@ -22,6 +22,9 @@ The authorized release now has a broker-only deployment mode in the existing reg
 workflow; it does not replace the legacy inference connector. Trusted debug workflow actions
 are pinned to full SHAs. See the release audit for fresh backup/restore proof and remaining
 capacity, CI, merge and production acceptance gates.
+The release smoke also exposed and corrected a broker-only YAML mount parsing defect;
+435 local operational tests pass, including rendered Compose and secret-safe failure-evidence
+regressions. Fresh exact-head hosted rollout proof remains required before merge.
 
 ### Execution and trust boundaries
 

@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -64,6 +65,37 @@ def bundle(folder):
 
 
 class RuntimeReleaseTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which("docker"), "Docker Compose CLI is unavailable")
+    def test_broker_tmpfs_is_one_bounded_private_mount(self):
+        result = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                str(ROOT / "compose.debug-runtime.yaml"),
+                "--profile",
+                "automation",
+                "config",
+                "--format",
+                "json",
+            ],
+            env={
+                "PATH": os.environ["PATH"],
+                "FITICIAN_DEBUG_RUNTIME_IMAGE": "fitician-fixture:test",
+                "FITICIAN_DEBUG_RUNTIME_ROOT": "/fixture",
+            },
+            capture_output=True,
+            timeout=30,
+            check=True,
+        )
+        mounts = json.loads(result.stdout)["services"]["automation"]["tmpfs"]
+        self.assertEqual(len(mounts), 1)
+        target, options = mounts[0].split(":", 1)
+        self.assertEqual(target, "/tmp")
+        self.assertEqual(
+            set(options.split(",")), {"uid=10001", "gid=10001", "mode=0700", "size=16m"}
+        )
+
     def test_docker_failure_reports_only_a_closed_error_family(self):
         release = module()
         output = io.StringIO()
@@ -120,6 +152,35 @@ class RuntimeReleaseTests(unittest.TestCase):
         self.assertIn("runtime_readiness_failed", output.getvalue())
         self.assertIn('"exit_code": 2', output.getvalue())
         self.assertNotIn("secret-fixture-value", output.getvalue())
+
+    def test_failure_observation_cannot_prevent_rollback(self):
+        release = module()
+        with (
+            patch.object(
+                release,
+                "compose_up",
+                side_effect=[ValueError("runtime_readiness_failed"), None],
+            ) as up,
+            patch.object(
+                release, "report_rollout_failure", side_effect=OSError("private detail")
+            ),
+            patch.object(release, "verify_running", return_value={}) as verify,
+            self.assertRaisesRegex(ValueError, "runtime_rollout_rolled_back"),
+        ):
+            release.rollout(
+                Path("candidate"),
+                Path("previous"),
+                ["automation"],
+                "sha256:" + "a" * 64,
+                "c" * 40,
+                {
+                    "services": ["automation"],
+                    "image_id": "sha256:" + "b" * 64,
+                    "commit": "d" * 40,
+                },
+            )
+        self.assertEqual(up.call_args.args, (Path("previous"), ["automation"]))
+        verify.assert_called_once()
 
     def test_automation_preflight_checks_access_as_the_worker_without_exposing_credentials(
         self,
