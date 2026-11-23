@@ -4,6 +4,25 @@ import exercises from "../src/seo/exercise-data.json" with { type: "json" };
 
 test.beforeEach(async ({ page }) => { await publicExerciseFixture(page); });
 
+test("pagination waits for delayed hydration before accepting a click", async ({ page }) => {
+  let releaseScripts!: () => void;
+  const scriptsReady = new Promise<void>(resolve => { releaseScripts = resolve; });
+  await page.route("**/assets/*.js", async route => {
+    await scriptsReady;
+    await route.continue();
+  });
+  try {
+    await page.goto("/exercise-library", { waitUntil: "commit" });
+    const nextPage = page.getByRole("button", { name: "صفحه بعد", exact: true });
+    await expect(nextPage).toBeVisible();
+    await expect(nextPage).toBeDisabled();
+  } finally {
+    releaseScripts();
+  }
+  await page.getByRole("button", { name: "صفحه بعد", exact: true }).click();
+  await expect(page).toHaveURL(/page=2/);
+});
+
 test("anonymous member-quality browsing preserves filters across detail and back", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
