@@ -622,6 +622,7 @@ jobs:
           --image fitician-debug-runtime:${{ github.sha }} --commit ${{ github.sha }}
           --output .ci-evidence/debug-runtime/smoke.json
       - name: Export the exact tested runtime for offline delivery
+        id: runtime_export
         run: |
           set -euo pipefail
           docker save fitician-debug-runtime:${{ github.sha }} | gzip -1 > .ci-evidence/debug-runtime/image.tar.gz
@@ -654,6 +655,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.runtime_export.outcome == 'success' }}
         with:
           name: fitician-debug-runtime-${{ github.sha }}
           path: .ci-evidence/debug-runtime/

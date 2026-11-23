@@ -51,6 +51,34 @@ def docker(*args: str, timeout: int = 60) -> str:
         ["docker", *args], capture_output=True, timeout=timeout, check=False
     )
     if value.returncode:
+        failure = value.stderr.lower()
+        family = "unknown"
+        for pattern, category in (
+            (b"permission denied", "filesystem_access_denied"),
+            (b"read-only file system", "filesystem_read_only"),
+            (b"no such image", "image_missing"),
+            (b"invalid mount", "mount_invalid"),
+        ):
+            if pattern in failure:
+                family = category
+                break
+        operation = (
+            args[0]
+            if args
+            and args[0]
+            in {"run", "compose", "inspect", "image", "ps", "network", "exec"}
+            else "other"
+        )
+        print(
+            json.dumps(
+                {
+                    "operation": operation,
+                    "exit_code": value.returncode,
+                    "error_family": family,
+                }
+            ),
+            file=sys.stderr,
+        )
         raise ValueError("runtime_docker_operation_failed")
     return value.stdout.decode()
 
@@ -272,6 +300,59 @@ def verify_running(services: list[str], image_id: str, commit: str) -> dict[str,
     return result
 
 
+def report_rollout_failure(error: Exception, services: list[str]) -> None:
+    """Emit only closed diagnostic fields, never probe output or configuration."""
+    reason = str(error)
+    if reason not in {
+        "runtime_docker_operation_failed",
+        "runtime_readiness_failed",
+        "runtime_running_image_mismatch",
+        "runtime_cli_version_mismatch",
+    }:
+        reason = "runtime_rollout_failed"
+    states = []
+    for service in services:
+        if service not in {"connector", "automation"}:
+            continue
+        try:
+            state = service_metadata(service).get("State", {})
+            health = state.get("Health", {})
+            status = state.get("Status")
+            health_status = health.get("Status")
+            states.append(
+                {
+                    "service": service,
+                    "status": status
+                    if status
+                    in {
+                        "created",
+                        "running",
+                        "paused",
+                        "restarting",
+                        "removing",
+                        "exited",
+                        "dead",
+                    }
+                    else "unknown",
+                    "exit_code": state.get("ExitCode")
+                    if type(state.get("ExitCode")) is int
+                    else None,
+                    "oom_killed": state.get("OOMKilled") is True,
+                    "health": health_status
+                    if health_status in {"starting", "healthy", "unhealthy"}
+                    else "unknown",
+                    "probe_exit_codes": [
+                        probe["ExitCode"]
+                        for probe in health.get("Log", [])[-3:]
+                        if type(probe.get("ExitCode")) is int
+                    ],
+                }
+            )
+        except (ValueError, subprocess.SubprocessError, KeyError, TypeError):
+            states.append({"service": service, "status": "unavailable"})
+    print(json.dumps({"reason": reason, "services": states}), file=sys.stderr)
+
+
 def rollout(
     candidate: Path,
     previous: Path,
@@ -283,7 +364,8 @@ def rollout(
     try:
         compose_up(candidate, services)
         return verify_running(services, image_id, commit)
-    except (ValueError, subprocess.SubprocessError):
+    except (ValueError, subprocess.SubprocessError) as error:
+        report_rollout_failure(error, services)
         try:
             prior_services = prior.get("services", services)
             added = [name for name in services if name not in prior_services]

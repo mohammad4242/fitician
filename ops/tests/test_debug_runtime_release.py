@@ -9,6 +9,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+from contextlib import redirect_stderr
 from pathlib import Path
 from unittest.mock import patch
 
@@ -63,6 +64,63 @@ def bundle(folder):
 
 
 class RuntimeReleaseTests(unittest.TestCase):
+    def test_docker_failure_reports_only_a_closed_error_family(self):
+        release = module()
+        output = io.StringIO()
+        failed = subprocess.CompletedProcess(
+            [], 1, b"", b"permission denied secret-fixture-value"
+        )
+        with (
+            patch.object(release.subprocess, "run", return_value=failed),
+            redirect_stderr(output),
+            self.assertRaisesRegex(ValueError, "runtime_docker_operation_failed"),
+        ):
+            release.docker("compose", "secret-fixture-argument")
+        self.assertIn("filesystem_access_denied", output.getvalue())
+        self.assertNotIn("secret-fixture", output.getvalue())
+
+    def test_rollout_failure_reports_health_without_probe_output_or_environment(self):
+        release = module()
+        output = io.StringIO()
+        row = {
+            "State": {
+                "Status": "exited",
+                "ExitCode": 2,
+                "OOMKilled": False,
+                "Health": {
+                    "Status": "unhealthy",
+                    "Log": [{"ExitCode": 1, "Output": "secret-fixture-value"}],
+                },
+            },
+            "Config": {"Env": ["SECRET=secret-fixture-value"]},
+        }
+        with (
+            patch.object(
+                release,
+                "compose_up",
+                side_effect=[ValueError("runtime_readiness_failed"), None],
+            ),
+            patch.object(release, "service_metadata", return_value=row),
+            patch.object(release, "verify_running", return_value={}),
+            redirect_stderr(output),
+            self.assertRaisesRegex(ValueError, "runtime_rollout_rolled_back"),
+        ):
+            release.rollout(
+                Path("candidate"),
+                Path("previous"),
+                ["automation"],
+                "sha256:" + "a" * 64,
+                "c" * 40,
+                {
+                    "services": ["automation"],
+                    "image_id": "sha256:" + "b" * 64,
+                    "commit": "d" * 40,
+                },
+            )
+        self.assertIn("runtime_readiness_failed", output.getvalue())
+        self.assertIn('"exit_code": 2', output.getvalue())
+        self.assertNotIn("secret-fixture-value", output.getvalue())
+
     def test_automation_preflight_checks_access_as_the_worker_without_exposing_credentials(
         self,
     ):
