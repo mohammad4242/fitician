@@ -33,6 +33,7 @@ from app.billing.service import (
     payment_event,
     reconcile_payment,
     revoke_transaction,
+    store_provider_evidence,
     to_order_response,
     verify_payment,
 )
@@ -288,7 +289,7 @@ async def tetrapay_webhook(request: Request, db: DatabaseSession) -> dict[str, b
             )
         except PaymentProviderError as error:
             if error.evidence:
-                transaction.provider_evidence = error.evidence
+                store_provider_evidence(transaction, error.evidence)
                 db.commit()
             payment_event("PAYMENT_WEBHOOK_REJECTED", error=True)
             raise HTTPException(400, "Invalid payment") from None

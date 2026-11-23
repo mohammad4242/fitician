@@ -119,6 +119,8 @@ class TetraPayProvider:
                 error = PaymentProviderError(f"TetraPay HTTP {response.status_code}")
                 if delay.isascii() and delay.isdigit():
                     error.retry_after = max(1, min(int(delay), 86400))
+                if response.status_code == 429 and error.retry_after is None:
+                    error.retry_after = 60
                 raise error
             if len(response.content) > 65536:
                 raise PaymentProviderError("TetraPay invalid response")

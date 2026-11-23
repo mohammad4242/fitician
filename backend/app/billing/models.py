@@ -17,6 +17,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -180,6 +181,13 @@ class BillingTransaction(Base):
         ),
         Index("ix_billing_transactions_order_status", "order_id", "status"),
         Index("ix_billing_transactions_reconcile", "next_reconcile_at"),
+        Index(
+            "ix_billing_transactions_provider_cooldown",
+            "provider",
+            "provider_mode",
+            text("(provider_evidence ->> 'provider_cooldown_until')"),
+            postgresql_where=text("provider_evidence ->> 'provider_cooldown_until' IS NOT NULL"),
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)

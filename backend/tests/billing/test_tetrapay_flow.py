@@ -430,3 +430,61 @@ def test_pending_checkout_is_reusable_after_internal_ttl(client, db):
     assert response.status_code == 200
     assert response.json()["transaction_id"] == checkout["transaction_id"]
     assert grants(db) == 0
+
+
+def test_provider_retry_after_blocks_other_invoices(client, db):
+    from uuid import uuid4
+
+    from app.billing.enums import BillingOrderStatus, BillingTransactionStatus
+
+    order, checkout, provider, _ = setup_checkout(client, db)
+    second = BillingOrder(
+        user_id=order.user_id,
+        offer_code=order.offer_code,
+        package_code_snapshot=order.package_code_snapshot,
+        duration_weeks_snapshot=4,
+        amount_irr_snapshot=1000000,
+        currency_snapshot="IRR",
+        provider=PaymentProviderCode.TETRAPAY,
+        status=BillingOrderStatus.PENDING,
+        idempotency_key=str(uuid4()),
+    )
+    db.add(second)
+    db.flush()
+    tx = BillingTransaction(
+        order_id=second.id,
+        provider=PaymentProviderCode.TETRAPAY,
+        provider_reference=TOKEN + "2",
+        amount_irr=1000000,
+        currency="IRR",
+        provider_mode="sandbox",
+        status=BillingTransactionStatus.PENDING,
+    )
+    db.add(tx)
+    db.flush()
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(
+            429, headers={"Retry-After": "180"}, json={"error": {"code": "RATE_LIMITED"}}
+        )
+
+    provider.transport = httpx.MockTransport(handler)
+    client.post(
+        "/api/v1/billing/providers/tetrapay/verify",
+        headers=ORIGIN,
+        json={"transaction_id": checkout["transaction_id"]},
+    )
+    response = client.post(
+        "/api/v1/billing/providers/tetrapay/verify",
+        headers=ORIGIN,
+        json={"transaction_id": str(tx.id)},
+    )
+    assert response.status_code == 200
+    assert response.json()["verified"] is False
+    assert len(requests) == 1
+    assert db.get(BillingTransaction, tx.id).next_reconcile_at > datetime.now(UTC) + timedelta(
+        seconds=170
+    )
+    assert grants(db) == 0

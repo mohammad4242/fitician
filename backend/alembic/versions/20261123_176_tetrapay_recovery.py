@@ -22,9 +22,16 @@ def upgrade() -> None:
     op.create_index(
         "ix_billing_transactions_reconcile", "billing_transactions", ["next_reconcile_at"]
     )
+    op.create_index(
+        "ix_billing_transactions_provider_cooldown",
+        "billing_transactions",
+        ["provider", "provider_mode", sa.text("(provider_evidence ->> 'provider_cooldown_until')")],
+        postgresql_where=sa.text("provider_evidence ->> 'provider_cooldown_until' IS NOT NULL"),
+    )
 
 
 def downgrade() -> None:
+    op.drop_index("ix_billing_transactions_provider_cooldown", table_name="billing_transactions")
     op.drop_index("ix_billing_transactions_reconcile", table_name="billing_transactions")
     for column in [
         "next_reconcile_at",

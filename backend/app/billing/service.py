@@ -4,7 +4,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -479,6 +479,8 @@ def resume_checkout(
         )
         if transaction.next_reconcile_at and utc_now(transaction.next_reconcile_at) > utc_now():
             raise BillingProviderRequestError("Payment retry is scheduled")
+        if defer_for_provider_cooldown(db, transaction):
+            raise BillingProviderRequestError("Payment provider retry is scheduled")
         schedule_reconciliation(transaction)
         try:
             result = provider.create_checkout(
@@ -529,11 +531,47 @@ def schedule_reconciliation(transaction: BillingTransaction) -> None:
     )
 
 
+def store_provider_evidence(
+    transaction: BillingTransaction, evidence: dict[str, str | None]
+) -> None:
+    previous = transaction.provider_evidence or {}
+    cooldown = previous.get("provider_cooldown_until")
+    transaction.provider_evidence = {
+        **({"provider_cooldown_until": cooldown} if cooldown else {}),
+        **evidence,
+    }
+
+
 def schedule_retry_after(transaction: BillingTransaction, error: PaymentProviderError) -> None:
-    if error.retry_after and transaction.next_reconcile_at:
-        transaction.next_reconcile_at = max(
-            transaction.next_reconcile_at, utc_now() + timedelta(seconds=error.retry_after)
+    if error.retry_after:
+        until = utc_now() + timedelta(seconds=error.retry_after)
+        store_provider_evidence(
+            transaction, {"provider_cooldown_until": until.isoformat(timespec="microseconds")}
         )
+        if transaction.next_reconcile_at:
+            transaction.next_reconcile_at = max(transaction.next_reconcile_at, until)
+
+
+def defer_for_provider_cooldown(db: Session, transaction: BillingTransaction) -> bool:
+    if transaction.provider != PaymentProviderCode.TETRAPAY:
+        return False
+    # UTC strings use a fixed precision; the partial expression index keeps this bounded.
+    deadline = BillingTransaction.provider_evidence["provider_cooldown_until"].as_string()
+    value = db.scalar(
+        select(func.max(deadline)).where(
+            BillingTransaction.provider == transaction.provider,
+            BillingTransaction.provider_mode == transaction.provider_mode,
+            deadline.is_not(None),
+            deadline > utc_now().isoformat(timespec="microseconds"),
+        )
+    )
+    if not isinstance(value, str):
+        return False
+    until = datetime.fromisoformat(value)
+    if transaction.reconcile_attempts < 64:
+        transaction.next_reconcile_at = max(transaction.next_reconcile_at or until, until)
+    db.commit()
+    return True
 
 
 def _transaction_and_order_for_user(
@@ -619,6 +657,8 @@ def reconcile_payment(
         )
     ):
         return _payment_result_response(transaction, order)
+    if trusted_result is None and defer_for_provider_cooldown(db, transaction):
+        return _payment_result_response(transaction, order)
     schedule_reconciliation(transaction)
     try:
         result = trusted_result or provider.verify_payment(request)
@@ -627,7 +667,7 @@ def reconcile_payment(
     except PaymentProviderError as error:
         schedule_retry_after(transaction, error)
         if error.evidence:
-            transaction.provider_evidence = error.evidence
+            store_provider_evidence(transaction, error.evidence)
         db.commit()
         payment_event(
             error.evidence.get("reason") or "PAYMENT_VERIFICATION_FAILED"
@@ -639,7 +679,7 @@ def reconcile_payment(
             "Payment verification unavailable; retry later"
         ) from None
     if result.evidence:
-        transaction.provider_evidence = result.evidence
+        store_provider_evidence(transaction, result.evidence)
     if result.status == "verified":
         transaction.status = BillingTransactionStatus.VERIFIED
         transaction.verified_at = utc_now(now)
