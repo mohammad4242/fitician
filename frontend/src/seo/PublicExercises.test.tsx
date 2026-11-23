@@ -8,6 +8,12 @@ beforeEach(() => {
   window.history.replaceState(null, "", "/exercise-library");
   vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("{}", { status: 503 }))));
 });
+it("keeps prerendered pagination disabled until its handlers are hydrated", () => {
+  const html = renderToStaticMarkup(<PublicPage payload={publicPayload("/exercise-library")} />);
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  expect(within(container).getByRole("button", { name: "صفحه بعد" })).toBeDisabled();
+});
 it("browses anonymously with member selectors and preserves filter state in public links", async () => {
   render(<PublicPage payload={publicPayload("/exercise-library")} />);
   fireEvent.click(screen.getByRole("button", { name: /بالاتنه.*Upper Body/ }));
