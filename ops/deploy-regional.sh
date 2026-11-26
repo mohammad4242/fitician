@@ -51,11 +51,15 @@ check_panel_authorization() {
     fail 'Incomplete panel deployment authorization'
   fi
 }
+schema_cutover="$app_dir/.regional-iran-schema-cutover"
 if [[ "$inspect_only" != true ]]; then
   # Coordinate protected workflows and direct operator releases on the same host.
   [[ ! -L "$app_dir/.regional-deploy.lock" ]] || fail 'Deployment lock must not be a symlink'
   exec 9>"$app_dir/.regional-deploy.lock"
   flock -n 9 || fail 'Another regional deployment holds the host lock'
+  if [[ "$region" == iran && ( -e "$schema_cutover" || -L "$schema_cutover" ) ]]; then
+    fail 'Iran schema cutover requires recovery or reconciliation before another deployment'
+  fi
   check_panel_authorization
 fi
 if [[ "$kind" == full || "$kind" == backend || "$kind" == frontend ]]; then
@@ -572,8 +576,39 @@ if [[ "$region" == germany && "$kind" == agent ]]; then
   [[ "$auth_baseline_digest" =~ ^[0-9a-f]{64}$ ]] || fail 'Agent auth inventory returned an invalid digest'
 fi
 
+schema_pending=false
 schema_changed=false
+cutover_started=false
 rollback_needed=false
+iran_writers=(backend backend-2 scheduler food-photo-worker body-analysis-worker notification-worker)
+cutover_state() {
+  printf '%s\n' "$1" > "$schema_cutover/state.next"
+  mv -f -- "$schema_cutover/state.next" "$schema_cutover/state"
+}
+finish_cutover() {
+  mv -T -- "$schema_cutover" "$release_dir/iran-schema-cutover-$(date -u +%Y%m%dT%H%M%S%NZ)-$1"
+}
+backup_iran() {
+  COMPOSE_FILE="$backup_contract" COMPOSE_PROJECT_NAME="$project" \
+    COMPOSE_ENV_FILES="$env_file" FITICIAN_ENV_FILE="$env_file" \
+    DB_BACKUP_LOCK_FILE="$app_dir/.database-backup.lock" \
+    BACKUP_ENV_FILE="$app_dir/backup.env" bash "$release_dir/backup-production.sh"
+}
+require_iran_quiescence() {
+  local running diagnostics_running db_sessions
+  running=$(compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
+    "$previous_worker_tag" "$previous_agent_tag" ps --status running -q caddy "${iran_writers[@]}")
+  diagnostics_running=$(docker ps -q --filter "label=com.docker.compose.project=$project-diagnostics")
+  [[ -z "$running$diagnostics_running" ]] || fail 'Iran application writers are still running'
+  db_sessions=$(compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
+    "$previous_worker_tag" "$previous_agent_tag" exec -T db sh -c '
+      psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "
+        SELECT (SELECT count(*) FROM pg_stat_activity
+          WHERE datname = current_database() AND pid <> pg_backend_pid()
+          AND backend_type IN (\$\$client backend\$\$, \$\$logical replication worker\$\$))
+          + (SELECT count(*) FROM pg_prepared_xacts WHERE database = current_database())"')
+  [[ "$db_sessions" == 0 ]] || fail 'Iran PostgreSQL still has application sessions or prepared transactions'
+}
 old_env_copy=''
 old_marker_copy=''
 rollback() {
@@ -616,7 +651,11 @@ rollback() {
       stop caddy frontend backend backend-2 scheduler food-photo-worker body-analysis-worker notification-worker; then
       echo 'Application quiescence failed; block Iran ingress manually before recovery' >&2
     fi
-    echo 'Schema changed; manual recovery from the encrypted backup is required' >&2
+    if [[ "$cutover_started" == true && $(cat "$schema_cutover/state") == candidate-start ]]; then
+      echo 'Candidate writers may have committed data; reconcile writes before any snapshot restore' >&2
+    else
+      echo 'Schema changed; manual recovery from the encrypted backup is required' >&2
+    fi
     exit "$status"
   fi
   echo "Restoring $region deployment with its previous immutable image versions" >&2
@@ -669,6 +708,7 @@ rollback() {
     if [[ -n "$old_marker_copy" && -f "$old_marker_copy" ]]; then cp -p "$old_marker_copy" "$active_marker"; fi
     if [[ "$initial_deploy" == true ]]; then rm -f -- "$active_marker"; fi
     if [[ "$first_scalability_release" == true ]]; then rm -f -- "$scalability_marker"; fi
+    if [[ "$cutover_started" == true ]]; then finish_cutover previous-release-restored || rollback_status=$?; fi
   fi
   [[ "$rollback_status" -eq 0 ]] || echo 'Regional rollback failed' >&2
   exit "$status"
@@ -694,11 +734,10 @@ if [[ "$region" == iran && "$kind" == full ]]; then
     [[ "$user_count" =~ ^[1-9][0-9]*$ ]] || fail 'Initial Iran release requires a restored database with existing users'
     backup_contract=$compose_file
   fi
-  COMPOSE_FILE="$backup_contract" COMPOSE_PROJECT_NAME="$project" \
-    COMPOSE_ENV_FILES="$env_file" FITICIAN_ENV_FILE="$env_file" \
-    DB_BACKUP_LOCK_FILE="$app_dir/.database-backup.lock" \
-    BACKUP_ENV_FILE="$app_dir/backup.env" bash "$release_dir/backup-production.sh"
-  if [[ "$initial_deploy" == true ]]; then active_contract=$compose_file; fi
+  if [[ "$initial_deploy" == true ]]; then
+    backup_iran
+    active_contract=$compose_file
+  fi
   current_revision=$(compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
     "$previous_worker_tag" "$previous_agent_tag" exec -T db sh -c \
     'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT version_num FROM alembic_version"')
@@ -709,8 +748,9 @@ if [[ "$region" == iran && "$kind" == full ]]; then
     if [[ "$allow_schema_migrations" != true ]]; then
       fail 'Pending schema migration requires explicit reviewed approval'
     fi
-    schema_changed=true
+    schema_pending=true
   fi
+  if [[ "$schema_pending" != true && "$initial_deploy" != true ]]; then backup_iran; fi
 elif [[ "$region" == iran && "$kind" == backend ]]; then
   current_revision=$(compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
     "$previous_worker_tag" "$previous_agent_tag" exec -T db sh -c \
@@ -725,13 +765,37 @@ fi
 # Backup and image preparation may outlast a grant. Recheck immediately before mutation.
 check_panel_authorization
 if [[ "$region" == iran && "$kind" == full ]]; then
+  if [[ "$schema_pending" == true && "$initial_deploy" != true ]]; then
+    mkdir -m 700 -- "$schema_cutover"
+    cutover_started=true
+    rollback_needed=true
+    cutover_state freezing
+    printf '%s\n' "$active_contract" "$previous_frontend_tag" "$previous_api_tag" "$previous_worker_tag" "$previous_agent_tag" "$current_revision" "$image_tag" > "$schema_cutover/baseline"
+    compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
+      "$previous_worker_tag" "$previous_agent_tag" stop caddy
+  fi
   diagnostics_transaction=true
   diagnostics pause
+  if [[ "$cutover_started" == true ]]; then
+    compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
+      "$previous_worker_tag" "$previous_agent_tag" stop "${iran_writers[@]}"
+    require_iran_quiescence
+    (umask 077; backup_iran > "$schema_cutover/backup.log")
+    require_iran_quiescence
+    check_panel_authorization
+    cutover_state migration
+    echo 'Final encrypted Iran backup verified with application writers stopped'
+  fi
 fi
-if [[ "$region" == iran && "$kind" == full && "$schema_changed" == true ]]; then
+if [[ "$schema_pending" == true ]]; then
   rollback_needed=true
+  schema_changed=true
   compose "$compose_file" "$image_tag" "$image_tag" "$image_tag" "$previous_agent_tag" \
     run --pull never --rm --no-deps migrations alembic upgrade head
+  migrated_revision=$(compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
+    "$previous_worker_tag" "$previous_agent_tag" exec -T db sh -c \
+    'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT version_num FROM alembic_version"')
+  [[ "$migrated_revision" == "$target_revision" ]] || fail 'Iran migration did not reach the reviewed revision'
 fi
 
 if [[ "$region" == germany && "$kind" == agent ]]; then
@@ -755,11 +819,20 @@ elif [[ "$region" == germany && "$kind" == agent ]]; then
 fi
 if [[ "$kind" == full ]]; then
   rollback_needed=true
-  if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" up -d --pull never --wait; then
-    rollback || true
-    exit 1
+  if [[ "$cutover_started" == true ]]; then
+    cutover_state candidate-start
+    compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \
+      up -d --pull never --wait db redis "${iran_writers[@]}" frontend
+    diagnostics start
+    compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" \
+      up -d --pull never --no-deps --wait caddy
+  else
+    if ! compose "$compose_file" "$frontend_tag" "$api_tag" "$worker_tag" "$agent_tag" up -d --pull never --wait; then
+      rollback || true
+      exit 1
+    fi
+    if [[ "$region" == iran ]]; then diagnostics start; fi
   fi
-  if [[ "$region" == iran ]]; then diagnostics start; fi
 else
   rollback_needed=true
   if [[ "$kind" == backend ]]; then
@@ -848,6 +921,7 @@ fi
 mv "$next_env" "$env_file"
 mv "$next_marker" "$active_marker"
 if [[ "$first_scalability_release" == true ]]; then mv "$next_scalability_marker" "$scalability_marker"; fi
+if [[ "$cutover_started" == true ]]; then finish_cutover deployed; fi
 trap - ERR INT TERM
 rm -f -- "$old_env_copy" "$old_marker_copy"
 echo "Verified $region $kind deployment for immutable image $image_tag"
