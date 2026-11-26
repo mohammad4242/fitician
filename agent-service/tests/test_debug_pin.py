@@ -18,10 +18,20 @@ def test_antigravity_1514_archive_is_pinned_without_changing_other_cli_versions(
 
 def test_pinned_cli_cannot_self_update_or_be_replaced_by_runtime_user():
     dockerfile = (Path(__file__).parents[1] / "Dockerfile").read_text()
-    assert "AGY_CLI_DISABLE_AUTO_UPDATE=true" in dockerfile
+    final_stage = dockerfile.rsplit("FROM ", 1)[1]
+    assert "AGY_CLI_DISABLE_AUTO_UPDATE=true" in final_stage
+    assert "CLAUDE_CODE_DISABLE_AUTOUPDATE=1" in final_stage
     assert "chown -R root:root /opt/fitician-agent" in dockerfile
-    assert dockerfile.rindex("USER agent") > dockerfile.index(
-        "chown -R root:root /opt/fitician-agent"
+    assert "chmod -R go-w /opt/fitician-agent" in dockerfile
+    assert (
+        "COPY --from=tools-builder --chown=root:root /opt/fitician-agent /opt/fitician-agent"
+        in final_stage
+    )
+    assert final_stage.index("USER agent") > final_stage.index(
+        "COPY --from=tools-builder --chown=root:root /opt/fitician-agent /opt/fitician-agent"
+    )
+    assert final_stage.index("COPY app ./app") > final_stage.index(
+        "COPY --from=tools-builder --chown=root:root /opt/fitician-agent /opt/fitician-agent"
     )
 
 

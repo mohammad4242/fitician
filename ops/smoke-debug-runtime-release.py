@@ -49,7 +49,13 @@ def broker_fixture_command(image: str, directory: Path) -> list[str]:
     ]
 
 
-def run(directory: Path, commit: str, output: Path) -> dict:
+def run(
+    directory: Path,
+    commit: str,
+    output: Path,
+    *,
+    broker_directory: Path | None = None,
+) -> dict:
     spec = importlib.util.spec_from_file_location(
         "runtime_release", ROOT / "ops/deploy-debug-runtime.py"
     )
@@ -63,6 +69,10 @@ def run(directory: Path, commit: str, output: Path) -> dict:
     image = "fitician-debug-runtime:" + commit
     image_id = proof["image_id"]
     assert release.config_digest_for_image(image) == image_id
+    broker_image_id = proof.get("broker_image_id") if broker_directory else None
+    if broker_directory is not None:
+        broker_image = "fitician-debug-broker:" + commit
+        assert broker_image_id and release.config_digest_for_image(broker_image) == broker_image_id
     # CI fixture metadata only; no application images are deployed by this test.
     manifest = {
         "version": 1,
@@ -85,6 +95,19 @@ def run(directory: Path, commit: str, output: Path) -> dict:
             "image_id": image_id,
             "cli_version": "0.167.2",
         },
+        **(
+            {
+                "debug_broker": {
+                    "artifact_name": "fitician-debug-broker-" + commit,
+                    "archive_sha256": hashlib.sha256(
+                        (broker_directory / "image.tar.gz").read_bytes()
+                    ).hexdigest(),
+                    "image_id": broker_image_id,
+                }
+            }
+            if broker_directory is not None
+            else {}
+        ),
         "web_source_maps": {
             "release": "fitician-web@" + commit,
             "private_layers_checked": True,
@@ -229,11 +252,19 @@ def run(directory: Path, commit: str, output: Path) -> dict:
             assert release.non_runtime_identity() == others
             # Exercise Option A's broker-only component path using empty fixture
             # configuration, no real credentials, no outbound network or AI calls.
+            broker_bundle = root / "bundle"
+            expected_broker_id = image_id
+            if broker_directory is not None:
+                broker_bundle = root / "broker-bundle"
+                broker_bundle.mkdir(mode=0o700, exist_ok=True)
+                os.link(broker_directory / "image.tar.gz", broker_bundle / "image.tar.gz")
+                (broker_bundle / "manifest.json").write_bytes(raw)
+                expected_broker_id = broker_image_id
             release.docker(*broker_fixture_command(image, root / "automation-private"))
             protected = release.non_runtime_identity(["automation"])
             broker_receipt = release.deploy(
                 root,
-                root / "bundle",
+                broker_bundle,
                 digest,
                 commit,
                 1,
@@ -242,10 +273,12 @@ def run(directory: Path, commit: str, output: Path) -> dict:
                 automation_only=True,
             )
             assert broker_receipt["state"] == "deployed"
-            broker_id = release.service_metadata("automation")["Id"]
+            broker_row = release.service_metadata("automation")
+            broker_id = broker_row["Id"]
+            assert release.config_digest_for_image(broker_row["Image"]) == expected_broker_id
             again_broker = release.deploy(
                 root,
-                root / "bundle",
+                broker_bundle,
                 digest,
                 commit,
                 1,
@@ -279,10 +312,10 @@ def run(directory: Path, commit: str, output: Path) -> dict:
                     broken_broker,
                     broker_contract,
                     ["automation"],
-                    image_id,
+                    expected_broker_id,
                     commit,
                     {
-                        "image_id": image_id,
+                        "image_id": expected_broker_id,
                         "commit": commit,
                         "services": ["automation"],
                     },
@@ -308,6 +341,7 @@ def run(directory: Path, commit: str, output: Path) -> dict:
                 "legacy_connector_unchanged": True,
                 "broker_enrollment_verified": False,
                 "production_deployment": False,
+                **({"broker_image_id": expected_broker_id} if broker_directory else {}),
             }
         finally:
             # Remove only resources whose generated project identity is owned by this invocation.
@@ -356,10 +390,16 @@ def run(directory: Path, commit: str, output: Path) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", type=Path, required=True)
+    parser.add_argument("--broker-directory", type=Path)
     parser.add_argument("--commit", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    run(args.directory.resolve(), args.commit, args.output)
+    run(
+        args.directory.resolve(),
+        args.commit,
+        args.output,
+        broker_directory=args.broker_directory.resolve() if args.broker_directory else None,
+    )
 
 
 if __name__ == "__main__":

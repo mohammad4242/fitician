@@ -1051,6 +1051,64 @@ fi
             any(" up -d" in line for line in self.calls.read_text().splitlines())
         )
 
+    def test_germany_agent_auth_archive_excludes_rebuildable_caches_and_preserves_credentials(
+        self,
+    ) -> None:
+        import sys
+        import tarfile
+
+        script_text = (ROOT / "ops/deploy-regional.sh").read_text()
+        snippet = script_text.split("archive_agent_auth_volume() {", 1)[1].split(
+            "--entrypoint python3 \"$auth_image_id\" -c '", 1
+        )[1].split("\n'\n", 1)[0]
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as tmpdir:
+            base = Path(tmpdir)
+            home = base / "home"
+            dest = base / "auth-volume.tar"
+            preserved = [
+                home / ".claude.json",
+                home / ".claude" / "credentials.json",
+                home / ".codex" / "auth.json",
+                home / ".codex" / "state_5.sqlite",
+                home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token",
+                home / ".gemini" / "config" / "config.json",
+                home / ".local" / "share" / "keyrings" / "login.keyring",
+                home / "unknown-custom-auth-file",
+            ]
+            excluded = [
+                home / ".npm" / "_cacache" / "blob",
+                home / ".cache" / "uv" / "archive-v0" / "wheel.whl",
+                home / ".codex" / "cache" / "remote_plugin_catalog" / "catalog.json",
+                home / ".codex" / "tmp" / "scratch",
+                home / ".gemini" / "antigravity-cli" / "fitician-cache" / ".fitician-1.5.14-staging" / "bin" / "agy",
+                home / ".gemini" / "antigravity-cli" / "cache" / "item",
+                home / ".gemini" / "antigravity-cli" / "crashes" / "dump",
+            ]
+            for path in preserved:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("credential-or-state")
+            for path in excluded:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"x" * 1024)
+            subprocess.run(
+                [sys.executable, "-c", snippet],
+                env={
+                    **os.environ,
+                    "FITICIAN_AUTH_SOURCE": str(home),
+                    "FITICIAN_AUTH_ARCHIVE": str(dest),
+                },
+                check=True,
+            )
+            self.assertEqual(dest.stat().st_mode & 0o777, 0o600)
+            with tarfile.open(dest, "r") as archive:
+                names = set(archive.getnames())
+            for path in preserved:
+                rel = "agent/" + path.relative_to(home).as_posix()
+                self.assertIn(rel, names)
+            for path in excluded:
+                rel = "agent/" + path.relative_to(home).as_posix()
+                self.assertNotIn(rel, names)
+
     def test_workflow_is_manual_and_uses_separate_region_environments(self) -> None:
         workflow = (ROOT / ".github/workflows/deploy-regional.yml").read_text()
 

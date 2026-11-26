@@ -108,9 +108,38 @@ def runtime_identity(root: Path, commit: str) -> dict:
     }
 
 
+def broker_identity(root: Path, runtime_root: Path, commit: str) -> dict[str, str]:
+    proof = json.loads((runtime_root / "smoke.json").read_text())
+    rollout = json.loads((runtime_root / "release-smoke.json").read_text())
+    expected_id = proof.get("broker_image_id")
+    if (
+        not isinstance(expected_id, str)
+        or not re.fullmatch(r"sha256:[a-f0-9]{64}", expected_id)
+        or rollout.get("broker_image_id") != expected_id
+    ):
+        raise ValueError("release_broker_smoke_required")
+    expected = (root / "image.tar.gz.sha256").read_text().split()[0]
+    digest = hashlib.sha256()
+    with (root / "image.tar.gz").open("rb") as stream:
+        size = 0
+        while chunk := stream.read(1048576):
+            size += len(chunk)
+            if size > 536870912:
+                raise ValueError("release_runtime_archive_too_large")
+            digest.update(chunk)
+    if digest.hexdigest() != expected:
+        raise ValueError("release_runtime_archive_mismatch")
+    return {
+        "artifact_name": "fitician-debug-broker-" + commit,
+        "archive_sha256": expected,
+        "image_id": expected_id,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runtime-directory", type=Path, required=True)
+    parser.add_argument("--broker-directory", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     commit, run_id = os.environ["GITHUB_SHA"], int(os.environ["GITHUB_RUN_ID"])
@@ -143,6 +172,15 @@ def main() -> None:
             "agent": image_identity("agent", os.environ["AGENT_DIGEST"], commit),
         },
         "debug_runtime": runtime_identity(args.runtime_directory, commit),
+        **(
+            {
+                "debug_broker": broker_identity(
+                    args.broker_directory, args.runtime_directory, commit
+                )
+            }
+            if args.broker_directory is not None
+            else {}
+        ),
         "web_source_maps": {
             "release": "fitician-web@" + commit,
             "private_layers_checked": True,

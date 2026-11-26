@@ -609,6 +609,7 @@ jobs:
         with:
           context: .
           file: docker/debug-runtime/Dockerfile
+          target: connector
           build-args: |
             APP_BUILD_SHA=${{ github.sha }}
           load: true
@@ -616,27 +617,46 @@ jobs:
           tags: fitician-debug-runtime:${{ github.sha }}
           cache-from: type=gha,scope=fitician-debug-runtime
           cache-to: type=gha,mode=max,scope=fitician-debug-runtime
+      - name: Build lightweight debug broker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/debug-runtime/Dockerfile
+          target: broker
+          build-args: |
+            APP_BUILD_SHA=${{ github.sha }}
+          load: true
+          push: false
+          tags: fitician-debug-broker:${{ github.sha }}
+          cache-from: type=gha,scope=fitician-debug-broker
+          cache-to: type=gha,mode=max,scope=fitician-debug-broker
       - name: Verify runtime isolation, protocol and restart persistence
         run: >-
           python3 ops/smoke-debug-runtime.py
-          --image fitician-debug-runtime:${{ github.sha }} --commit ${{ github.sha }}
+          --image fitician-debug-runtime:${{ github.sha }}
+          --broker-image fitician-debug-broker:${{ github.sha }}
+          --commit ${{ github.sha }}
           --output .ci-evidence/debug-runtime/smoke.json
       - name: Export the exact tested runtime for offline delivery
         id: runtime_export
         run: |
           set -euo pipefail
+          mkdir -p .ci-evidence/debug-runtime .ci-evidence/debug-broker
           docker save fitician-debug-runtime:${{ github.sha }} | gzip -1 > .ci-evidence/debug-runtime/image.tar.gz
-          cd .ci-evidence/debug-runtime
-          sha256sum image.tar.gz > image.tar.gz.sha256
+          (cd .ci-evidence/debug-runtime && sha256sum image.tar.gz > image.tar.gz.sha256)
+          docker save fitician-debug-broker:${{ github.sha }} | gzip -1 > .ci-evidence/debug-broker/image.tar.gz
+          (cd .ci-evidence/debug-broker && sha256sum image.tar.gz > image.tar.gz.sha256)
       - name: Exercise actual independent runtime rollout, idempotency and rollback
         run: |
           # Only this job's ephemeral build daemon is stopped; no application service is involved.
           docker buildx stop "${{ steps.runtime_builder.outputs.name }}"
           python3 ops/smoke-debug-runtime-release.py --directory .ci-evidence/debug-runtime \
+            --broker-directory .ci-evidence/debug-broker \
             --commit ${{ github.sha }} --output .ci-evidence/debug-runtime/release-smoke.json
       - name: Bind independent runtime manifest to tested image and CI run
         run: >-
           python3 ops/runtime-release-manifest.py --directory .ci-evidence/debug-runtime
+          --broker-directory .ci-evidence/debug-broker
           --output .ci-evidence/debug-runtime/manifest.json --commit ${{ github.sha }}
           --ci-run-id ${{ github.run_id }} --run-attempt ${{ github.run_attempt }}
       - uses: actions/upload-artifact@v4
@@ -662,6 +682,16 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && steps.runtime_export.outcome == 'success' }}
+        with:
+          name: fitician-debug-broker-${{ github.sha }}
+          path: .ci-evidence/debug-broker/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
 
   debug-validation:
     name: Controlled debug validation
@@ -895,6 +925,12 @@ jobs:
         with:
           name: fitician-debug-runtime-${{ github.sha }}
           path: .ci-evidence/debug-runtime-release
+      - name: Download the exact independently tested debug broker
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+        uses: actions/download-artifact@v4
+        with:
+          name: fitician-debug-broker-${{ github.sha }}
+          path: .ci-evidence/debug-broker-release
       - name: Bind published image digests and tested runtime to this release
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
         env:
@@ -904,6 +940,7 @@ jobs:
         run: >-
           python3 ops/release-manifest.py
           --runtime-directory .ci-evidence/debug-runtime-release
+          --broker-directory .ci-evidence/debug-broker-release
           --output .ci-evidence/release/manifest.json
       - name: Retain the immutable release manifest
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')

@@ -540,7 +540,7 @@ jobs:
           scp -P "$VPS_SSH_PORT" .ci-evidence/offline-iran/image.tar.gz .ci-evidence/offline-iran/image.tar.gz.sha256 .ci-evidence/offline-iran/manifest.json "$VPS_USER@$VPS_HOST:$release_dir/offline/"
           scp -P "$VPS_SSH_PORT" ops/load-offline-release.py "$VPS_USER@$VPS_HOST:$release_dir/ops/load-offline-release.py"
           ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" \
-            "python3 '$release_dir/ops/load-offline-release.py' --directory '$release_dir/offline' --manifest-sha256 '$EXPECTED_MANIFEST_SHA256' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID'"
+            "python3 '$release_dir/ops/load-offline-release.py' --directory '$release_dir/offline' --manifest-sha256 '$EXPECTED_MANIFEST_SHA256' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID' --cleanup-archive"
       - name: Authenticate regional Docker client
         if: needs.normalize-request.outputs.image_source == 'registry'
         env:
@@ -688,7 +688,7 @@ jobs:
       - name: Download the already tested independent runtime
         uses: actions/download-artifact@v4
         with:
-          name: fitician-debug-runtime-${{ env.IMAGE_TAG }}
+          name: ${{ env.AUTOMATION_ONLY == 'true' && format('fitician-debug-broker-{0}', env.IMAGE_TAG) || format('fitician-debug-runtime-{0}', env.IMAGE_TAG) }}
           path: .ci-evidence/runtime-bundle
           github-token: ${{ github.token }}
           run-id: ${{ env.CI_RUN_ID }}
@@ -701,7 +701,13 @@ jobs:
           from pathlib import Path
           spec = importlib.util.spec_from_file_location('runtime_release', 'ops/deploy-debug-runtime.py')
           module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-          module.verify_bundle(Path('.ci-evidence/runtime-bundle'), os.environ['EXPECTED_MANIFEST_SHA256'], os.environ['IMAGE_TAG'], int(os.environ['CI_RUN_ID']))
+          module.verify_bundle(
+              Path('.ci-evidence/runtime-bundle'),
+              os.environ['EXPECTED_MANIFEST_SHA256'],
+              os.environ['IMAGE_TAG'],
+              int(os.environ['CI_RUN_ID']),
+              automation_only=os.environ.get('AUTOMATION_ONLY') == 'true',
+          )
           PY
       - name: Validate existing Germany destination
         run: |
@@ -749,7 +755,7 @@ jobs:
           # Unified Option A releases only the broker; CLI inference stays in Agent Service.
           # Legacy combined releases retain their explicit secure enrollment requirement.
           # shellcheck disable=SC2029
-          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" "automation=''; if [ '$AUTOMATION_ONLY' = true ]; then automation=--automation-only; elif [ -f '$DEBUG_RUNTIME_ROOT/automation-private/worker.json' ] && [ -f '$DEBUG_RUNTIME_ROOT/automation-private/github.json' ]; then automation=--automation; fi; python3 '$incoming/ops/deploy-debug-runtime.py' --root '$DEBUG_RUNTIME_ROOT' --directory '$incoming/bundle' --manifest-sha256 '$EXPECTED_MANIFEST_SHA256' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID' --regional-lock '$VPS_APP_DIR/.regional-deploy.lock' --owner-approved \$automation"
+          ssh -p "$VPS_SSH_PORT" "$VPS_USER@$VPS_HOST" "automation=''; if [ '$AUTOMATION_ONLY' = true ]; then automation=--automation-only; elif [ -f '$DEBUG_RUNTIME_ROOT/automation-private/worker.json' ] && [ -f '$DEBUG_RUNTIME_ROOT/automation-private/github.json' ]; then automation=--automation; fi; python3 '$incoming/ops/deploy-debug-runtime.py' --root '$DEBUG_RUNTIME_ROOT' --directory '$incoming/bundle' --manifest-sha256 '$EXPECTED_MANIFEST_SHA256' --commit '$IMAGE_TAG' --ci-run-id '$CI_RUN_ID' --regional-lock '$VPS_APP_DIR/.regional-deploy.lock' --owner-approved --cleanup-archive \$automation"
       - name: Retain bounded deployment evidence
         if: always() && steps.runtime_rollout.outcome != 'skipped' && steps.runtime_rollout.outcome != ''
         run: |

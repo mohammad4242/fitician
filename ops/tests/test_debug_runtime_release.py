@@ -598,4 +598,78 @@ class RuntimeReleaseTests(unittest.TestCase):
         self.assertIn("github.ref == 'refs/heads/main'", job)
         self.assertIn("fitician-debug-runtime-", job)
         self.assertIn("ops/deploy-debug-runtime.py", job)
+        self.assertIn("--cleanup-archive", job)
         self.assertNotIn("docker compose down", job)
+
+    def test_nested_oci_gzip_layer_accounting_and_reused_layer_deduction(self):
+        release = module()
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as name:
+            folder = Path(name)
+            layer1_raw = b"A" * 4096
+            layer2_raw = b"B" * 8192
+            layer1_gz = gzip.compress(layer1_raw)
+            layer2_gz = gzip.compress(layer2_raw)
+            diff1 = "sha256:" + hashlib.sha256(layer1_raw).hexdigest()
+            diff2 = "sha256:" + hashlib.sha256(layer2_raw).hexdigest()
+            b1 = hashlib.sha256(layer1_gz).hexdigest()
+            b2 = hashlib.sha256(layer2_gz).hexdigest()
+            config = json.dumps(
+                {
+                    "architecture": "amd64",
+                    "os": "linux",
+                    "config": {"Labels": {"org.opencontainers.image.revision": "c" * 40}},
+                    "rootfs": {"type": "layers", "diff_ids": [diff1, diff2]},
+                }
+            ).encode()
+            image_id = "sha256:" + hashlib.sha256(config).hexdigest()
+            archive = folder / "image.tar.gz"
+            with (
+                gzip.open(archive, "wb") as output,
+                tarfile.open(fileobj=output, mode="w|") as tar,
+            ):
+                for entry_name, content in [
+                    (image_id[7:] + ".json", config),
+                    ("blobs/sha256/" + b1, layer1_gz),
+                    ("blobs/sha256/" + b2, layer2_gz),
+                    (
+                        "manifest.json",
+                        json.dumps(
+                            [
+                                {
+                                    "Config": image_id[7:] + ".json",
+                                    "Layers": ["blobs/sha256/" + b1, "blobs/sha256/" + b2],
+                                }
+                            ]
+                        ).encode(),
+                    ),
+                ]:
+                    item = tarfile.TarInfo(entry_name)
+                    item.size = len(content)
+                    tar.addfile(item, io.BytesIO(content))
+
+            info_fresh = release.inspect_archive(archive)
+            self.assertEqual(info_fresh["unpacked_layers_bytes"], 4096 + 8192)
+            self.assertEqual(info_fresh["new_unpacked_layers_bytes"], 4096 + 8192)
+            self.assertGreater(info_fresh["unpacked_layers_bytes"], info_fresh["outer_tar_bytes"])
+
+            info_reused = release.inspect_archive(archive, existing_diff_ids={diff1})
+            self.assertEqual(info_reused["new_unpacked_layers_bytes"], 8192)
+            self.assertEqual(info_reused["new_compressed_layers_bytes"], len(layer2_gz))
+
+            manifest = release_manifest()
+            manifest["ci_run_id"] = 42
+            manifest["debug_broker"] = {
+                "artifact_name": "fitician-debug-broker-" + "c" * 40,
+                "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
+                "image_id": image_id,
+            }
+            mfile = folder / "manifest.json"
+            mfile.write_text(json.dumps(manifest))
+            digest = hashlib.sha256(mfile.read_bytes()).hexdigest()
+            self.assertEqual(
+                release.verify_bundle(folder, digest, "c" * 40, 42, automation_only=True)["debug_broker"],
+                manifest["debug_broker"],
+            )
+            release.MAX_UNPACKED = 10000
+            with self.assertRaisesRegex(ValueError, "runtime_archive_size_limit"):
+                release.unpacked_size(archive)

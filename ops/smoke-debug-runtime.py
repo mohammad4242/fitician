@@ -63,7 +63,7 @@ def wait_healthy(name: str) -> None:
     raise RuntimeLivenessFailure(details)
 
 
-def run_automation(image: str, commit: str) -> dict:
+def run_automation(image: str, commit: str, *, require_lightweight: bool = False) -> dict:
     """Exercise the separate broker process, not just the model connector entrypoint."""
     name = "fitician-debug-automation-test-" + str(uuid4())
     command("docker", "volume", "create", name)
@@ -104,6 +104,21 @@ def run_automation(image: str, commit: str) -> dict:
         assert config["HostConfig"]["Memory"] == 192 * 1024**2
         assert not config["HostConfig"].get("PortBindings")
         assert {m["Destination"] for m in config["Mounts"]} <= {"/state", "/tmp"}
+        if require_lightweight:
+            assert (
+                command(
+                    "docker",
+                    "exec",
+                    name,
+                    "python",
+                    "-c",
+                    "import shutil; from pathlib import Path; "
+                    "assert not Path('/usr/local/bin/codex').exists() "
+                    "and not Path('/usr/local/bin/codex-code-mode-host').exists() "
+                    "and shutil.which('git') is None; print('lightweight')",
+                )
+                == "lightweight"
+            )
         status = json.loads(
             command(
                 "docker",
@@ -146,18 +161,30 @@ def run_automation(image: str, commit: str) -> dict:
             "graceful_shutdown": True,
             "persistent_state_after_restart": True,
             "github_connected": False,
+            **({"lightweight_broker": True} if require_lightweight else {}),
         }
     finally:
         subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=30, check=False)
         command("docker", "volume", "rm", name)
 
 
-def run(image: str, commit: str) -> dict:
+def run(image: str, commit: str, *, broker_image: str | None = None) -> dict:
     if not re.fullmatch(r"[a-f0-9]{40}", commit):
         raise ValueError("exact_commit_required")
     metadata = json.loads(command("docker", "image", "inspect", image))[0]
     if metadata["Config"].get("Labels", {}).get("org.opencontainers.image.revision") != commit:
         raise ValueError("runtime_image_revision_mismatch")
+    broker_target = image
+    broker_id = None
+    if broker_image:
+        broker_metadata = json.loads(command("docker", "image", "inspect", broker_image))[0]
+        if (
+            broker_metadata["Config"].get("Labels", {}).get("org.opencontainers.image.revision")
+            != commit
+        ):
+            raise ValueError("runtime_image_revision_mismatch")
+        broker_target = broker_metadata["Id"]
+        broker_id = config_digest_for_image(broker_target)
     name = "fitician-debug-runtime-test-" + str(uuid4())
     command("docker", "volume", "create", name)
     try:
@@ -265,7 +292,10 @@ def run(image: str, commit: str) -> dict:
             "authenticated": False,
             "panel_connected": False,
             "inference_verified": False,
-            "automation": run_automation(metadata["Id"], commit),
+            "automation": run_automation(
+                broker_target, commit, require_lightweight=bool(broker_image)
+            ),
+            **({"broker_image_id": broker_id} if broker_id else {}),
         }
     finally:
         subprocess.run(["docker", "rm", "-f", name], capture_output=True, timeout=30, check=False)
@@ -275,11 +305,12 @@ def run(image: str, commit: str) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", required=True)
+    parser.add_argument("--broker-image")
     parser.add_argument("--commit", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
-        evidence = run(args.image, args.commit)
+        evidence = run(args.image, args.commit, broker_image=args.broker_image)
     except RuntimeLivenessFailure as error:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         failure = args.output.with_name("health-failure.json")

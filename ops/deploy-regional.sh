@@ -540,12 +540,29 @@ archive_agent_auth_volume() {
 import os
 import tarfile
 
-root = "/home/agent"
-destination = "/backup/auth-volume.tar"
+root = os.environ.get("FITICIAN_AUTH_SOURCE", "/home/agent")
+destination = os.environ.get("FITICIAN_AUTH_ARCHIVE", "/backup/auth-volume.tar")
+excluded_prefixes = (
+    "agent/.npm",
+    "agent/.cache",
+    "agent/.codex/cache",
+    "agent/.codex/tmp",
+    "agent/.gemini/antigravity-cli/fitician-cache",
+    "agent/.gemini/antigravity-cli/cache",
+    "agent/.gemini/antigravity-cli/crashes",
+)
 if not os.path.isdir(root):
     raise SystemExit("Agent auth home is unavailable")
+
+def include_member(member: tarfile.TarInfo) -> tarfile.TarInfo | None:
+    name = member.name.rstrip("/")
+    for prefix in excluded_prefixes:
+        if name == prefix or name.startswith(prefix + "/"):
+            return None
+    return member
+
 with tarfile.open(destination, "w") as archive:
-    archive.add(root, arcname="agent", recursive=True)
+    archive.add(root, arcname="agent", recursive=True, filter=include_member)
 os.chmod(destination, 0o600)
 '
   [[ -s "$agent_auth_archive_dir/auth-volume.tar" ]] || fail 'Agent auth backup archive is missing or empty'

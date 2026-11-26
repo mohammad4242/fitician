@@ -24,27 +24,61 @@ try:
     from app.debugging.image_identity import (
         canonical_config_digest,
         config_digest_for_image,
+        inspect_archive,
     )
     from app.debugging.release_contract import (
         validate_release,
         validate_runtime_release,
     )
 except ModuleNotFoundError:
-    from image_identity import canonical_config_digest, config_digest_for_image
+    from image_identity import canonical_config_digest, config_digest_for_image, inspect_archive
     from release_contract import validate_release, validate_runtime_release
 
 PROJECT = "fitician-debug-runtime"
 MAX_UNPACKED = 2147483648
 
 
+def _existing_diff_ids() -> set[str]:
+    try:
+        ids = subprocess.run(
+            ["docker", "image", "ls", "-aq"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=15,
+        ).stdout.split()
+        if not ids:
+            return set()
+        raw = subprocess.run(
+            ["docker", "image", "inspect", "--format", "{{json .RootFS.Layers}}", *ids],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=30,
+        ).stdout
+        diff_ids: set[str] = set()
+        for line in raw.splitlines():
+            line = line.strip()
+            if line:
+                diff_ids.update(json.loads(line))
+        return diff_ids
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return set()
+
+
 def unpacked_size(archive: Path) -> int:
-    size = 0
-    with gzip.open(archive, "rb") as stream:
-        while chunk := stream.read(1048576):
-            size += len(chunk)
-            if size > MAX_UNPACKED:
-                raise ValueError("runtime_archive_size_limit")
-    return size
+    try:
+        info = inspect_archive(
+            archive,
+            max_archive_bytes=536870912,
+            max_unpacked_bytes=MAX_UNPACKED,
+            require_single_config=False,
+        )
+        return int(info["effective_unpacked_bytes"])
+    except ValueError as error:
+        if str(error) == "image_archive_size_limit":
+            raise ValueError("runtime_archive_size_limit") from None
+        raise
 
 
 def docker(*args: str, timeout: int = 60) -> str:
@@ -84,9 +118,14 @@ def docker(*args: str, timeout: int = 60) -> str:
     return value.stdout.decode()
 
 
-def verify_bundle(
-    directory: Path, expected: str, commit: str, run_id: int
-) -> dict[str, Any]:
+def _verify_bundle_details(
+    directory: Path,
+    expected: str,
+    commit: str,
+    run_id: int,
+    *,
+    automation_only: bool = False,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     file = directory / "manifest.json"
     if file.is_symlink() or file.stat().st_size > 16384:
         raise ValueError("runtime_manifest_invalid")
@@ -103,20 +142,43 @@ def verify_bundle(
         else validate_release
     )
     manifest = validator(value, commit=commit, ci_run_id=run_id)
+    target = (
+        manifest["debug_broker"]
+        if automation_only and "debug_broker" in manifest
+        else manifest["debug_runtime"]
+    )
     archive = directory / "image.tar.gz"
     if archive.is_symlink() or not 0 < archive.stat().st_size <= 536870912:
         raise ValueError("runtime_archive_size_limit")
-    digest = hashlib.sha256()
-    with archive.open("rb") as stream:
-        while chunk := stream.read(1048576):
-            digest.update(chunk)
-    if digest.hexdigest() != manifest["debug_runtime"]["archive_sha256"]:
-        raise ValueError("runtime_archive_mismatch")
-    unpacked_size(archive)
-    with gzip.open(archive, "rb") as stream:
-        identity = canonical_config_digest(stream)
-    if identity != manifest["debug_runtime"]["image_id"]:
+    try:
+        info = inspect_archive(
+            archive,
+            max_archive_bytes=536870912,
+            max_unpacked_bytes=MAX_UNPACKED,
+            require_single_config=True,
+            expected_sha256=target["archive_sha256"],
+            mismatch_error="runtime_archive_mismatch",
+        )
+    except ValueError as error:
+        if str(error) == "image_archive_size_limit":
+            raise ValueError("runtime_archive_size_limit") from None
+        raise
+    if info["image_id"] != target["image_id"]:
         raise ValueError("runtime_archive_image_mismatch")
+    return manifest, info
+
+
+def verify_bundle(
+    directory: Path,
+    expected: str,
+    commit: str,
+    run_id: int,
+    *,
+    automation_only: bool = False,
+) -> dict[str, Any]:
+    manifest, _ = _verify_bundle_details(
+        directory, expected, commit, run_id, automation_only=automation_only
+    )
     return manifest
 
 
@@ -405,6 +467,7 @@ def deploy(
     owner_approved: bool,
     automation: bool = False,
     automation_only: bool = False,
+    cleanup_archive: bool = False,
 ) -> dict[str, Any]:
     if not owner_approved:
         raise ValueError("runtime_owner_approval_required")
@@ -442,7 +505,14 @@ def deploy(
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise ValueError("regional_deployment_in_progress") from None
-        manifest = verify_bundle(directory, expected, commit, run_id)
+        manifest, footprint = _verify_bundle_details(
+            directory, expected, commit, run_id, automation_only=automation_only
+        )
+        target_broker = bool(automation_only and "debug_broker" in manifest)
+        target_meta = (
+            manifest["debug_broker"] if target_broker else manifest["debug_runtime"]
+        )
+        target_image_id = target_meta["image_id"]
         active = root / (
             "active-automation-release.json"
             if automation_only
@@ -510,7 +580,9 @@ def deploy(
                 receipt.get("state") == "deployed"
                 and receipt.get("manifest_sha256") == expected
             ):
-                verify_running(services, manifest["debug_runtime"]["image_id"], commit)
+                verify_running(services, target_image_id, commit)
+                if cleanup_archive and (directory / "image.tar.gz").exists():
+                    (directory / "image.tar.gz").unlink()
                 return receipt
             raise ValueError("runtime_previous_attempt_requires_reconciliation")
         memory = {
@@ -528,9 +600,23 @@ def deploy(
             "automation" in services,
             connector="connector" in services,
         )
-        required_disk = max(
-            3221225472, unpacked_size(directory / "image.tar.gz") + 1610612736
+        existing = _existing_diff_ids()
+        new_compressed = sum(
+            int(entry["compressed_bytes"])
+            for entry in footprint.get("layer_entries", [])
+            if entry.get("diff_id") not in existing
         )
+        new_unpacked = sum(
+            int(entry["unpacked_bytes"])
+            for entry in footprint.get("layer_entries", [])
+            if entry.get("diff_id") not in existing
+        )
+        new_layer_delta = (
+            new_compressed + new_unpacked
+            if footprint["unpacked_layers_bytes"] > 0
+            else footprint["effective_unpacked_bytes"]
+        )
+        required_disk = max(3221225472, new_layer_delta + 1610612736)
         if shutil.disk_usage(root).free < required_disk:
             raise ValueError("runtime_disk_capacity_required")
         release.mkdir(mode=0o700, parents=True, exist_ok=False)
@@ -543,6 +629,15 @@ def deploy(
             "business_outcome_verified": False,
             "panel_execution_verified": False,
             "previous_contract": str(previous),
+            "target_role": "broker" if target_broker else "runtime",
+            "disk_footprint": {
+                "compressed_archive_bytes": footprint["compressed_archive_bytes"],
+                "outer_tar_bytes": footprint["outer_tar_bytes"],
+                "unpacked_layers_bytes": footprint["unpacked_layers_bytes"],
+                "new_compressed_layers_bytes": new_compressed,
+                "new_unpacked_layers_bytes": new_unpacked,
+                "required_disk_bytes": required_disk,
+            },
         }
         save(journal, receipt)
         try:
@@ -567,17 +662,23 @@ def deploy(
                 if process.poll() is None:
                     process.kill()
                     process.wait(timeout=10)
-            reference = "fitician-debug-runtime:" + commit
+            reference = (
+                "fitician-debug-broker:"
+                if target_broker
+                else "fitician-debug-runtime:"
+            ) + commit
             image = json.loads(docker("image", "inspect", reference))[0]
             if (
                 image["Config"]
                 .get("Labels", {})
                 .get("org.opencontainers.image.revision")
                 != commit
-                or config_digest_for_image(image["Id"])
-                != manifest["debug_runtime"]["image_id"]
+                or config_digest_for_image(image["Id"]) != target_image_id
             ):
                 raise ValueError("runtime_loaded_image_mismatch")
+            if cleanup_archive and archive.exists():
+                archive.unlink()
+                receipt["archive_cleaned"] = True
             contract = release / "compose.debug-runtime.yaml"
             contract.write_bytes(
                 (
@@ -586,15 +687,23 @@ def deploy(
             )
             contract.chmod(0o600)
             environment = release / "runtime.env"
-            environment.write_text(
-                f"FITICIAN_DEBUG_RUNTIME_IMAGE={image['Id']}\nFITICIAN_DEBUG_RUNTIME_ROOT={root}\n"
-            )
+            if target_broker:
+                connector_image = prior_row["Image"] if prior_row else image["Id"]
+                environment.write_text(
+                    f"FITICIAN_DEBUG_RUNTIME_IMAGE={connector_image}\n"
+                    f"FITICIAN_DEBUG_BROKER_IMAGE={image['Id']}\n"
+                    f"FITICIAN_DEBUG_RUNTIME_ROOT={root}\n"
+                )
+            else:
+                environment.write_text(
+                    f"FITICIAN_DEBUG_RUNTIME_IMAGE={image['Id']}\nFITICIAN_DEBUG_RUNTIME_ROOT={root}\n"
+                )
             environment.chmod(0o600)
             receipt["services"] = rollout(
                 contract,
                 previous,
                 services,
-                manifest["debug_runtime"]["image_id"],
+                target_image_id,
                 commit,
                 prior,
             )
@@ -641,6 +750,7 @@ def main() -> None:
     parser.add_argument("--ci-run-id", type=int, required=True)
     parser.add_argument("--regional-lock", type=Path, required=True)
     parser.add_argument("--owner-approved", action="store_true")
+    parser.add_argument("--cleanup-archive", action="store_true")
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument("--automation", action="store_true")
     selection.add_argument("--automation-only", action="store_true")
@@ -656,6 +766,7 @@ def main() -> None:
             owner_approved=args.owner_approved,
             automation=args.automation,
             automation_only=args.automation_only,
+            cleanup_archive=args.cleanup_archive,
         )
         print(json.dumps(result))
     except Exception as error:  # noqa: BLE001 - never emit raw subprocess/metadata error bodies

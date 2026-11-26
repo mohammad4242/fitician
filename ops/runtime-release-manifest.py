@@ -21,7 +21,12 @@ from app.debugging.release_contract import validate_runtime_release
 
 
 def build_manifest(
-    directory: Path, commit: str, run_id: int, attempt: int
+    directory: Path,
+    commit: str,
+    run_id: int,
+    attempt: int,
+    *,
+    broker_directory: Path | None = None,
 ) -> dict[str, Any]:
     for name in (
         "smoke.json",
@@ -45,7 +50,7 @@ def build_manifest(
     with gzip.open(directory / "image.tar.gz", "rb") as archive:
         if canonical_config_digest(archive) != identity["image_id"]:
             raise ValueError("runtime_archive_image_mismatch")
-    result = {
+    result: dict[str, Any] = {
         "version": 1,
         "kind": "debug-runtime",
         "repository": "mohammad4242/fitician",
@@ -54,12 +59,26 @@ def build_manifest(
         "run_attempt": attempt,
         "debug_runtime": identity,
     }
+    if broker_directory is not None:
+        for name in ("image.tar.gz.sha256", "image.tar.gz"):
+            path = broker_directory / name
+            maximum = 536870912 if name == "image.tar.gz" else 65536
+            if path.is_symlink() or not path.is_file():
+                raise ValueError("runtime_evidence_required")
+            if path.stat().st_size > maximum:
+                raise ValueError("runtime_evidence_too_large")
+        broker = proof.broker_identity(broker_directory, directory, commit)
+        with gzip.open(broker_directory / "image.tar.gz", "rb") as archive:
+            if canonical_config_digest(archive) != broker["image_id"]:
+                raise ValueError("runtime_archive_image_mismatch")
+        result["debug_broker"] = broker
     return validate_runtime_release(result, commit=commit, ci_run_id=run_id)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", type=Path, required=True)
+    parser.add_argument("--broker-directory", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--commit", required=True)
     parser.add_argument("--ci-run-id", type=int, required=True)
@@ -67,7 +86,11 @@ def main() -> None:
     args = parser.parse_args()
     try:
         result = build_manifest(
-            args.directory, args.commit, args.ci_run_id, args.run_attempt
+            args.directory,
+            args.commit,
+            args.ci_run_id,
+            args.run_attempt,
+            broker_directory=args.broker_directory,
         )
         raw = (json.dumps(result, indent=2, sort_keys=True) + "\n").encode()
         descriptor = os.open(

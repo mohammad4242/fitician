@@ -192,3 +192,45 @@ class DebugServerRuntimeTests(unittest.TestCase):
             .splitlines()[0],
             "**",
         )
+
+    def test_dockerfile_defines_lightweight_broker_target_and_default_connector_target(self):
+        dockerfile = (ROOT / "docker/debug-runtime/Dockerfile").read_text()
+        self.assertIn("AS runtime-deps", dockerfile)
+        self.assertIn("AS broker", dockerfile)
+        self.assertIn("AS connector", dockerfile)
+        broker_section = dockerfile.split("AS broker\n", 1)[1].split("FROM runtime-deps AS connector", 1)[0]
+        connector_section = dockerfile.split("FROM runtime-deps AS connector\n", 1)[1]
+        self.assertNotIn("/usr/local/bin/codex", broker_section)
+        self.assertNotIn("codex-code-mode-host", broker_section)
+        self.assertNotIn("install --no-install-recommends -y git", broker_section)
+        self.assertIn('ENTRYPOINT ["python", "-m", "app.debugging.automation_client"]', broker_section)
+        self.assertIn("COPY --from=codex /usr/local/bin/codex", connector_section)
+        self.assertIn('ENTRYPOINT ["python", "-m", "app.debugging.server_runtime"]', connector_section)
+
+    def test_compose_supports_dedicated_broker_image_independently_of_connector(self):
+        result = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "compose.debug-runtime.yaml",
+                "--profile",
+                "automation",
+                "config",
+                "--format",
+                "json",
+            ],
+            cwd=ROOT,
+            env=dict(
+                os.environ,
+                FITICIAN_DEBUG_RUNTIME_IMAGE="sha256:" + "a" * 64,
+                FITICIAN_DEBUG_BROKER_IMAGE="sha256:" + "b" * 64,
+                FITICIAN_DEBUG_RUNTIME_ROOT="/opt/fitician-debug-runtime",
+            ),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        services = json.loads(result.stdout)["services"]
+        self.assertEqual(services["connector"]["image"], "sha256:" + "a" * 64)
+        self.assertEqual(services["automation"]["image"], "sha256:" + "b" * 64)
