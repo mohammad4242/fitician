@@ -38,12 +38,8 @@ with tarfile.open(archive) as source:
 assert '--listen' in subprocess.check_output([str(target), '--help'], text=True, timeout=10)
 PY
 
-FROM python:3.12-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36
-RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
-    && apt-get -o Acquire::https::Timeout=20 -o Acquire::Retries=1 update \
-    && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::https::Timeout=20 -o Acquire::Retries=1 install --no-install-recommends -y git ca-certificates \
-    && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid 10001 debug-runtime \
+FROM python:3.12-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36 AS runtime-deps
+RUN groupadd --gid 10001 debug-runtime \
     && useradd --uid 10001 --gid 10001 --home-dir /state --no-create-home debug-runtime \
     && mkdir /state \
     && chown 10001:10001 /state \
@@ -51,6 +47,36 @@ RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.l
 COPY docker/debug-runtime/requirements.lock /build/requirements.lock
 RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r /build/requirements.lock \
     && rm -rf /build
+
+FROM runtime-deps AS broker
+WORKDIR /app
+COPY backend/app/__init__.py /app/app/__init__.py
+COPY backend/app/debugging/__init__.py backend/app/debugging/appserver.py \
+     backend/app/debugging/catalog.py backend/app/debugging/connector.py \
+     backend/app/debugging/api_runtime.py backend/app/debugging/germany_provider.py \
+     backend/app/debugging/github.py backend/app/debugging/limits.py \
+     backend/app/debugging/privacy.py backend/app/debugging/runtime_storage.py \
+     backend/app/debugging/server_runtime.py backend/app/debugging/tools.py \
+     backend/app/debugging/workspaces.py backend/app/debugging/ci_contract.py \
+     backend/app/debugging/laptop_validation.py \
+     backend/app/debugging/github_automation.py backend/app/debugging/automation_client.py \
+     backend/app/debugging/host_broker.py backend/app/debugging/deployment_broker.py \
+     backend/app/debugging/github_deployment.py backend/app/debugging/release_contract.py \
+     backend/app/debugging/process_lifecycle.py backend/app/debugging/healthcheck.py /app/app/debugging/
+COPY backend/app/observability/__init__.py backend/app/observability/sentry.py /app/app/observability/
+ARG APP_BUILD_SHA
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HOME=/state CODEX_HOME=/state/codex \
+    FITICIAN_RUNTIME_COMMIT=${APP_BUILD_SHA}
+LABEL org.opencontainers.image.revision=${APP_BUILD_SHA}
+USER 10001:10001
+ENTRYPOINT ["python", "-m", "app.debugging.automation_client"]
+CMD ["serve"]
+
+FROM runtime-deps AS connector
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get -o Acquire::https::Timeout=20 -o Acquire::Retries=1 update \
+    && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::https::Timeout=20 -o Acquire::Retries=1 install --no-install-recommends -y git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=codex /usr/local/bin/codex /usr/local/bin/codex
 COPY --from=codex /usr/local/bin/codex-code-mode-host /usr/local/bin/codex-code-mode-host
 WORKDIR /app

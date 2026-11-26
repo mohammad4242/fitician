@@ -13,12 +13,32 @@ def _digest(value: Any) -> bool:
     return isinstance(value, str) and bool(re.fullmatch(r"sha256:[a-f0-9]{64}", value))
 
 
+def _validate_broker(broker: Any, *, commit: str, error_code: str) -> None:
+    if (
+        not isinstance(broker, dict)
+        or set(broker) != {"artifact_name", "archive_sha256", "image_id"}
+        or broker["artifact_name"] != "fitician-debug-broker-" + commit
+        or not isinstance(broker["archive_sha256"], str)
+        or not re.fullmatch(r"[a-f0-9]{64}", broker["archive_sha256"])
+        or not _digest(broker["image_id"])
+    ):
+        raise ValueError(error_code)
+
+
 def validate_runtime_release(value: Any, *, commit: str, ci_run_id: int) -> dict[str, Any]:
     """Independent runtime identity; never substitutes for an application release manifest."""
+    required = {
+        "version",
+        "kind",
+        "repository",
+        "commit",
+        "ci_run_id",
+        "run_attempt",
+        "debug_runtime",
+    }
     if (
         not isinstance(value, dict)
-        or set(value)
-        != {"version", "kind", "repository", "commit", "ci_run_id", "run_attempt", "debug_runtime"}
+        or (set(value) != required and set(value) != required | {"debug_broker"})
         or len(json.dumps(value).encode()) > 16384
         or type(value["version"]) is not int
         or value["version"] != 1
@@ -46,6 +66,10 @@ def validate_runtime_release(value: Any, *, commit: str, ci_run_id: int) -> dict
         or runtime["cli_version"] != "0.167.2"
     ):
         raise ValueError("runtime_manifest_invalid")
+    if "debug_broker" in value:
+        _validate_broker(
+            value["debug_broker"], commit=commit, error_code="runtime_manifest_invalid"
+        )
     return cast(dict[str, Any], value)
 
 
@@ -53,19 +77,19 @@ def validate_release(value: Any, *, commit: str, ci_run_id: int) -> dict[str, An
     def reject() -> None:
         raise ValueError("release_manifest_invalid")
 
+    required = {
+        "version",
+        "repository",
+        "commit",
+        "ci_run_id",
+        "run_attempt",
+        "images",
+        "debug_runtime",
+        "web_source_maps",
+    }
     if (
         not isinstance(value, dict)
-        or set(value)
-        != {
-            "version",
-            "repository",
-            "commit",
-            "ci_run_id",
-            "run_attempt",
-            "images",
-            "debug_runtime",
-            "web_source_maps",
-        }
+        or (set(value) != required and set(value) != required | {"debug_broker"})
         or len(json.dumps(value).encode()) > 16384
     ):
         reject()
@@ -109,6 +133,10 @@ def validate_release(value: Any, *, commit: str, ci_run_id: int) -> dict[str, An
         or runtime["cli_version"] != "0.167.2"
     ):
         reject()
+    if "debug_broker" in value:
+        _validate_broker(
+            value["debug_broker"], commit=commit, error_code="release_manifest_invalid"
+        )
     maps = value["web_source_maps"]
     if (
         not isinstance(maps, dict)

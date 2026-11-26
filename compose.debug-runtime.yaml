@@ -35,7 +35,7 @@ services:
       options: {max-size: 1m, max-file: '2'}
   automation:
     profiles: [automation]
-    image: ${FITICIAN_DEBUG_RUNTIME_IMAGE:?Set the tested immutable runtime image digest}
+    image: ${FITICIAN_DEBUG_BROKER_IMAGE:-${FITICIAN_DEBUG_RUNTIME_IMAGE:?Set the tested immutable runtime image digest}}
     pull_policy: never
     entrypoint: [python, -m, app.debugging.automation_client]
     command: [serve]

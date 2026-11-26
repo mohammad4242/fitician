@@ -132,3 +132,32 @@ class IndependentManifestTests(unittest.TestCase):
                 output.write(b"changed")
             with self.assertRaises(ValueError):
                 builder().build_manifest(path, "c" * 40, 42, 1)
+
+    def test_binds_optional_lightweight_broker_artifact_alongside_runtime(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as name:
+            root = Path(name)
+            runtime_dir = root / "runtime"
+            broker_dir = root / "broker"
+            runtime_dir.mkdir()
+            broker_dir.mkdir()
+            expected_runtime = evidence(runtime_dir)
+            broker_manifest, _ = bundle(broker_dir)
+            broker_id = broker_manifest["debug_runtime"]["image_id"]
+            broker_sha = broker_manifest["debug_runtime"]["archive_sha256"]
+            (broker_dir / "image.tar.gz.sha256").write_text(broker_sha)
+            for filename in ("smoke.json", "release-smoke.json"):
+                payload = json.loads((runtime_dir / filename).read_text())
+                payload["broker_image_id"] = broker_id
+                (runtime_dir / filename).write_text(json.dumps(payload))
+            observed = builder().build_manifest(
+                runtime_dir, "c" * 40, 42, 1, broker_directory=broker_dir
+            )
+            self.assertEqual(observed["debug_runtime"], expected_runtime["debug_runtime"])
+            self.assertEqual(
+                observed["debug_broker"],
+                {
+                    "artifact_name": "fitician-debug-broker-" + "c" * 40,
+                    "archive_sha256": broker_sha,
+                    "image_id": broker_id,
+                },
+            )

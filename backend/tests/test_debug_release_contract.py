@@ -65,3 +65,43 @@ def test_incomplete_private_source_map_gate_and_mismatched_runtime_artifact_are_
         changed[area][field] = value
         with pytest.raises(ValueError):
             validate_release(changed, commit="a" * 40, ci_run_id=123)
+
+
+def test_optional_debug_broker_contract_is_strictly_validated():
+    from app.debugging.release_contract import validate_release, validate_runtime_release
+
+    commit = "a" * 40
+    broker = {
+        "artifact_name": "fitician-debug-broker-" + commit,
+        "archive_sha256": "f" * 64,
+        "image_id": "sha256:" + "1" * 64,
+    }
+    full = {**manifest(), "debug_broker": broker}
+    assert validate_release(full, commit=commit, ci_run_id=123) == full
+
+    runtime_only = {
+        "version": 1,
+        "kind": "debug-runtime",
+        "repository": "mohammad4242/fitician",
+        "commit": commit,
+        "ci_run_id": 123,
+        "run_attempt": 1,
+        "debug_runtime": manifest()["debug_runtime"],
+        "debug_broker": broker,
+    }
+    assert validate_runtime_release(runtime_only, commit=commit, ci_run_id=123) == runtime_only
+
+    for bad_broker in [
+        {**broker, "artifact_name": "fitician-debug-runtime-" + commit},
+        {**broker, "archive_sha256": "not-sha"},
+        {**broker, "image_id": "sha256:bad"},
+        {**broker, "extra": True},
+    ]:
+        with pytest.raises(ValueError):
+            validate_release(
+                {**manifest(), "debug_broker": bad_broker}, commit=commit, ci_run_id=123
+            )
+        with pytest.raises(ValueError):
+            validate_runtime_release(
+                {**runtime_only, "debug_broker": bad_broker}, commit=commit, ci_run_id=123
+            )
