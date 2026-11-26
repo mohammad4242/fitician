@@ -151,6 +151,8 @@ elif [[ "$*" == *"config --format json"* ]]; then
   fi
 elif [[ "$*" == *"volume inspect"* ]]; then
   [ "${FAKE_AUTH_VOLUME_MISSING:-false}" != true ]
+elif [[ "$*" == *"ps --status running -q caddy"* || "$*" == *"label=com.docker.compose.project=fitician_iran-diagnostics"* ]]; then
+  :
 elif [[ "$1" == ps ]]; then
   printf 'legacy-agent\n'
 elif [[ "$*" == *"com.docker.compose.service"* ]]; then
@@ -191,12 +193,22 @@ elif [[ "$*" == *"State.Status"* ]]; then
 elif [[ "$*" == *"State.Health.Status"* ]]; then
   printf '%s\n' "${FAKE_HEALTH:-healthy}"
 elif [[ "$*" == *"SELECT version_num"* ]]; then
-  printf '%s\n' "${FAKE_CURRENT_REVISION:-head_old}"
+  if [[ "${FAKE_FAIL_MIGRATION:-false}" != true && "${FAKE_MIGRATION_LEAVES_REVISION:-false}" != true ]] && grep -q '^MIGRATION_TAGSTATE|' "$FAKE_CALLS"; then
+    printf '%s\n' "${FAKE_TARGET_REVISION:-head_old}"
+  else
+    printf '%s\n' "${FAKE_CURRENT_REVISION:-head_old}"
+  fi
+elif [[ "$*" == *"pg_stat_activity"* ]]; then
+  printf '%s\n' "${FAKE_OPEN_SESSIONS:-0}"
 elif [[ "$*" == *"SELECT count(*) FROM users"* ]]; then
   printf '%s\n' "${FAKE_USER_COUNT:-3}"
 elif [[ "$*" == *"alembic heads"* ]]; then
   printf 'HEADS_TAGSTATE|%s|%s\n' "$BACKEND_API_IMAGE_TAG" "$WORKER_IMAGE_TAG" >> "$FAKE_CALLS"
-  printf '%s (head)\n' "${FAKE_TARGET_REVISION:-head_old}"
+  if [[ "$WORKER_IMAGE_TAG" == bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ]]; then
+    printf '%s (head)\n' "${FAKE_TARGET_REVISION:-head_old}"
+  else
+    printf '%s (head)\n' "${FAKE_CURRENT_REVISION:-head_old}"
+  fi
 elif [[ "$*" == *"AGENT_SERVICE_TOKEN"* ]]; then
   exit "${FAKE_AGENT_STATUS:-0}"
 elif [[ "$*" == *"run --pull never --rm --no-deps migrations alembic upgrade"* ]]; then
@@ -286,6 +298,81 @@ fi
         self.assertIn("DIAGNOSTICS rollback", calls)
         self.assertIn(f"API={OLD}", self.tags.read_text())
 
+    def test_schema_release_drains_all_writers_before_final_backup(self):
+        self.record_diagnostics()
+        self.env.update(ALLOW_SCHEMA_MIGRATIONS="true", FAKE_TARGET_REVISION="new")
+        result = self.run_deploy()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls.read_text().splitlines()
+        ingress = next(i for i, line in enumerate(calls) if " stop caddy" in line)
+        writers = next(
+            i for i, line in enumerate(calls) if " stop backend backend-2" in line
+        )
+        for service in (
+            "scheduler",
+            "food-photo-worker",
+            "body-analysis-worker",
+            "notification-worker",
+        ):
+            self.assertIn(service, calls[writers].split())
+        backup = calls.index("backup-production.sh")
+        migration = next(i for i, line in enumerate(calls) if "alembic upgrade" in line)
+        self.assertLess(ingress, writers)
+        self.assertLess(writers, calls.index("DIAGNOSTICS pause"))
+        self.assertLess(calls.index("DIAGNOSTICS pause"), backup)
+        self.assertLess(backup, migration)
+        application = next(i for i, line in enumerate(calls) if "up -d" in line and "backend-2" in line)
+        caddy = next(i for i, line in enumerate(calls) if "up -d" in line and line.endswith(" caddy"))
+        self.assertLess(migration, application)
+        self.assertLess(application, calls.index("DIAGNOSTICS start"))
+        self.assertLess(calls.index("DIAGNOSTICS start"), caddy)
+        self.assertFalse((self.app / ".regional-iran-schema-cutover").exists())
+
+    def test_schema_release_with_an_open_database_session_restores_previous_services(
+        self,
+    ):
+        self.env.update(
+            ALLOW_SCHEMA_MIGRATIONS="true",
+            FAKE_TARGET_REVISION="new",
+            FAKE_OPEN_SESSIONS="1",
+        )
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text().splitlines()
+        self.assertNotIn("backup-production.sh", calls)
+        self.assertFalse(any("alembic upgrade" in line for line in calls))
+        self.assertIn(f"API={OLD}", self.tags.read_text())
+        self.assertFalse((self.app / ".regional-iran-schema-cutover").exists())
+
+    def test_schema_release_with_failed_final_backup_reopens_previous_release(self):
+        self.env.update(
+            ALLOW_SCHEMA_MIGRATIONS="true",
+            FAKE_TARGET_REVISION="new",
+            FAKE_BACKUP_STATUS="1",
+        )
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text().splitlines()
+        self.assertIn("backup-production.sh", calls)
+        self.assertFalse(any("alembic upgrade" in line for line in calls))
+        self.assertIn(f"API={OLD}", self.tags.read_text())
+        self.assertFalse((self.app / ".regional-iran-schema-cutover").exists())
+
+    def test_schema_release_checks_revision_before_starting_candidate_writers(self):
+        self.env.update(
+            ALLOW_SCHEMA_MIGRATIONS="true",
+            FAKE_TARGET_REVISION="new",
+            FAKE_MIGRATION_LEAVES_REVISION="true",
+        )
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("migration did not reach", result.stderr)
+        self.assertFalse(
+            any(" up -d" in line for line in self.calls.read_text().splitlines())
+        )
+        cutover = self.app / ".regional-iran-schema-cutover"
+        self.assertEqual((cutover / "state").read_text().strip(), "migration")
+
     def test_failed_migration_quiesces_workers_without_image_only_worker_rollback(self):
         self.record_diagnostics()
         self.env.update(
@@ -298,6 +385,14 @@ fi
         calls = self.calls.read_text().splitlines()
         self.assertIn("DIAGNOSTICS quiesce", calls)
         self.assertNotIn("DIAGNOSTICS rollback", calls)
+        cutover = self.app / ".regional-iran-schema-cutover"
+        self.assertEqual((cutover / "state").read_text().strip(), "migration")
+        self.assertTrue((cutover / "backup.log").is_file())
+        self.calls.write_text("")
+        retry = self.run_deploy()
+        self.assertNotEqual(retry.returncode, 0)
+        self.assertIn("recovery", retry.stderr)
+        self.assertNotIn("backup-production.sh", self.calls.read_text())
 
     def test_capacity_failure_blocks_iran_before_pull_or_runtime_mutation(self) -> None:
         self.env["FAKE_CAPACITY_STATUS"] = "1"
@@ -435,7 +530,7 @@ fi
             (self.app / ".env").stat().st_mode & 0o777, self.original_env_mode
         )
 
-    def test_unapproved_schema_change_stops_after_backup(self) -> None:
+    def test_unapproved_schema_change_stops_before_backup_or_freeze(self) -> None:
         self.env.update(
             FAKE_CURRENT_REVISION="old_head", FAKE_TARGET_REVISION="new_head"
         )
@@ -444,7 +539,8 @@ fi
 
         self.assertNotEqual(result.returncode, 0)
         calls = self.calls.read_text().splitlines()
-        self.assertTrue(any("backup-production.sh" in line for line in calls))
+        self.assertNotIn("backup-production.sh", calls)
+        self.assertFalse(any(" stop " in line for line in calls))
         self.assertFalse(any(" up -d" in line for line in calls))
 
     def test_initial_iran_writes_scalability_marker_only_after_verified_release(
@@ -692,7 +788,7 @@ fi
                 for line in calls
             )
         )
-        self.assertIn("manual recovery", result.stderr.lower())
+        self.assertIn("reconcile writes", result.stderr.lower())
         stopped = next(
             line for line in calls if " stop caddy frontend backend " in line
         )
