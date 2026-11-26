@@ -773,12 +773,12 @@ if [[ "$region" == iran && "$kind" == full ]]; then
     printf '%s\n' "$active_contract" "$previous_frontend_tag" "$previous_api_tag" "$previous_worker_tag" "$previous_agent_tag" "$current_revision" "$image_tag" > "$schema_cutover/baseline"
     compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
       "$previous_worker_tag" "$previous_agent_tag" stop caddy
+    compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
+      "$previous_worker_tag" "$previous_agent_tag" stop "${iran_writers[@]}"
   fi
   diagnostics_transaction=true
   diagnostics pause
   if [[ "$cutover_started" == true ]]; then
-    compose "$active_contract" "$previous_frontend_tag" "$previous_api_tag" \
-      "$previous_worker_tag" "$previous_agent_tag" stop "${iran_writers[@]}"
     require_iran_quiescence
     (umask 077; backup_iran > "$schema_cutover/backup.log")
     require_iran_quiescence

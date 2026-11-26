@@ -6,8 +6,9 @@ SHA. Confirm availability of the age recovery identity in the approved recovery
 environment before approval. Keep the previous API, web, and worker images locally available.
 
 For an existing Iran deployment with a schema change, the script stages and checks
-the release first. It stops ingress, pauses diagnostics, and stops the API replicas,
-scheduler, and queue workers using their Compose shutdown settings. It checks for
+the release first. It stops ingress and stops the API replicas, scheduler, and queue
+workers using their Compose shutdown settings, then pauses standalone diagnostics.
+It checks for
 running writers, open PostgreSQL client and logical replication sessions, and
 prepared transactions before taking the backup. It encrypts the backup and checks
 the S3 readback against the original SHA-256. It checks quiescence again and verifies
