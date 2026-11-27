@@ -178,7 +178,7 @@ function PackageCard({ active, eligible, english, offers, onBuy, onSelectDuratio
         <div className="billing-package-card__price-row">
           <p className="billing-package-card__price">{selectedOffer.price_irr === null || selectedOffer.currency === null
             ? t("billing.offerUnavailable")
-            : <bdi dir="ltr">{formatPlanPrice(selectedOffer.price_irr, selectedOffer.currency, english)}</bdi>}</p>
+            : <bdi dir="ltr">{formatPlanPrice(selectedOffer.price_irr, selectedOffer.currency, english, { groupToman: true })}</bdi>}</p>
           {!selectedOffer.is_available && <span className="billing-package-card__unavailable">{t("billing.offerUnavailable")}</span>}
         </div>
         <button aria-label={t("billing.buySelectedPackage", { duration, package: name })} className="billing-button billing-button--primary billing-package-card__cta" disabled={!selectedOffer.is_available} onClick={() => onBuy(selectedOffer)} type="button">{t("billing.buy")}</button>

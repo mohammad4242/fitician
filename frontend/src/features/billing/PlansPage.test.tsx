@@ -99,16 +99,58 @@ it("groups six packages into three categories with one card and three durations 
   expect(screen.getByText("کامل‌ترین بسته")).toBeInTheDocument();
 });
 
+it("formats the price after selecting every duration in every package", async () => {
+  const user = userEvent.setup();
+  const categories = [
+    { tab: "تمرین", packages: [
+      { code: "training", prices: ["300,000T", "400,000T", "500,000T"] },
+      { code: "training_coach", prices: ["600,000T", "700,000T", "800,000T"] },
+    ] },
+    { tab: "تغذیه", packages: [
+      { code: "nutrition", prices: ["200,000T", "300,000T", "400,000T"] },
+      { code: "nutrition_physician", prices: ["400,000T", "500,000T", "600,000T"] },
+    ] },
+    { tab: "کامل", packages: [
+      { code: "complete", prices: ["400,000T", "500,000T", "600,000T"] },
+      { code: "complete_care", prices: ["800,000T", "900,000T", "1,200,000T"] },
+    ] },
+  ];
+  const durations = [
+    { weeks: 4, label: "۴ هفته" },
+    { weeks: 6, label: "۶ هفته" },
+    { weeks: 8, label: "۸ هفته" },
+  ];
+  billingApi.getOffers.mockResolvedValue(categories.flatMap(({ packages }) =>
+    packages.flatMap(({ code, prices }) => durations.map(({ weeks }, index) => offer({
+      offer_code: `${code}_${weeks}w`,
+      package_code: code,
+      duration_weeks: weeks,
+      price_irr: Number(prices[index].replace(/[,T]/g, "")) * 10,
+    })))));
+  renderPlans();
+
+  for (const { tab, packages } of categories) {
+    await user.click(screen.getByRole("tab", { name: tab }));
+    for (const { code, prices } of packages) {
+      const card = within(await screen.findByTestId(`billing-package-${code}`));
+      for (const [index, { label }] of durations.entries()) {
+        await user.click(card.getByRole("radio", { name: label }));
+        expect(card.getByText(prices[index], { exact: true })).toBeInTheDocument();
+      }
+    }
+  }
+});
+
 it("changes price and quota when duration changes and checks out the selected offer", async () => {
   const user = userEvent.setup();
   billingApi.getOffers.mockResolvedValue(allOffers);
   renderPlans();
 
   const card = await screen.findByTestId("billing-package-training");
-  expect(card).toHaveTextContent("400000T");
+  expect(card).toHaveTextContent("400,000T");
   expect(card).toHaveTextContent("تا ۴ Body Analysis در طول دوره — هفته‌ای ۱ بار");
   await user.click(within(card).getByRole("radio", { name: "۶ هفته", checked: false }));
-  expect(card).toHaveTextContent("600000T");
+  expect(card).toHaveTextContent("600,000T");
   expect(card).toHaveTextContent("تا ۶ Body Analysis در طول دوره — هفته‌ای ۱ بار");
 
   await user.click(screen.getByRole("button", { name: /خرید.*تمرین هوشمند.*۶ هفته/ }));
