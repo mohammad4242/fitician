@@ -7,6 +7,7 @@ import { isTetraPayCheckoutUrl, type BillingOffer, type PaymentProviderCode } fr
 import { AppErrorNotice } from "../../shared/AppErrorNotice";
 
 import { createCheckout, createOrder, getOffers, getCheckoutMethods } from "./api";
+import { formatPlanPrice } from "./formatPlanPrice";
 import "./billing.css";
 
 export function CheckoutPage() {
@@ -107,7 +108,9 @@ export function CheckoutPage() {
             </div>
             <div className="billing-checkout-card__row">
               <span>{t("billing.price")}</span>
-              <strong>{offer.price_irr === null || offer.currency === null ? t("billing.offerUnavailable") : formatAmount(offer.price_irr, offer.currency, english)}</strong>
+              <strong>{offer.price_irr === null || offer.currency === null
+                ? t("billing.offerUnavailable")
+                : <bdi dir="ltr">{formatPlanPrice(offer.price_irr, offer.currency, english)}</bdi>}</strong>
             </div>
             <button
               className="billing-button billing-button--primary"
@@ -128,10 +131,6 @@ function durationLabel(duration: BillingOffer["duration_weeks"], t: (key: string
   if (duration === 4) return t("billing.fourWeeks");
   if (duration === 6) return t("billing.sixWeeks");
   return t("billing.eightWeeks");
-}
-
-function formatAmount(amount: number, currency: string, english: boolean) {
-  return `${new Intl.NumberFormat(english ? "en-US" : "fa-IR").format(amount)} ${currency}`;
 }
 
 function createIdempotencyKey() {
