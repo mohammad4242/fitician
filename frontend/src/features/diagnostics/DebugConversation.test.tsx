@@ -192,3 +192,20 @@ it("offers evidence-only analysis for the same occurrence next to the laptop blo
     body: expect.stringContaining('"occurrence_id":"old-occurrence","evidence_only":true'),
   })));
 });
+
+it("shows a verified GitHub Actions test result beside its repair request after reload", async () => {
+  vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? {
+    events: [
+      { sequence: 1, kind: "automation_queued", payload: { kind: "validate", state: "queued", operation_id: "ci-1" } },
+      { sequence: 2, kind: "automation_progress", payload: { kind: "validate", state: "succeeded", stage: "completed", operation_id: "ci-1", workflow_run_id: 42 } },
+    ], next_cursor: 2,
+  } as never : {
+    messages: [{ id: "repair-message", run_id: "repair-run", role: "user", content: "اصلاح آزمایشی", created_at: "2026-11-27" }],
+    runs: [{ id: "repair-run", state: "completed", action: "prepare_fix", error_code: null, config: {} }], next_cursor: null,
+  } as never);
+  render(<DebugConversation issueId="repair-issue" english={false} />);
+  const status = await screen.findByText("تست GitHub Actions موفق بود");
+  expect(status.closest("article")).toHaveTextContent("اصلاح آزمایشی");
+  fireEvent.click(screen.getByText("جزئیات اجرا"));
+  expect(screen.getByRole("link", { name: "GitHub Actions" })).toHaveAttribute("href", "https://github.com/mohammad4242/fitician/actions/runs/42");
+});

@@ -158,12 +158,42 @@ function RunState({ onExplain, ...props }: Parameters<typeof RunProgress>[0] & {
   </div>;
 }
 
-interface ProgressEvent { id?: string; sequence: number; kind: string; payload: { tool?: string; mode?: string; model?: string; status?: string; pr_url?: string; commit?: string; output?: string; provenance?: string; service_request_id?: string } }
+interface ProgressEvent {
+  id?: string;
+  sequence: number;
+  kind: string;
+  payload: {
+    tool?: string; mode?: string; model?: string; status?: string; pr_url?: string;
+    commit?: string; output?: string; provenance?: string; service_request_id?: string;
+    kind?: string; operation_id?: string; state?: string; stage?: string;
+    workflow_run_id?: number; error_code?: string;
+  };
+}
+const activeValidationStates = new Set(["queued", "preparing", "dispatching", "uncertain", "running"]);
+
+function validationStatus({ state, stage }: ProgressEvent["payload"], english: boolean) {
+  if (state === "succeeded" && stage === "completed") return english ? "GitHub Actions tests passed" : "تست GitHub Actions موفق بود";
+  if (state === "failed" && stage === "completed") return english ? "GitHub Actions tests failed" : "تست GitHub Actions ناموفق بود";
+  if (state === "cancelled") return english ? "GitHub Actions test cancelled" : "تست GitHub Actions لغو شد";
+  if (state === "blocked") return english ? "GitHub Actions test blocked" : "تست GitHub Actions متوقف شد";
+  return english ? "Waiting for GitHub Actions test result" : "در انتظار نتیجهٔ تست GitHub Actions";
+}
+
 function RunProgress({ base, run, english, autoLoad = true, onRunUpdate }: { base: string; run: Run; english: boolean; autoLoad?: boolean; onRunUpdate: (run: Run) => void }) {
   const [expanded, setExpanded] = useState(false);
-  const enabled = expanded || autoLoad || activeStates.has(run.state);
   const [events, setEvents] = useState<ProgressEvent[]>([]);
   const [received, setReceived] = useState(false);
+  const validations = new Map<string, ProgressEvent["payload"]>();
+  for (const event of events) {
+    if (event.payload.kind === "validate" && event.payload.operation_id &&
+      ["automation_queued", "automation_progress"].includes(event.kind)) {
+      validations.set(event.payload.operation_id, event.payload);
+    }
+  }
+  const polling = activeStates.has(run.state) || [...validations.values()].some(
+    value => activeValidationStates.has(value.state ?? ""),
+  );
+  const enabled = expanded || autoLoad || polling;
   useEffect(() => {
     if (!enabled) return;
     let current = true;
@@ -179,9 +209,9 @@ function RunProgress({ base, run, english, autoLoad = true, onRunUpdate }: { bas
       } catch { /* Conversation polling retains the actual durable run state. */ }
     }
     void refresh();
-    const timer = activeStates.has(run.state) ? window.setInterval(() => void refresh(), 2000) : null;
+    const timer = polling ? window.setInterval(() => void refresh(), 2000) : null;
     return () => { current = false; if (timer !== null) window.clearInterval(timer); };
-  }, [base, run.id, run.state, enabled, onRunUpdate]);
+  }, [base, run.id, run.state, enabled, polling, onRunUpdate]);
   const recentChange = [...events].reverse().find(event => event.kind === "tool_completed" &&
     event.payload.tool === "fitician_write_file");
   const localTest = [...events].reverse().find(event => event.sequence > (recentChange?.sequence ?? 0) &&
@@ -193,8 +223,12 @@ function RunProgress({ base, run, english, autoLoad = true, onRunUpdate }: { bas
   } catch { /* Unstructured legacy output remains available below. */ }
   return <>
     {passed !== undefined && <p>{passed ? (english ? "Laptop tests passed" : "تست‌های لپ‌تاپ موفق بود") : (english ? "Laptop tests failed" : "تست‌های لپ‌تاپ ناموفق بود")}</p>}
+    {[...validations].map(([id, validation]) => <p key={id}>
+      {validationStatus(validation, english)}
+      {validation.error_code && validation.state === "blocked" && <> · {explainDebugFailure(validation.error_code, english)}</>}
+    </p>)}
     {received && run.state === "completed" && run.action === "prepare_fix" && passed === undefined &&
-      !events.some(event => event.kind === "automation_progress") &&
+      validations.size === 0 &&
       <p>{english ? "No test result was recorded for this request." : "برای این درخواست نتیجهٔ تست ثبت نشده است."}</p>}
     <details onToggle={event => setExpanded(event.currentTarget.open)}>
       <summary>{english ? "Execution details" : "جزئیات اجرا"}</summary>
@@ -202,7 +236,10 @@ function RunProgress({ base, run, english, autoLoad = true, onRunUpdate }: { bas
         {[run.id, modelName(run), run.config.connector_name, run.error_code, run.occurrence_id, run.evidence_id].filter(Boolean).map((value, index) => <code key={index}>{value}</code>)}
       </div>
       <ol dir="ltr">{events.map(event => <li key={event.sequence}>
-        <code>{event.kind} {event.payload.tool ?? event.payload.mode ?? event.payload.model ?? ""} {event.payload.status ?? ""} {event.payload.commit ?? ""} {event.payload.service_request_id ?? ""}</code>
+        <code>{event.kind} {event.payload.tool ?? event.payload.mode ?? event.payload.model ?? ""} {event.payload.status ?? ""} {event.payload.commit ?? ""} {event.payload.service_request_id ?? ""} {event.payload.error_code ?? ""}</code>
+        {event.payload.kind === "validate" && event.payload.stage === "completed" &&
+          typeof event.payload.workflow_run_id === "number" && Number.isSafeInteger(event.payload.workflow_run_id) &&
+          event.payload.workflow_run_id > 0 && <a href={`https://github.com/mohammad4242/fitician/actions/runs/${event.payload.workflow_run_id}`} target="_blank" rel="noreferrer">GitHub Actions</a>}
         {event.payload.pr_url && /^https:\/\/github\.com\/mohammad4242\/fitician\/pull\/[0-9]+$/.test(event.payload.pr_url) && <a href={event.payload.pr_url} target="_blank" rel="noreferrer"> PR</a>}
         {event.payload.output && <details><summary>{event.payload.provenance === "server_observation" ? (english ? "Recorded server observations; current health is unverified" : "مشاهدات ثبت‌شدهٔ سرور؛ سلامت فعلی تأیید نشده است") : (english ? "Tool evidence" : "مدرک ابزار")} · <code>{event.id}</code></summary><pre dir="ltr">{event.payload.output}</pre></details>}
       </li>)}</ol>
