@@ -20,6 +20,7 @@ import { AppErrorNotice } from "../../shared/AppErrorNotice";
 import { AppIcon, type IconName } from "../../shared/AppIcon";
 import { useEntitlements } from "../entitlements/EntitlementContext";
 import { getOffers } from "./api";
+import { formatPlanPrice } from "./formatPlanPrice";
 import "./billing.css";
 
 const packageTranslationKeys: Record<BillingPackageCode, string> = {
@@ -175,7 +176,9 @@ function PackageCard({ active, eligible, english, offers, onBuy, onSelectDuratio
           <p className="billing-quota-highlight"><AppIcon name="body" /><span>{t(quota.windowDays === 7 ? "billing.bodyAnalysisWeeklyQuota" : "billing.bodyAnalysisQuota", { limit: formatNumeric(quota.limit, english), total: formatNumeric(quota.estimatedTotal, english), windowDays: formatNumeric(quota.windowDays, english) })}</span></p>
         )}
         <div className="billing-package-card__price-row">
-          <p className="billing-package-card__price">{selectedOffer.price_irr === null || selectedOffer.currency === null ? t("billing.offerUnavailable") : formatAmount(selectedOffer.price_irr, selectedOffer.currency, english)}</p>
+          <p className="billing-package-card__price">{selectedOffer.price_irr === null || selectedOffer.currency === null
+            ? t("billing.offerUnavailable")
+            : <bdi dir="ltr">{formatPlanPrice(selectedOffer.price_irr, selectedOffer.currency, english)}</bdi>}</p>
           {!selectedOffer.is_available && <span className="billing-package-card__unavailable">{t("billing.offerUnavailable")}</span>}
         </div>
         <button aria-label={t("billing.buySelectedPackage", { duration, package: name })} className="billing-button billing-button--primary billing-package-card__cta" disabled={!selectedOffer.is_available} onClick={() => onBuy(selectedOffer)} type="button">{t("billing.buy")}</button>
@@ -213,10 +216,6 @@ function durationLabel(duration: BillingOffer["duration_weeks"], t: (key: string
   if (duration === 4) return t("billing.fourWeeks");
   if (duration === 6) return t("billing.sixWeeks");
   return t("billing.eightWeeks");
-}
-
-function formatAmount(amount: number, currency: string, english: boolean) {
-  return `${new Intl.NumberFormat(english ? "en-US" : "fa-IR").format(amount)} ${currency}`;
 }
 
 function formatNumeric(value: number, english: boolean) {
