@@ -23,7 +23,7 @@ beforeEach(() => {
     offer_code: "training_4w",
     package_code: "training",
     duration_weeks: 4,
-    price_irr: 125000,
+    price_irr: 8_000_000,
     currency: "IRR",
     is_available: true,
     entitlements: ["training.plan.generate"],
@@ -34,7 +34,7 @@ beforeEach(() => {
     offer_code: "training_4w",
     package_code_snapshot: "training",
     duration_weeks_snapshot: 4,
-    amount_irr_snapshot: 125000,
+    amount_irr_snapshot: 8_000_000,
     currency_snapshot: "IRR",
     provider: "fake",
     status: "created",
@@ -66,6 +66,7 @@ it("creates an order from the selected offer and starts provider checkout", asyn
     </MemoryRouter>,
   );
 
+  expect(await screen.findByText("800000T")).toBeInTheDocument();
   await user.click(await screen.findByRole("button", { name: "ادامه به پرداخت" }));
 
   expect(billingApi.createOrder).toHaveBeenCalledWith({

@@ -51,7 +51,7 @@ const allOffers = packageCodes.flatMap((packageCode) => [4, 6, 8].map((duration)
   entitlements: packageCode === "nutrition" ? ["nutrition.plan.generate"] : ["body_analysis.run"],
   offer_code: `${packageCode}_${duration}w`,
   package_code: packageCode,
-  price_irr: duration * 100_000,
+  price_irr: duration * 1_000_000,
   quota_policies: [{ entitlement: "body_analysis.run", limit: 1, window_days: 7 }],
 })));
 
@@ -105,10 +105,10 @@ it("changes price and quota when duration changes and checks out the selected of
   renderPlans();
 
   const card = await screen.findByTestId("billing-package-training");
-  expect(card).toHaveTextContent("۴۰۰٬۰۰۰ IRR");
+  expect(card).toHaveTextContent("400000T");
   expect(card).toHaveTextContent("تا ۴ Body Analysis در طول دوره — هفته‌ای ۱ بار");
   await user.click(within(card).getByRole("radio", { name: "۶ هفته", checked: false }));
-  expect(card).toHaveTextContent("۶۰۰٬۰۰۰ IRR");
+  expect(card).toHaveTextContent("600000T");
   expect(card).toHaveTextContent("تا ۶ Body Analysis در طول دوره — هفته‌ای ۱ بار");
 
   await user.click(screen.getByRole("button", { name: /خرید.*تمرین هوشمند.*۶ هفته/ }));
