@@ -569,3 +569,174 @@ def test_completed_worker_atomically_links_one_reply_to_its_run(db, test_setting
         )
         == 1
     )
+
+
+def test_evidence_only_agent_turn_uses_selected_model_and_persists_reply(
+    client, db, test_settings, monkeypatch
+):
+    import asyncio
+    from datetime import UTC, datetime
+
+    import httpx
+
+    from app.body_analysis.admin_config.enums import AITaskType
+    from app.body_analysis.admin_config.models import AIAgentProfileVerification
+    from app.debugging import agent_runtime, worker
+    from tests.admin.test_ai_task_settings_api import (
+        _admin,
+        _mock_agent_service,
+        _restore_agent_service,
+    )
+
+    _admin(client, db)
+    event = record_event(
+        db,
+        EventInput(
+            component="worker",
+            operation="generate_plan",
+            stage="execution",
+            platform="backend",
+            category="application_bug",
+            severity="error",
+            error_code="UNHANDLED_EXCEPTION",
+            outcome="failure",
+        ),
+    )
+    db.add(
+        AIAgentProfileVerification(
+            profile_id="debug-profile",
+            task_type=AITaskType.DEBUG_AGENT,
+            profile_fingerprint="a" * 16,
+            status="passed",
+            checked_at=datetime.now(UTC),
+        )
+    )
+    db.flush()
+    test_settings.agent_service_token = "fixture-agent-service-key-for-tests"
+
+    def capabilities(request):
+        assert request.url.params["task_kind"] == "debug_agent"
+        return httpx.Response(
+            200,
+            json={
+                "runners": [
+                    {
+                        "agent": "antigravity",
+                        "installed": True,
+                        "auth_state": "authenticated",
+                        "profiles": [
+                            {
+                                "agent": "antigravity",
+                                "model_id": "selected-model",
+                                "profile_id": "debug-profile",
+                                "display_name": "Test profile",
+                                "fingerprint": "a" * 16,
+                                "task_kinds": ["debug_agent"],
+                                "supports_text_input": True,
+                                "supports_image_input": False,
+                                "supports_structured_output": True,
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+
+    replacement = _mock_agent_service(client, httpx.MockTransport(capabilities))
+    try:
+        saved = client.put(
+            "/api/v1/admin/ai/task-configs/debug_agent",
+            headers={"Origin": "http://localhost:5173"},
+            json={
+                "enabled": True,
+                "execution_backend": "agent_service",
+                "agent_name": "antigravity",
+                "agent_model_id": "selected-model",
+                "agent_profile_id": "debug-profile",
+            },
+        )
+    finally:
+        _restore_agent_service(client, replacement)
+    assert saved.status_code == 200
+    assert saved.json()["enabled"] is True
+    assert saved.json()["debug_connector_id"] is None
+    base = f"/api/v1/admin/diagnostics/issues/{event.issue_id}"
+    headers = {"Origin": "http://localhost:5173", "Idempotency-Key": "evidence-only-run"}
+    response = client.post(
+        base + "/messages",
+        headers=headers,
+        json={
+            "content": "Explain",
+            "occurrence_id": str(event.id),
+            "evidence_only": True,
+        },
+    )
+    assert response.status_code == 200
+    run = claim_run(db)
+    db.flush()
+    monkeypatch.setattr(worker, "get_engine", lambda _: db.connection())
+
+    async def turn(client, **kwargs):
+        assert kwargs["path"] == "/v1/debug/turn"
+        body = kwargs["json_body"]
+        assert body["model_id"] == "selected-model"
+        assert body["profile_id"] == "debug-profile"
+        assert body["profile_fingerprint"] == "a" * 16
+        assert body["tools"] == []
+        assert "UNHANDLED_EXCEPTION" in body["messages"][0]["content"]
+        assert "generate_plan" in body["messages"][0]["content"]
+        assert "exception_stack" in body["messages"][0]["content"]
+        return {
+            "agent": "antigravity",
+            "model_id": "selected-model",
+            "profile_id": "debug-profile",
+            "execution_mode": "real",
+            "request_id": "fixture-request",
+            "payload": {"kind": "diagnosis", "happened": "شواهد محدود است"},
+        }
+
+    monkeypatch.setattr(agent_runtime, "_agent_service_json", turn)
+    asyncio.run(worker.execute_run(test_settings, run.id, run.lease_token))
+    db.expire_all()
+    result = client.get(base + "/conversation").json()
+    assert result["runs"][0]["state"] == "completed"
+    reply = next(message for message in result["messages"] if message["role"] == "assistant")
+    assert reply["run_id"] == str(run.id)
+    assert "شواهد محدود است" in reply["content"]
+
+
+@pytest.mark.parametrize(
+    "action, expected",
+    [
+        ("analyze", None),
+        ("prepare_fix", "local_connector_not_configured"),
+    ],
+)
+def test_agent_service_only_requires_a_laptop_for_repair(
+    db, test_settings, monkeypatch, action, expected
+):
+    import asyncio
+
+    from app.debugging import worker
+    from tests.test_debug_gateway import setup_run
+
+    _, run, _, _ = setup_run(db, action=action)
+    run.config_snapshot = {
+        "architecture": "agent_service_laptop_v1",
+        "enabled": True,
+        "execution_backend": "agent_service",
+        "agent_name": "antigravity",
+        "agent_model_id": "selected-model",
+    }
+    db.flush()
+
+    async def explain(*args):
+        assert action == "analyze"
+        return "شواهد رخداد"
+
+    monkeypatch.setattr(worker, "get_engine", lambda _: db.connection())
+    monkeypatch.setattr("app.debugging.agent_runtime.run_agent", explain)
+    asyncio.run(worker.execute_run(test_settings, run.id, run.lease_token))
+    db.expire_all()
+    assert run.error_code == expected
+    assert run.state == ("blocked" if expected else "completed")

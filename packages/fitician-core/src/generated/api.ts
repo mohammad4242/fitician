@@ -6906,6 +6906,11 @@ export type components = {
             action: "analyze" | "prepare_fix";
             /** Content */
             content: string;
+            /**
+             * Evidence Only
+             * @default false
+             */
+            evidence_only: boolean;
             /** Occurrence Id */
             occurrence_id?: string | null;
         };

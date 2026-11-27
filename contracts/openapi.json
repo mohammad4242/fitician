@@ -34170,6 +34170,11 @@
             "title": "Content",
             "type": "string"
           },
+          "evidence_only": {
+            "default": false,
+            "title": "Evidence Only",
+            "type": "boolean"
+          },
           "occurrence_id": {
             "anyOf": [
               {

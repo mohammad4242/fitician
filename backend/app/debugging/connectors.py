@@ -199,7 +199,8 @@ def claim_call(db: Session, connector: DebugConnector) -> dict[str, Any] | None:
         "action": run.action,
         "repository": connector.repository,
         "environment": connector.environment,
-        "release_commit": snapshot.get("release_commit"),
+        "release_commit": snapshot.get("release_commit")
+        or (run.evidence.get("occurrence") or {}).get("release_commit"),
         "config": run.config_snapshot,
         "evidence": run.evidence,
     }

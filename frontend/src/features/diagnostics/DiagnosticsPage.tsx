@@ -464,6 +464,7 @@ function IssueDetail({ detail, onSaved, initialOccurrenceId, onOccurrenceSelecte
         <p>{english ? "Next check" : "بررسی بعدی"}: {explanation.next}</p>
       </section>
       <IssueEvidence key={issue.id} issueId={issue.id} events={events} english={english} occurrenceId={occurrenceId} onOccurrenceChange={value => { setOccurrenceId(value); onOccurrenceSelected(value); }} />
+      <DebugConversation key={`chat-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
       <IssueFindings key={`findings-${issue.id}-${occurrenceId}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
       <div className="diagnostics-detail-grid">
         <section className="diagnostics-card diagnostics-classification">
@@ -505,7 +506,6 @@ function IssueDetail({ detail, onSaved, initialOccurrenceId, onOccurrenceSelecte
       </section>
       <NotificationDeliveries key={`sms-${issue.id}`} issueId={issue.id} english={english} />
       <DebugOperations key={`ci-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
-      <DebugConversation key={`chat-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
     </div>
   );
 }

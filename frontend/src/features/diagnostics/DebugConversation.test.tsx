@@ -29,9 +29,9 @@ it("loads persisted replies and submits a real API run with an idempotency ident
   render(<DebugConversation issueId="issue-1" english />);
   expect(await screen.findByText("Existing investigation")).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Inspect evidence" } });
-  fireEvent.click(screen.getByText("Send for analysis"));
+  fireEvent.click(screen.getByText("Explain the issue"));
   await waitFor(() => expect(mocked).toHaveBeenCalledWith("/api/v1/admin/diagnostics/issues/issue-1/messages", expect.objectContaining({
-    method: "POST", headers: { "Idempotency-Key": expect.any(String) }, body: JSON.stringify({ content: "Inspect evidence", action: "analyze", occurrence_id: null }),
+    method: "POST", headers: { "Idempotency-Key": expect.any(String) }, body: JSON.stringify({ content: "Inspect evidence", action: "analyze", occurrence_id: null, evidence_only: true }),
   })));
   expect(screen.getByLabelText("Your message")).toHaveValue("");
 });
@@ -50,9 +50,9 @@ it("submits the selected occurrence and binds the retry identity to it", async (
   vi.mocked(request).mockImplementation(async (_path, options) => options?.method === "POST" ? { id: "run-2", state: "queued" } as never : { messages: [], runs: [], next_cursor: null } as never);
   render(<DebugConversation issueId="issue-2" occurrenceId="occurrence-2" english />);
   fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Inspect selected occurrence" } });
-  fireEvent.click(screen.getByText("Send for analysis"));
+  fireEvent.click(screen.getByText("Explain the issue"));
   await waitFor(() => expect(request).toHaveBeenCalledWith(expect.stringContaining("/messages"), expect.objectContaining({
-    body: JSON.stringify({ content: "Inspect selected occurrence", action: "analyze", occurrence_id: "occurrence-2" }),
+    body: JSON.stringify({ content: "Inspect selected occurrence", action: "analyze", occurrence_id: "occurrence-2", evidence_only: true }),
   })));
 });
 
@@ -106,7 +106,7 @@ it("explains rejected private payloads without displaying their contents", async
   });
   render(<DebugConversation issueId="privacy-issue" english />);
   fireEvent.change(screen.getByLabelText("Your message"), { target: { value: "Inspect selected evidence" } });
-  fireEvent.click(screen.getByText("Send for analysis"));
+  fireEvent.click(screen.getByText("Explain the issue"));
   expect(await screen.findByRole("alert")).toHaveTextContent("Remove private payloads and reference evidence IDs");
 });
 
@@ -156,10 +156,56 @@ it("retains an explicit MOCK execution label after refreshing a conversation", a
 });
 
 
-it("exposes an exact accessible label for the repair action selector", async () => {
+it("sends a separate repair request without opting out of laptop tools", async () => {
+  vi.stubGlobal("crypto", webcrypto);
   vi.mocked(request).mockResolvedValue({ messages: [], runs: [], next_cursor: null } as never);
   render(<DebugConversation issueId="issue-actions" english />);
-  const action = await screen.findByLabelText("Requested action", { exact: true });
-  expect(action).toHaveValue("analyze");
-  expect(action).toHaveAttribute("aria-label", "Requested action");
+  fireEvent.click(screen.getByRole("button", { name: "Fix it and run tests" }));
+  await waitFor(() => expect(request).toHaveBeenCalledWith(expect.stringContaining("/messages"), expect.objectContaining({
+    body: JSON.stringify({ content: "Fix the issue and run tests.", action: "prepare_fix", occurrence_id: null }),
+  })));
+});
+
+it("lets a Persian administrator explain an occurrence without laptop tools", async () => {
+  vi.stubGlobal("crypto", webcrypto);
+  vi.mocked(request).mockResolvedValue({ messages: [], runs: [], next_cursor: null } as never);
+  render(<DebugConversation issueId="evidence-only" english={false} />);
+  fireEvent.click(screen.getByRole("button", { name: "مشکل را توضیح بده" }));
+  await waitFor(() => expect(request).toHaveBeenCalledWith(expect.stringContaining("/messages"), expect.objectContaining({
+    method: "POST",
+    body: expect.stringContaining('"evidence_only":true'),
+  })));
+});
+
+it("offers evidence-only analysis for the same occurrence next to the laptop blocker", async () => {
+  vi.stubGlobal("crypto", webcrypto);
+  vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? { events: [], next_cursor: 0 } as never : {
+    messages: [{ id: "offline-message", run_id: "offline-run", role: "user", content: "کد را بررسی کن", created_at: "2026-11-27" }],
+    runs: [{ id: "offline-run", occurrence_id: "old-occurrence", state: "blocked", error_code: "execution_target_offline", config: {} }],
+    next_cursor: null,
+  } as never);
+  render(<DebugConversation issueId="offline-issue" occurrenceId="new-occurrence" english={false} />);
+  const blocked = await screen.findByText("متوقف شده");
+  expect(blocked.closest("article")).toHaveTextContent("کد را بررسی کن");
+  fireEvent.click(screen.getByRole("button", { name: "با شواهد توضیح بده" }));
+  await waitFor(() => expect(request).toHaveBeenCalledWith(expect.stringContaining("/messages"), expect.objectContaining({
+    body: expect.stringContaining('"occurrence_id":"old-occurrence","evidence_only":true'),
+  })));
+});
+
+it("shows a verified GitHub Actions test result beside its repair request after reload", async () => {
+  vi.mocked(request).mockImplementation(async path => path.includes("/events?") ? {
+    events: [
+      { sequence: 1, kind: "automation_queued", payload: { kind: "validate", state: "queued", operation_id: "ci-1" } },
+      { sequence: 2, kind: "automation_progress", payload: { kind: "validate", state: "succeeded", stage: "completed", operation_id: "ci-1", workflow_run_id: 42 } },
+    ], next_cursor: 2,
+  } as never : {
+    messages: [{ id: "repair-message", run_id: "repair-run", role: "user", content: "اصلاح آزمایشی", created_at: "2026-11-27" }],
+    runs: [{ id: "repair-run", state: "completed", action: "prepare_fix", error_code: null, config: {} }], next_cursor: null,
+  } as never);
+  render(<DebugConversation issueId="repair-issue" english={false} />);
+  const status = await screen.findByText("تست GitHub Actions موفق بود");
+  expect(status.closest("article")).toHaveTextContent("اصلاح آزمایشی");
+  fireEvent.click(screen.getByText("جزئیات اجرا"));
+  expect(screen.getByRole("link", { name: "GitHub Actions" })).toHaveAttribute("href", "https://github.com/mohammad4242/fitician/actions/runs/42");
 });
