@@ -19,6 +19,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--replicas", type=int, default=2)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument(
+        "--additional-worker-connections", type=int, choices=range(4), default=0
+    )
     parser.add_argument("--backend-pool-size", type=int, default=env_int("DB_POOL_SIZE", 5))
     parser.add_argument(
         "--backend-overflow", type=int, default=env_int("DB_MAX_OVERFLOW", 5)
@@ -75,12 +78,13 @@ def main() -> int:
         except (OSError, ValueError, KeyError, TypeError):
             print("Invalid rendered database connection budget", file=sys.stderr)
             return 1
-    possible = api_connections + worker_connections
+    possible = api_connections + worker_connections + args.additional_worker_connections
     payload = {
         "replicas": args.replicas,
         "workers": args.workers,
         "api_connections": api_connections,
         "worker_connections": worker_connections,
+        "diagnostics_connections": args.additional_worker_connections,
         "possible_connections": possible,
         "headroom": args.headroom,
         "budget": args.budget,

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateSentryTargetEnvironment } from "./sentryRelease.mjs";
 
 const mobileRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -55,6 +56,7 @@ export function buildEasEnvironment(environment, platform) {
   artifactsForPlatform(platform);
   const token = environment.EXPO_TOKEN?.trim() || environment.EAS_TOKEN?.trim();
   assert.ok(token, "EXPO_TOKEN (or legacy EAS_TOKEN) is required for non-interactive EAS builds");
+  validateSentryTargetEnvironment(environment);
   return { ...environment, EXPO_TOKEN: token, EAS_BUILD_PLATFORM: platform, CI: "1" };
 }
 
@@ -78,7 +80,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const platform = platformIndex === -1 ? "android" : process.argv[platformIndex + 1];
   assert.ok(profile, "Use --profile development, preview, production-device, or production");
   assert.ok(platform, "Use --platform android or ios");
-  const environment = buildEasEnvironment(process.env, platform);
+  const environment = buildEasEnvironment({ ...process.env, EAS_BUILD_PROFILE: profile }, platform);
 
   const command = process.platform === "win32" ? "npx.cmd" : "npx";
   const args = ["--yes", "eas-cli@latest", ...buildEasArgs(platform, profile).slice(1)];

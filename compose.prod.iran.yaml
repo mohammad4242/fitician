@@ -211,6 +211,9 @@ services:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/fitician-backend:${WORKER_IMAGE_TAG:-${IMAGE_TAG:?IMAGE_TAG is required}}
     env_file:
       - ${FITICIAN_ENV_FILE:-./.env}
+      - path: ${FITICIAN_DIAGNOSTICS_ENV_FILE:-/dev/null}
+        format: raw
+        required: true
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       APP_ENV: production

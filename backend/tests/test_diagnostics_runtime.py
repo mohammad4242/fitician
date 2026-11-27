@@ -258,7 +258,7 @@ def test_maintenance_failure_does_not_roll_back_the_recorded_event(test_settings
     def session():
         yield Database()
 
-    monkeypatch.setattr(runtime_module, "record_event", lambda *args, **kwargs: None)
+    monkeypatch.setattr(runtime_module, "record_observations", lambda *args, **kwargs: None)
     monkeypatch.setattr(diagnostics_jobs, "reconcile_job_failures", lambda *args: 0)
     monkeypatch.setattr(runtime_module, "detect_abandoned_attempts", lambda *args: 0)
 

@@ -59,6 +59,9 @@ class RegionalDeployTests(unittest.TestCase):
         )
         (self.new_release / "backup-production.sh").chmod(0o755)
         (self.new_release / "ops").mkdir()
+        (self.new_release / "ops" / "diagnostics-release.py").write_text(
+            (ROOT / "ops/diagnostics-release.py").read_text()
+        )
         (self.new_release / "ops" / "verify-regional.sh").write_text(
             (ROOT / "ops/verify-regional.sh").read_text()
         )
@@ -148,6 +151,8 @@ elif [[ "$*" == *"config --format json"* ]]; then
   fi
 elif [[ "$*" == *"volume inspect"* ]]; then
   [ "${FAKE_AUTH_VOLUME_MISSING:-false}" != true ]
+elif [[ "$*" == *"ps --status running -q caddy"* || "$*" == *"label=com.docker.compose.project=fitician_iran-diagnostics"* ]]; then
+  :
 elif [[ "$1" == ps ]]; then
   printf 'legacy-agent\n'
 elif [[ "$*" == *"com.docker.compose.service"* ]]; then
@@ -188,12 +193,22 @@ elif [[ "$*" == *"State.Status"* ]]; then
 elif [[ "$*" == *"State.Health.Status"* ]]; then
   printf '%s\n' "${FAKE_HEALTH:-healthy}"
 elif [[ "$*" == *"SELECT version_num"* ]]; then
-  printf '%s\n' "${FAKE_CURRENT_REVISION:-head_old}"
+  if [[ "${FAKE_FAIL_MIGRATION:-false}" != true && "${FAKE_MIGRATION_LEAVES_REVISION:-false}" != true ]] && grep -q '^MIGRATION_TAGSTATE|' "$FAKE_CALLS"; then
+    printf '%s\n' "${FAKE_TARGET_REVISION:-head_old}"
+  else
+    printf '%s\n' "${FAKE_CURRENT_REVISION:-head_old}"
+  fi
+elif [[ "$*" == *"pg_stat_activity"* ]]; then
+  printf '%s\n' "${FAKE_OPEN_SESSIONS:-0}"
 elif [[ "$*" == *"SELECT count(*) FROM users"* ]]; then
   printf '%s\n' "${FAKE_USER_COUNT:-3}"
 elif [[ "$*" == *"alembic heads"* ]]; then
   printf 'HEADS_TAGSTATE|%s|%s\n' "$BACKEND_API_IMAGE_TAG" "$WORKER_IMAGE_TAG" >> "$FAKE_CALLS"
-  printf '%s (head)\n' "${FAKE_TARGET_REVISION:-head_old}"
+  if [[ "$WORKER_IMAGE_TAG" == bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb ]]; then
+    printf '%s (head)\n' "${FAKE_TARGET_REVISION:-head_old}"
+  else
+    printf '%s (head)\n' "${FAKE_CURRENT_REVISION:-head_old}"
+  fi
 elif [[ "$*" == *"AGENT_SERVICE_TOKEN"* ]]; then
   exit "${FAKE_AGENT_STATUS:-0}"
 elif [[ "$*" == *"run --pull never --rm --no-deps migrations alembic upgrade"* ]]; then
@@ -243,6 +258,141 @@ fi
             text=True,
             check=False,
         )
+
+    def record_diagnostics(self):
+        (self.new_release / "ops/diagnostics-release.py").write_text(
+            "import os, sys\n"
+            "with open(os.environ['FAKE_CALLS'], 'a') as log:\n"
+            "    log.write('DIAGNOSTICS ' + sys.argv[1] + '\\n')\n"
+            "raise SystemExit(1 if os.environ.get('FAIL_DIAGNOSTICS_MODE') == sys.argv[1] else 0)\n"
+        )
+
+    def test_worker_capacity_failure_precedes_backup_pull_and_application_mutation(
+        self,
+    ):
+        self.record_diagnostics()
+        self.env["FAIL_DIAGNOSTICS_MODE"] = "preflight"
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.calls.read_text().splitlines(), ["DIAGNOSTICS preflight"])
+
+    def test_workers_pause_after_backup_and_resume_only_after_application_start(self):
+        self.record_diagnostics()
+        result = self.run_deploy()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls.read_text().splitlines()
+        backup = calls.index("backup-production.sh")
+        paused = calls.index("DIAGNOSTICS pause")
+        started = calls.index("DIAGNOSTICS start")
+        application = next(i for i, line in enumerate(calls) if " up -d" in line)
+        self.assertLess(backup, paused)
+        self.assertLess(paused, application)
+        self.assertLess(application, started)
+
+    def test_failed_worker_start_rolls_back_application_and_previous_workers(self):
+        self.record_diagnostics()
+        self.env["FAIL_DIAGNOSTICS_MODE"] = "start"
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text().splitlines()
+        self.assertIn("DIAGNOSTICS rollback", calls)
+        self.assertIn(f"API={OLD}", self.tags.read_text())
+
+    def test_schema_release_drains_all_writers_before_final_backup(self):
+        self.record_diagnostics()
+        self.env.update(ALLOW_SCHEMA_MIGRATIONS="true", FAKE_TARGET_REVISION="new")
+        result = self.run_deploy()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls.read_text().splitlines()
+        ingress = next(i for i, line in enumerate(calls) if " stop caddy" in line)
+        writers = next(
+            i for i, line in enumerate(calls) if " stop backend backend-2" in line
+        )
+        for service in (
+            "scheduler",
+            "food-photo-worker",
+            "body-analysis-worker",
+            "notification-worker",
+        ):
+            self.assertIn(service, calls[writers].split())
+        backup = calls.index("backup-production.sh")
+        migration = next(i for i, line in enumerate(calls) if "alembic upgrade" in line)
+        self.assertLess(ingress, writers)
+        self.assertLess(writers, calls.index("DIAGNOSTICS pause"))
+        self.assertLess(calls.index("DIAGNOSTICS pause"), backup)
+        self.assertLess(backup, migration)
+        application = next(i for i, line in enumerate(calls) if "up -d" in line and "backend-2" in line)
+        caddy = next(i for i, line in enumerate(calls) if "up -d" in line and line.endswith(" caddy"))
+        self.assertLess(migration, application)
+        self.assertLess(application, calls.index("DIAGNOSTICS start"))
+        self.assertLess(calls.index("DIAGNOSTICS start"), caddy)
+        self.assertFalse((self.app / ".regional-iran-schema-cutover").exists())
+
+    def test_schema_release_with_an_open_database_session_restores_previous_services(
+        self,
+    ):
+        self.env.update(
+            ALLOW_SCHEMA_MIGRATIONS="true",
+            FAKE_TARGET_REVISION="new",
+            FAKE_OPEN_SESSIONS="1",
+        )
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text().splitlines()
+        self.assertNotIn("backup-production.sh", calls)
+        self.assertFalse(any("alembic upgrade" in line for line in calls))
+        self.assertIn(f"API={OLD}", self.tags.read_text())
+        self.assertFalse((self.app / ".regional-iran-schema-cutover").exists())
+
+    def test_schema_release_with_failed_final_backup_reopens_previous_release(self):
+        self.env.update(
+            ALLOW_SCHEMA_MIGRATIONS="true",
+            FAKE_TARGET_REVISION="new",
+            FAKE_BACKUP_STATUS="1",
+        )
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text().splitlines()
+        self.assertIn("backup-production.sh", calls)
+        self.assertFalse(any("alembic upgrade" in line for line in calls))
+        self.assertIn(f"API={OLD}", self.tags.read_text())
+        self.assertFalse((self.app / ".regional-iran-schema-cutover").exists())
+
+    def test_schema_release_checks_revision_before_starting_candidate_writers(self):
+        self.env.update(
+            ALLOW_SCHEMA_MIGRATIONS="true",
+            FAKE_TARGET_REVISION="new",
+            FAKE_MIGRATION_LEAVES_REVISION="true",
+        )
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("migration did not reach", result.stderr)
+        self.assertFalse(
+            any(" up -d" in line for line in self.calls.read_text().splitlines())
+        )
+        cutover = self.app / ".regional-iran-schema-cutover"
+        self.assertEqual((cutover / "state").read_text().strip(), "migration")
+
+    def test_failed_migration_quiesces_workers_without_image_only_worker_rollback(self):
+        self.record_diagnostics()
+        self.env.update(
+            ALLOW_SCHEMA_MIGRATIONS="true",
+            FAKE_TARGET_REVISION="new",
+            FAKE_FAIL_MIGRATION="true",
+        )
+        result = self.run_deploy()
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text().splitlines()
+        self.assertIn("DIAGNOSTICS quiesce", calls)
+        self.assertNotIn("DIAGNOSTICS rollback", calls)
+        cutover = self.app / ".regional-iran-schema-cutover"
+        self.assertEqual((cutover / "state").read_text().strip(), "migration")
+        self.assertTrue((cutover / "backup.log").is_file())
+        self.calls.write_text("")
+        retry = self.run_deploy()
+        self.assertNotEqual(retry.returncode, 0)
+        self.assertIn("recovery", retry.stderr)
+        self.assertNotIn("backup-production.sh", self.calls.read_text())
 
     def test_capacity_failure_blocks_iran_before_pull_or_runtime_mutation(self) -> None:
         self.env["FAKE_CAPACITY_STATUS"] = "1"
@@ -380,7 +530,7 @@ fi
             (self.app / ".env").stat().st_mode & 0o777, self.original_env_mode
         )
 
-    def test_unapproved_schema_change_stops_after_backup(self) -> None:
+    def test_unapproved_schema_change_stops_before_backup_or_freeze(self) -> None:
         self.env.update(
             FAKE_CURRENT_REVISION="old_head", FAKE_TARGET_REVISION="new_head"
         )
@@ -389,7 +539,8 @@ fi
 
         self.assertNotEqual(result.returncode, 0)
         calls = self.calls.read_text().splitlines()
-        self.assertTrue(any("backup-production.sh" in line for line in calls))
+        self.assertNotIn("backup-production.sh", calls)
+        self.assertFalse(any(" stop " in line for line in calls))
         self.assertFalse(any(" up -d" in line for line in calls))
 
     def test_initial_iran_writes_scalability_marker_only_after_verified_release(
@@ -637,7 +788,7 @@ fi
                 for line in calls
             )
         )
-        self.assertIn("manual recovery", result.stderr.lower())
+        self.assertIn("reconcile writes", result.stderr.lower())
         stopped = next(
             line for line in calls if " stop caddy frontend backend " in line
         )
@@ -995,6 +1146,64 @@ fi
         self.assertFalse(
             any(" up -d" in line for line in self.calls.read_text().splitlines())
         )
+
+    def test_germany_agent_auth_archive_excludes_rebuildable_caches_and_preserves_credentials(
+        self,
+    ) -> None:
+        import sys
+        import tarfile
+
+        script_text = (ROOT / "ops/deploy-regional.sh").read_text()
+        snippet = script_text.split("archive_agent_auth_volume() {", 1)[1].split(
+            "--entrypoint python3 \"$auth_image_id\" -c '", 1
+        )[1].split("\n'\n", 1)[0]
+        with tempfile.TemporaryDirectory(dir=ROOT / ".codex-tmp") as tmpdir:
+            base = Path(tmpdir)
+            home = base / "home"
+            dest = base / "auth-volume.tar"
+            preserved = [
+                home / ".claude.json",
+                home / ".claude" / "credentials.json",
+                home / ".codex" / "auth.json",
+                home / ".codex" / "state_5.sqlite",
+                home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token",
+                home / ".gemini" / "config" / "config.json",
+                home / ".local" / "share" / "keyrings" / "login.keyring",
+                home / "unknown-custom-auth-file",
+            ]
+            excluded = [
+                home / ".npm" / "_cacache" / "blob",
+                home / ".cache" / "uv" / "archive-v0" / "wheel.whl",
+                home / ".codex" / "cache" / "remote_plugin_catalog" / "catalog.json",
+                home / ".codex" / "tmp" / "scratch",
+                home / ".gemini" / "antigravity-cli" / "fitician-cache" / ".fitician-1.5.14-staging" / "bin" / "agy",
+                home / ".gemini" / "antigravity-cli" / "cache" / "item",
+                home / ".gemini" / "antigravity-cli" / "crashes" / "dump",
+            ]
+            for path in preserved:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("credential-or-state")
+            for path in excluded:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"x" * 1024)
+            subprocess.run(
+                [sys.executable, "-c", snippet],
+                env={
+                    **os.environ,
+                    "FITICIAN_AUTH_SOURCE": str(home),
+                    "FITICIAN_AUTH_ARCHIVE": str(dest),
+                },
+                check=True,
+            )
+            self.assertEqual(dest.stat().st_mode & 0o777, 0o600)
+            with tarfile.open(dest, "r") as archive:
+                names = set(archive.getnames())
+            for path in preserved:
+                rel = "agent/" + path.relative_to(home).as_posix()
+                self.assertIn(rel, names)
+            for path in excluded:
+                rel = "agent/" + path.relative_to(home).as_posix()
+                self.assertNotIn(rel, names)
 
     def test_workflow_is_manual_and_uses_separate_region_environments(self) -> None:
         workflow = (ROOT / ".github/workflows/deploy-regional.yml").read_text()

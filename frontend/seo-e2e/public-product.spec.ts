@@ -4,6 +4,25 @@ import exercises from "../src/seo/exercise-data.json" with { type: "json" };
 
 test.beforeEach(async ({ page }) => { await publicExerciseFixture(page); });
 
+test("pagination waits for delayed hydration before accepting a click", async ({ page }) => {
+  let releaseScripts!: () => void;
+  const scriptsReady = new Promise<void>(resolve => { releaseScripts = resolve; });
+  await page.route("**/assets/*.js", async route => {
+    await scriptsReady;
+    await route.continue();
+  });
+  try {
+    await page.goto("/exercise-library", { waitUntil: "commit" });
+    const nextPage = page.getByRole("button", { name: "صفحه بعد", exact: true });
+    await expect(nextPage).toBeVisible();
+    await expect(nextPage).toBeDisabled();
+  } finally {
+    releaseScripts();
+  }
+  await page.getByRole("button", { name: "صفحه بعد", exact: true }).click();
+  await expect(page).toHaveURL(/page=2/);
+});
+
 test("anonymous member-quality browsing preserves filters across detail and back", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
@@ -58,7 +77,17 @@ test("premium discovery, dedicated pages and public shell fit five widths", asyn
   for (const width of [360, 390, 430, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     for (const path of ["/workout-program", "/nutrition", "/body-analysis", "/learn", "/about", "/exercise-library", "/exercise-library/dumbbell-bench-press"]) {
+      // The heading is build-rendered before its live refresh finishes. Let the mock
+      // response finish before the next navigation cancels it (WebKit reports that
+      // cancellation as an access-control page error).
+      const refreshPaths = path === "/exercise-library"
+        ? ["/api/v1/public/exercise-categories", "/api/v1/public/exercises?content_type=exercise&page=1"]
+        : path === "/exercise-library/dumbbell-bench-press"
+          ? ["/api/v1/public/exercises/dumbbell-bench-press"]
+          : [];
+      const refreshes = refreshPaths.map(path => page.waitForResponse(response => response.url().endsWith(path)));
       await page.goto(path);
+      for (const response of refreshes) expect(await (await response).finished()).toBeNull();
       await expect(page.locator("h1")).toBeVisible();
       await expect(page.locator("footer")).toHaveCount(1);
       await expect(page.locator(".fitician-brand-logo").first()).toBeVisible();

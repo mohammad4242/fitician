@@ -3,12 +3,22 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SPEC = importlib.util.spec_from_file_location("ci_required", ROOT / "ops/ci-required.py")
+SPEC = importlib.util.spec_from_file_location(
+    "ci_required", ROOT / "ops/ci-required.py"
+)
 module = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(module)
 
 
 class RequiredCITests(unittest.TestCase):
+    def test_full_ci_requires_real_controlled_validation_profiles(self):
+        results = {name: "success" for name in module.ALL_JOBS}
+        results["debug-validation"] = "skipped"
+        self.assertIn(
+            "debug-validation",
+            module.failures({"full_ci_required": True}, results, image_required=False),
+        )
+
     def test_ci_workflow_exposes_stable_aggregate_over_all_validation_jobs(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn("required-ci:", workflow)
@@ -20,11 +30,16 @@ class RequiredCITests(unittest.TestCase):
 
     def test_selected_jobs_and_security_gates_must_succeed(self):
         plan = {name: False for name in module.PLAN_JOBS}
-        plan.update(run_backend=True, run_production_contract=True, full_ci_required=True)
+        plan.update(
+            run_backend=True, run_production_contract=True, full_ci_required=True
+        )
         results = {name: "skipped" for name in module.ALL_JOBS}
         results.update(
-            changes="success", secrets="success", backend="success", agent="success",
-            **{"production-contract": "success"},
+            changes="success",
+            secrets="success",
+            backend="success",
+            agent="success",
+            **{"production-contract": "success", "debug-validation": "success"},
         )
         self.assertEqual(module.failures(plan, results, image_required=False), [])
         results["backend"] = "skipped"

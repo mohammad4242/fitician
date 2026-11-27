@@ -29,6 +29,7 @@ async def run_process(
     input_text: str | None = None,
     env: Mapping[str, str] | None = None,
     inherit_environment: bool = True,
+    max_output_bytes: int | None = None,
 ) -> ProcessResult:
     if not command:
         raise ValueError("command must not be empty")
@@ -53,8 +54,11 @@ async def run_process(
     except (OSError, ValueError):
         raise ProcessExecutionError("process could not be started") from None
 
+    input_bytes = None if input_text is None else input_text.encode()
     communication = asyncio.create_task(
-        process.communicate(None if input_text is None else input_text.encode())
+        process.communicate(input_bytes)
+        if max_output_bytes is None
+        else _bounded_communication(process, input_bytes, max_output_bytes)
     )
     try:
         stdout, stderr = await asyncio.wait_for(asyncio.shield(communication), timeout_seconds)
@@ -72,6 +76,47 @@ async def run_process(
         stdout=stdout.decode(errors="replace"),
         stderr=stderr.decode(errors="replace"),
     )
+
+
+async def _bounded_communication(
+    process: asyncio.subprocess.Process, data: bytes | None, maximum: int
+) -> tuple[bytes, bytes]:
+    used = 0
+
+    async def read(stream: asyncio.StreamReader | None) -> bytes:
+        nonlocal used
+        assert stream is not None
+        chunks = bytearray()
+        while chunk := await stream.read(16384):
+            used += len(chunk)
+            if used > maximum:
+                raise ProcessExecutionError("process output limit exceeded")
+            chunks.extend(chunk)
+        return bytes(chunks)
+
+    async def write() -> None:
+        assert process.stdin is not None
+        try:
+            if data is not None:
+                process.stdin.write(data)
+                await process.stdin.drain()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            process.stdin.close()
+
+    writer = asyncio.create_task(write())
+    readers = [asyncio.create_task(read(process.stdout)), asyncio.create_task(read(process.stderr))]
+    try:
+        stdout, stderr = await asyncio.gather(*readers)
+        await writer
+        await process.wait()
+        return stdout, stderr
+    finally:
+        for task in [writer, *readers]:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(writer, *readers, return_exceptions=True)
 
 
 async def _stop_process_group(process: asyncio.subprocess.Process) -> None:

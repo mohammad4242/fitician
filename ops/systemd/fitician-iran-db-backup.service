@@ -1,0 +1,17 @@
+[Unit]
+Description=Encrypted Fitician Iran database backup
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/fitician-iran
+Environment=APP_DIR=/opt/fitician-iran
+EnvironmentFile=/opt/fitician-iran/backup.env
+ExecStart=/usr/bin/bash /opt/fitician-iran/ops/backup-regional.sh
+TimeoutStartSec=1800
+Nice=10
+CPUQuota=35%
+MemoryMax=256M
+UMask=0077

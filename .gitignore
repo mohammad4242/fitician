@@ -45,3 +45,6 @@ backend/var/media/meal-catalogue/*
 frontend/dist-server/
 frontend/seo-*.log
 frontend/test-results/
+
+# Private operational credentials, debug workspaces and verification evidence.
+/.codex-tmp/

@@ -1,3 +1,11 @@
+import { SyntheticProbe } from "./SyntheticProbe";
+import { DebugOperations } from "./DebugAutomation";
+import { DebugConversation } from "./DebugConversation";
+import { NotificationDeliveries } from "./NotificationDeliveries";
+import { IssueEvidence } from "./IssueEvidence";
+import { SentryHealth } from "./SentryHealth";
+import { IssueFindings } from "./IssueFindings";
+import { explainIssueCode } from "./issueExplanation";
 import { formatTehranDateTimeForLocale } from "@fitician/core";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -37,7 +45,7 @@ const words = {
     intro: "نشانه‌های فنی ثبت‌شده را بررسی و دسته‌بندی کن. گزارش‌ها ممکن است ناقص باشند و علت قطعی را نشان ندهند.",
     overview: "نمای کلی", traces: "ردگیری درخواست", issues: "مسئله‌ها", events: "رویدادها", generations: "تولید برنامه", infrastructure: "زیرساخت", alerts: "هشدارها",
     hours: "بازه زمانی", hour: "۱ ساعت", day: "۲۴ ساعت", week: "۷ روز", month: "۳۰ روز",
-    failures: "رخدادهای خطا", criticalFailures: "خطاهای بحرانی", newIssues: "مسئله‌های جدید", affectedUsers: "کاربران متأثر", errorRate: "نرخ خطای سرور",
+    failures: "رخدادهای خطا", criticalFailures: "خطاهای بحرانی", newIssues: "مسئله‌های جدید", affectedUsers: "کاربران متأثر با شناسهٔ ثبت‌شده", errorRate: "نرخ خطای سرور",
     eventCount: "رویدادهای بازه", issueCount: "مسئله‌های دیده‌شده در بازه", httpSuccess: "پاسخ‌های موفق HTTP", httpFailure: "پاسخ‌های ناموفق HTTP",
     trend: "روند خطاها و عملیات", trendNote: "نمودار از تمام نتایج ثبت‌شده در بازهٔ انتخاب‌شده محاسبه می‌شود.",
     platforms: "تفکیک پلتفرم‌ها", sample: "ثبت‌شده در بازه: {{count}} رویداد", noEvents: "در این صفحه رویدادی ثبت نشده است.",
@@ -60,7 +68,7 @@ const words = {
     intro: "Review and classify recorded technical signals. Reports may be incomplete and do not establish a root cause.",
     overview: "Overview", traces: "Request traces", issues: "Issues", events: "Events", generations: "Generations", infrastructure: "Infrastructure", alerts: "Alerts",
     hours: "Time window", hour: "1 hour", day: "24 hours", week: "7 days", month: "30 days",
-    failures: "Recorded failures", criticalFailures: "Critical failures", newIssues: "New issues", affectedUsers: "Affected users", errorRate: "Server error rate",
+    failures: "Recorded failures", criticalFailures: "Critical failures", newIssues: "New issues", affectedUsers: "Recorded affected user IDs", errorRate: "Server error rate",
     eventCount: "Events in window", issueCount: "Issues seen in window", httpSuccess: "Successful HTTP responses", httpFailure: "Failed HTTP responses",
     trend: "Operation trend", trendNote: "Computed from all recorded outcomes in the selected window.",
     platforms: "Platforms in recent page", sample: "Recorded in window: {{count}} outcomes", noEvents: "No events were returned for this page.",
@@ -190,6 +198,7 @@ export function DiagnosticsPage() {
           )}
         </header>
 
+        <SyntheticProbe english={english} onCaptured={(issueId, occurrenceId) => { const next = new URLSearchParams(search); next.set("tab", "issues"); next.set("issue", issueId); next.set("occurrence", occurrenceId); setSearch(next); }} />
         <div className="diagnostics-tabs" role="tablist" aria-label={c.title}>
           {tabs.map((name, index) => (
             <button
@@ -344,10 +353,11 @@ function IssuesPanel({ search, setSearch }: { search: URLSearchParams; setSearch
   const list = useRemote<DiagnosticIssue[]>(loadIssues, JSON.stringify(filters));
   const [detailRetry, setDetailRetry] = useState(0);
   const loadDetail = useCallback(() => issueId ? getDiagnosticIssue(issueId) : Promise.resolve(null), [issueId]);
-  const detail = useRemote<DiagnosticIssueDetail | null>(loadDetail, `issue-${issueId ?? "none"}-${detailRetry}`);
+  const detail = useRemote<DiagnosticIssueDetail | null>(loadDetail, `issue-${issueId ?? "none"}-${search.get("occurrence") ?? "latest"}-${detailRetry}`);
   const changeSearch = (patch: Record<string, string | null>, clearIssue = false) => {
     const next = new URLSearchParams(search);
     next.set("tab", "issues");
+    if (clearIssue || (patch.issue && patch.issue !== issueId)) next.delete("occurrence");
     if (clearIssue) next.delete("issue");
     for (const [key, value] of Object.entries(patch)) {
       if (value === null || value === "") next.delete(key); else next.set(key, value);
@@ -358,7 +368,7 @@ function IssuesPanel({ search, setSearch }: { search: URLSearchParams; setSearch
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const next = new URLSearchParams(search);
-    next.set("tab", "issues"); next.delete("issue"); next.delete("offset");
+    next.set("tab", "issues"); next.delete("issue"); next.delete("occurrence"); next.delete("offset");
     for (const key of ["q", "platform", "component", "severity", "category", "status", "error_code", "user_id", "request_id", "version", "sort"]) {
       const value = String(form.get(key) ?? "").trim();
       if (value && !(key === "sort" && value === "last_seen")) next.set(key, value); else next.delete(key);
@@ -372,7 +382,7 @@ function IssuesPanel({ search, setSearch }: { search: URLSearchParams; setSearch
         <>
           <button className="diagnostics-button diagnostics-button--quiet diagnostics-back" onClick={() => changeSearch({}, true)} type="button">← {c.backToIssues}</button>
           <StatusMessage loading={detail.loading} error={detail.error} retry={detail.retry} />
-          {detail.data && <IssueDetail detail={detail.data} onSaved={() => setDetailRetry((value) => value + 1)} />}
+          {detail.data && <IssueDetail key={detail.data.issue.id} initialOccurrenceId={search.get("occurrence")} onOccurrenceSelected={value => changeSearch({ occurrence: value || null })} detail={detail.data} onSaved={() => setDetailRetry((value) => value + 1)} />}
         </>
       ) : (
         <>
@@ -420,9 +430,12 @@ function IssueTable({ issues, onOpen }: { issues: readonly DiagnosticIssue[]; on
   );
 }
 
-function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSaved: () => void }) {
+function IssueDetail({ detail, onSaved, initialOccurrenceId, onOccurrenceSelected }: { detail: DiagnosticIssueDetail; onSaved: () => void; initialOccurrenceId?: string | null; onOccurrenceSelected: (value: string) => void }) {
   const { c, english, locale } = useCopy();
   const { issue, events, status_history: history } = detail;
+  const explanation = explainIssueCode(issue.error_code, english);
+  const [occurrenceId, setOccurrenceId] = useState(initialOccurrenceId ?? "");
+  useEffect(() => { setOccurrenceId(initialOccurrenceId ?? ""); }, [issue.id, initialOccurrenceId]);
   const [status, setStatus] = useState<DiagnosticStatus>(issue.status);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -436,18 +449,26 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
     }).catch((error: unknown) => setSaveError(error)).finally(() => setSaving(false));
   };
   const versions = [...new Set(events.flatMap((event) => [event.version, event.build].filter((value): value is string => Boolean(value))))];
-  const confidenceDescription = issue.confidence === "unknown" ? c.confidenceUnknown : issue.confidence === "likely" ? c.confidenceLikely : c.confidenceConfirmed;
   return (
     <div className="diagnostics-stack">
       <section className="diagnostics-card diagnostics-issue-hero">
         <div><p className="diagnostics-label">{issue.component} / {issue.operation} / {issue.stage}</p><h2>{categoryLabel(c, issue.category)}</h2><p>{categoryNote(c, issue.category)}</p></div>
         <div className="diagnostics-badge-pair"><StatusBadge value={issue.severity} /><StatusBadge value={issue.status} /></div>
       </section>
+      <section className="diagnostics-card">
+        <h3>{explanation.what}</h3>
+        <p>{english ? "Observed location" : "محل مشاهده خطا"}: <code dir="ltr">{issue.component} / {issue.operation} / {issue.stage}</code></p>
+        <p>{english ? "Occurrences" : "تعداد رخداد"}: {number(issue.count, english)} · {english ? "Recorded affected user IDs" : "کاربران متأثر با شناسهٔ ثبت‌شده"}: {detail.affected_user_count === undefined ? "—" : number(detail.affected_user_count, english)}</p>
+        {detail.affected_user_count === 0 && <p>{english ? "No user ID was recorded; user impact is unknown." : "شناسهٔ کاربر ثبت نشده است؛ تعداد کاربران متأثر نامشخص است."}</p>}
+        <p>{english ? "Cause assessments and their verification appear in the selected occurrence's investigation findings." : "فرضیه‌ها و نتیجهٔ بررسی علت، همراه با مدرک در یافته‌های رخداد منتخب نمایش داده می‌شوند."}</p>
+        <p>{english ? "Next check" : "بررسی بعدی"}: {explanation.next}</p>
+      </section>
+      <IssueEvidence key={issue.id} issueId={issue.id} events={events} english={english} occurrenceId={occurrenceId} onOccurrenceChange={value => { setOccurrenceId(value); onOccurrenceSelected(value); }} />
+      <IssueFindings key={`findings-${issue.id}-${occurrenceId}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
       <div className="diagnostics-detail-grid">
         <section className="diagnostics-card diagnostics-classification">
           <h3>{c.taxonomy}</h3>
-          <p>{c.confidence}: <StatusBadge value={issue.confidence} /></p>
-          <p>{confidenceDescription}</p><small>{c.confidenceCaution}</small>
+          <small>{c.confidenceCaution}</small>
           <dl className="diagnostics-definition-list">
             <div><dt>{c.code}</dt><dd dir="ltr">{issue.error_code}</dd></div>
             <div><dt>{c.errorType}</dt><dd dir="ltr">{issue.exception_type ?? "—"}</dd></div>
@@ -482,6 +503,9 @@ function IssueDetail({ detail, onSaved }: { detail: DiagnosticIssueDetail; onSav
           {item.actor_user_id && <Link to={`/admin/billing/users/${encodeURIComponent(item.actor_user_id)}`}>{c.viewUser}: {item.actor_user_id}</Link>}
         </li>)}</ol>}
       </section>
+      <NotificationDeliveries key={`sms-${issue.id}`} issueId={issue.id} english={english} />
+      <DebugOperations key={`ci-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
+      <DebugConversation key={`chat-${issue.id}`} issueId={issue.id} english={english} occurrenceId={occurrenceId} />
     </div>
   );
 }
@@ -607,6 +631,7 @@ function InfrastructurePanel({ search, setSearch }: { search: URLSearchParams; s
   const events = useRemote<DiagnosticEvent[]>(eventsLoad, `infrastructure-events-${offset}`);
   const move = (nextOffset: number) => { const next = setParam(search, "offset", String(nextOffset)); next.set("tab", "infrastructure"); setSearch(next); };
   return <div className="diagnostics-stack">
+    <SentryHealth english={english} />
     <section className="diagnostics-card diagnostics-infra-status">
       <div><p className="diagnostics-label">07 / INFRASTRUCTURE SIGNAL</p><h2>{c.infrastructure}</h2><p>{c.infraNote}</p></div>
       <strong className="diagnostics-unknown"><i aria-hidden="true" />{c.statusUnknown}</strong>
@@ -615,6 +640,13 @@ function InfrastructurePanel({ search, setSearch }: { search: URLSearchParams; s
     {summary.data && <>
       <div className="diagnostics-generation-grid">{summary.data.signals.map((signal) => <article className="diagnostics-card" key={signal.component}><h3 dir="ltr">{signal.component.replaceAll("_", " ")}</h3><StatusBadge value={signal.status}/><p dir="ltr">{signal.evidence}</p><time>{dateTime(signal.observed_at, english)}</time></article>)}</div>
       <section className="diagnostics-card"><h3>{english ? "Durable job states" : "وضعیت پایدار کارها"}</h3>{Object.entries(summary.data.queues).map(([name, counts]) => <div key={name}><strong dir="ltr">{name}</strong><ul>{Object.entries(counts).map(([state, count]) => <li key={state}><span dir="ltr">{state}</span>: {number(count, english)}</li>)}</ul></div>)}</section>
+      {(summary.data.capture_losses?.length ?? 0) > 0 && <section className="diagnostics-card">
+        <h3>{english ? "Recent capture losses (this process)" : "آخرین ثبت‌های ازدست‌رفته در این پردازش"}</h3>
+        <p>{english ? "Bounded metadata, cleared on process restart. Event contents cannot be recovered here." : "فقط اطلاعات محدود نگهداری می‌شود و با شروع مجدد پردازش پاک می‌شود؛ محتوای رویداد از اینجا قابل بازیابی نیست."}</p>
+        <ul>{summary.data.capture_losses?.map((loss, index) => <li key={`${loss.event_id}-${index}`}>
+          <code dir="ltr">{loss.event_id}</code> · <span dir="ltr">{loss.reason}</span> · <time>{dateTime(loss.observed_at, english)}</time>
+        </li>)}</ul>
+      </section>}
     </>}
 
     <div className="diagnostics-card__heading"><h3>{c.latestInfraEvents}</h3></div>
@@ -635,6 +667,7 @@ function AlertsPanel({ search, setSearch }: { search: URLSearchParams; setSearch
   const move = (nextOffset: number) => { const next = setParam(search, "offset", String(nextOffset)); next.set("tab", "alerts"); setSearch(next); };
   return <div className="diagnostics-stack">
     <div className="diagnostics-card__heading"><div><p className="diagnostics-label">08 / ALERTING</p><h2>{c.alerts}</h2></div></div>
+    <NotificationDeliveries english={english} />
     <StatusMessage loading={result.loading} error={result.error} retry={result.retry} />
     {result.data && result.data.length === 0 && <p className="diagnostics-empty">{c.emptyAlerts}</p>}
     {result.data && result.data.length > 0 && <div className="diagnostics-alert-list">{result.data.map((alert) => (

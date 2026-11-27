@@ -1,3 +1,4 @@
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { memberNavigationPattern } from "./src/seo/routePolicy.ts";
@@ -8,6 +9,11 @@ import { defineConfig } from "vitest/config";
 export function resolveApiProxyTarget(value: string | undefined): string {
   return value?.trim() || "http://localhost:8001";
 }
+
+const sentryArtifacts = process.env.SENTRY_BUILD_ARTIFACTS === "1";
+const sentryUpload = Boolean(process.env.SENTRY_AUTH_TOKEN);
+const sentryRelease = /^[a-f0-9]{40}$/.test(process.env.VITE_APP_BUILD_SHA ?? "")
+  ? `fitician-web@${process.env.VITE_APP_BUILD_SHA}` : undefined;
 
 const apiProxyTarget = resolveApiProxyTarget(process.env.VITE_API_PROXY_TARGET);
 const apiProxy = {
@@ -49,6 +55,16 @@ export function previewDocumentPath(path: string) {
 
 export default defineConfig({
   plugins: [
+    ...((sentryArtifacts || sentryUpload) ? [sentryVitePlugin({
+      org: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN, telemetry: false,
+      release: { name: sentryRelease, create: false, finalize: false },
+      sourcemaps: {
+        disable: sentryUpload ? false : "disable-upload",
+        assets: ["./dist/assets/**/*.js", "./dist/assets/**/*.js.map"],
+        filesToDeleteAfterUpload: sentryUpload ? ["./dist/**/*.map"] : [],
+      },
+    })] : []),
     {
       name: "prerender-preview",
       configurePreviewServer(server) {
@@ -93,7 +109,7 @@ export default defineConfig({
       },
     }),
   ],
-  build: { manifest: true },
+  build: { manifest: true, sourcemap: (sentryArtifacts || sentryUpload) ? "hidden" : false },
   server: {
     host: "0.0.0.0",
     proxy: apiProxy,

@@ -121,3 +121,54 @@ class DiagnosticStatusHistory(Base):
     new_status: Mapped[str] = mapped_column(String(20), nullable=False)
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DiagnosticAlertDelivery(Base):
+    __tablename__ = "diagnostic_alert_deliveries"
+    __table_args__ = (
+        UniqueConstraint("issue_id", "environment", name="uq_diagnostic_alert_delivery_scope"),
+        Index("ix_diagnostic_alert_delivery_due", "state", "available_at"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    issue_id: Mapped[UUID] = mapped_column(
+        ForeignKey("diagnostic_issues.id", ondelete="RESTRICT"), index=True
+    )
+    environment: Mapped[str] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(32), default="queued")
+    occurrence_total: Mapped[int] = mapped_column(Integer)
+    covered_count: Mapped[int] = mapped_column(Integer, default=0)
+    generation: Mapped[int] = mapped_column(Integer, default=1)
+    regression_count: Mapped[int] = mapped_column(Integer, default=0)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    provider_message_id: Mapped[str | None] = mapped_column(String(30))
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    last_dispatch_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    current_attempt_id: Mapped[UUID | None] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class DiagnosticAlertAttempt(Base):
+    __tablename__ = "diagnostic_alert_attempts"
+    __table_args__ = (
+        UniqueConstraint("delivery_id", "generation", "dispatch_index", name="uq_alert_attempt"),
+    )
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    delivery_id: Mapped[UUID] = mapped_column(
+        ForeignKey("diagnostic_alert_deliveries.id", ondelete="RESTRICT"), index=True
+    )
+    generation: Mapped[int] = mapped_column(Integer)
+    dispatch_index: Mapped[int] = mapped_column(Integer)
+    occurrence_total: Mapped[int] = mapped_column(Integer)
+    message: Mapped[str] = mapped_column(Text)
+    state: Mapped[str] = mapped_column(String(32), default="sending")
+    provider_message_id: Mapped[str | None] = mapped_column(String(30))
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    receipt_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_receipt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

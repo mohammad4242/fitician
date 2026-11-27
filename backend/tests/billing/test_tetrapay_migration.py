@@ -4,9 +4,18 @@ from pathlib import Path
 from uuid import uuid4
 
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, text
 
 from alembic import command
+
+
+def test_tetrapay_migration_extends_the_current_release_head():
+    config = Config()
+    config.set_main_option("script_location", str(Path(__file__).parents[2] / "alembic"))
+    scripts = ScriptDirectory.from_config(config)
+    assert scripts.get_heads() == ["20261123_176"]
+    assert scripts.get_revision("20261123_176").down_revision == "20261121_187"
 
 
 def test_recovery_migration_preserves_historical_fake_transactions(test_settings, monkeypatch):
@@ -33,7 +42,7 @@ def test_recovery_migration_preserves_historical_fake_transactions(test_settings
         )
     try:
         with engine.begin() as connection:
-            command.downgrade(config, "20261018_175")
+            command.downgrade(config, "20261121_187")
             command.upgrade(config, "head")
             row = connection.execute(
                 text("""SELECT provider_reference, amount_irr, status,

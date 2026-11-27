@@ -1018,6 +1018,7 @@ const en = {
           body_photo_analysis: "Body-photo analysis",
           progress_comparison: "Progress comparison",
           food_photo_estimation: "Food-photo estimation",
+          debug_agent: "Debug agent",
           food_price_search: "Food price search",
         },
         loading: "Loading AI settings…",

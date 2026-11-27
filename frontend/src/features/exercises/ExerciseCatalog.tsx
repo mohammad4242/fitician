@@ -66,6 +66,8 @@ export function ExerciseCatalog({ source, searchParams, setSearchParams,
   initialPage?: CatalogPageData | null;
 }) {
   const { i18n, t } = useTranslation();
+  const [paginationReady, setPaginationReady] = useState(!publicMode);
+  useEffect(() => { setPaginationReady(true); }, []);
   const [categories, setCategories] = useState<ExerciseCategories | null>(initialCategories);
   const [categoryState, setCategoryState] = useState<LoadState>(initialCategories ? "ready" : "loading");
   const [categoryRetry, setCategoryRetry] = useState(0);
@@ -584,7 +586,7 @@ export function ExerciseCatalog({ source, searchParams, setSearchParams,
                   <nav className="catalog-pagination" aria-label={t("catalog.paginationLabel")}>
                     <button
                       type="button"
-                      disabled={query.page <= 1}
+                      disabled={!paginationReady || query.page <= 1}
                       onClick={() => writeQuery({ page: query.page - 1 }, false)}
                     >
                       {t("catalog.previousPage")}
@@ -597,7 +599,7 @@ export function ExerciseCatalog({ source, searchParams, setSearchParams,
                     </span>
                     <button
                       type="button"
-                      disabled={query.page >= exercisePage.total_pages}
+                      disabled={!paginationReady || query.page >= exercisePage.total_pages}
                       onClick={() => writeQuery({ page: query.page + 1 }, false)}
                     >
                       {t("catalog.nextPage")}

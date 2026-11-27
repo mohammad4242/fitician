@@ -18,6 +18,7 @@ from .schemas import (
     AgentGenerationInput,
     AgentGenerationOutput,
     AgentName,
+    AgentTaskKind,
     AuthState,
     ErrorCode,
     RunnerCapabilities,
@@ -67,8 +68,45 @@ class AgentService:
         self.workspace_limits = workspace_limits
         self.private_media = private_media
 
-    async def capabilities(self) -> list[RunnerCapabilities]:
-        return await self.registry.capabilities()
+    async def capabilities(
+        self, *, task_kind: AgentTaskKind | None = None
+    ) -> list[RunnerCapabilities]:
+        from .runners.debug_policy import supports_external_tools
+
+        result = []
+        mock_only = task_kind == AgentTaskKind.DEBUG_AGENT
+        runners = await self.registry.capabilities(
+            exclude=frozenset({AgentName.CLAUDE}) if mock_only else frozenset()
+        )
+        if mock_only:
+            runners.append(RunnerCapabilities(agent=AgentName.CLAUDE, installed=False))
+        for runner in runners:
+            if runner.agent == AgentName.CLAUDE:
+                from .debug_mock import mock_profile
+
+                profiles = [
+                    p
+                    for p in runner.profiles or []
+                    if AgentTaskKind.DEBUG_AGENT not in p.task_kinds
+                ]
+                result.append(
+                    runner.model_copy(
+                        update={"debug_status": "mock", "profiles": [*profiles, mock_profile()]}
+                    )
+                )
+                continue
+            if not runner.installed:
+                status = "not_installed"
+            elif not supports_external_tools(runner.agent, runner.version):
+                status = "native_tool_isolation_unavailable"
+            elif not any(AgentTaskKind.DEBUG_AGENT in p.task_kinds for p in runner.profiles or []):
+                status = "models_unavailable"
+            elif runner.auth_state != AuthState.AUTHENTICATED:
+                status = "authentication_required"
+            else:
+                status = "available"
+            result.append(runner.model_copy(update={"debug_status": status}))
+        return result
 
     async def test(self, request: TestRequest, request_id: str) -> TestOutput:
         runner = self._runner(request.agent)
@@ -230,29 +268,21 @@ class AgentService:
                         raise AgentServiceError(
                             ErrorCode.PROVIDER_UNAVAILABLE, "provider is unavailable", 503
                         )
-                    active_runner = self.registry.for_workspace(
-                        generation.agent, workspace.path
-                    )
+                    active_runner = self.registry.for_workspace(generation.agent, workspace.path)
                     if active_runner is None:
                         raise AgentServiceError(
                             ErrorCode.INVALID_REQUEST, "agent is not configured", 422
                         )
-                    result = await self._run_inside_slot(
-                        active_runner, runner_request, request_id
-                    )
+                    result = await self._run_inside_slot(active_runner, runner_request, request_id)
         except ConcurrencyLimitError as exc:
             raise AgentServiceError(ErrorCode.RATE_LIMITED, "service is busy", 429) from exc
         except OSError as exc:
             raise AgentServiceError(
                 ErrorCode.PROVIDER_UNAVAILABLE, "provider is unavailable", 503
             ) from exc
-        return self._output(
-            generation, result, request_id, profile_id=generation.profile_id
-        )
+        return self._output(generation, result, request_id, profile_id=generation.profile_id)
 
-    async def _run(
-        self, agent: AgentName, request: RunnerRequest, request_id: str
-    ) -> RunnerResult:
+    async def _run(self, agent: AgentName, request: RunnerRequest, request_id: str) -> RunnerResult:
         try:
             async with self.concurrency.slot(agent.value):
                 workspace = RequestWorkspace(root=self.workspace_root)
@@ -280,9 +310,7 @@ class AgentService:
         try:
             result = await runner.run(request)
         except RunnerError as exc:
-            code, status = _RUNNER_STATUS.get(
-                exc.code, (ErrorCode.PROVIDER_UNAVAILABLE, 503)
-            )
+            code, status = _RUNNER_STATUS.get(exc.code, (ErrorCode.PROVIDER_UNAVAILABLE, 503))
             if code is ErrorCode.UNAUTHORIZED:
                 self.registry.set_auth_state(runner.name, AuthState.UNAUTHENTICATED)
             raise AgentServiceError(code, self._safe_message(code), status) from exc
@@ -381,7 +409,11 @@ class AgentService:
 
         if model_id is None:
             raise AgentServiceError(ErrorCode.INVALID_REQUEST, "model was not provided", 422)
-        profiles = [item for item in (capabilities.profiles or []) if item.model_id == model_id]
+        profiles = [
+            item
+            for item in (capabilities.profiles or [])
+            if item.model_id == model_id and item.task_kinds != (AgentTaskKind.DEBUG_AGENT,)
+        ]
         if len(profiles) > 1:
             raise AgentServiceError(
                 ErrorCode.INVALID_REQUEST, "a profile is required for this model", 422

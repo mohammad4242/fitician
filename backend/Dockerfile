@@ -1,7 +1,12 @@
-FROM python:3.12-slim
+FROM ghcr.io/astral-sh/uv:0.8.14 AS uv
+FROM python:3.12-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36
+
+COPY --from=uv /uv /usr/local/bin/uv
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    PATH=/app/.venv/bin:$PATH \
+    UV_LINK_MODE=copy
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
@@ -15,16 +20,17 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY pyproject.toml alembic.ini ./
+COPY pyproject.toml uv.lock alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
 
-RUN pip install --no-cache-dir . \
+RUN uv sync --frozen --no-dev \
     && mkdir -p /var/lib/fitician/media
 
 EXPOSE 8000
 
 ARG APP_BUILD_SHA=
 ENV APP_BUILD_SHA=${APP_BUILD_SHA}
+LABEL org.opencontainers.image.revision=${APP_BUILD_SHA}
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

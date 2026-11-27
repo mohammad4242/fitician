@@ -82,6 +82,16 @@ fi
         self.assertEqual(list(self.workspace.glob(".db-backup.*.age")), [])
         self.assertEqual(list(self.workspace.glob(".db-backup-check.*.age")), [])
 
+    def test_regional_backup_uses_the_explicit_application_env_file(self) -> None:
+        env_file = self.workspace / "regional-runtime.env"
+        env_file.write_text("POSTGRES_DB=fitician\n")
+        self.env["FITICIAN_ENV_FILE"] = str(env_file)
+        result = self._run()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            f"--env-file {env_file}", (self.workspace / "docker.log").read_text()
+        )
+
     def test_failed_encryption_never_uploads(self) -> None:
         self._command("age", "#!/bin/sh\nexit 9\n")
 
