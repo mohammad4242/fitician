@@ -1,3 +1,4 @@
+import "../diagnostics/diagnostics.css";
 import { DebugAutomationSetup } from "../diagnostics/DebugAutomation";
 import { DebugConnectors } from "../diagnostics/DebugConnectors";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -400,7 +401,7 @@ export function AdminAiSettingsPage() {
         </Link>
       </header>
 
-      <AgentServiceProxySettings />
+      {selectedTask !== "debug_agent" && <AgentServiceProxySettings />}
 
       <nav className="admin-ai-task-tabs" aria-label={t("admin.aiSettings.taskNav")}>
         {configs.map((item) => (
@@ -413,13 +414,11 @@ export function AdminAiSettingsPage() {
         ))}
       </nav>
 
-      {selectedTask === "debug_agent" && <DebugConnectors english={i18n.resolvedLanguage === "en"} showExecutionTarget selectedTarget={config?.debug_connector_id} onSelectTarget={id => patchConfig({ debug_connector_id: id })} />}
-      {selectedTask === "debug_agent" && <DebugAutomationSetup english={i18n.resolvedLanguage === "en"} />}
-      <form className="admin-ai-settings-form" onSubmit={handleSave}>
+      <form className={selectedTask === "debug_agent" ? "admin-ai-settings-form debug-ai-settings-form" : "admin-ai-settings-form"} onSubmit={handleSave}>
         <section className="admin-panel">
           <h2>{t(`admin.aiSettings.tasks.${selectedTask}`)}</h2>
           {selectedTask === "debug_agent" && !agentMode && <p role="status">{i18n.resolvedLanguage === "en" ? "Select Agent Service to configure unified debugging. Previous API settings remain recorded but cannot start new unified runs." : "برای تنظیم دیباگ یکپارچه، Agent Service را انتخاب کنید. تنظیمات API قبلی حفظ می‌شوند اما برای اجرای جدید استفاده نمی‌شوند."}</p>}
-          {selectedTask === "debug_agent" && <p role="note">{i18n.resolvedLanguage === "en" ? "The selected agent runs in Agent Service. Repository tools and tests run on the independently selected laptop. The laptop needs no AI login. Offline targets block execution; no automatic fallback. Publishing and deployment require separate authorization." : "ایجنت منتخب در Agent Service اجرا می‌شود. ابزارهای مخزن و آزمون‌ها روی لپ‌تاپ منتخب اجرا می‌شوند؛ لپ‌تاپ به ورود حساب AI نیاز ندارد. اتصال آفلاین اجرا را متوقف می‌کند. انتشار PR و استقرار مجوز جداگانه می‌خواهند."}</p>}
+          {selectedTask === "debug_agent" && <p>{i18n.resolvedLanguage === "en" ? "Test the selected profile, then enable and save this task. The model can explain recorded evidence on its own." : "مدل منتخب را تست کنید، سپس تیک «فعال» را بزنید و ذخیره کنید. توضیح رخداد با شواهد ثبت‌شده فقط به مدل نیاز دارد."}</p>}
           <fieldset className="admin-ai-backend-switch">
             <legend>{t("admin.aiSettings.executionBackend")}</legend>
             <label className={foodPriceAgentOnly ? "is-disabled" : undefined}>
@@ -554,7 +553,12 @@ export function AdminAiSettingsPage() {
         {(feedbackOperation === "save" || feedbackOperation === null) && localError !== null && <p className="form-error" role="alert">{localError}</p>}
         {agentMode && selectedProfile && selectedProfile.verification_status !== "passed" && <p className="admin-ai-inline-note" role="note">{t("admin.aiSettings.agentService.profileMustPassTest")}</p>}
         <div className="admin-ai-settings-actions"><button type="submit" disabled={busy !== null || (agentMode && config.enabled && selectedProfile?.verification_status !== "passed")}>{t("admin.aiSettings.save")}</button><button type="button" disabled={busy !== null} onClick={handleDisable}>{t("admin.aiSettings.disable")}</button></div>
+        {selectedTask === "debug_agent" && <div className="debug-connection-grid">
+          <DebugConnectors english={i18n.resolvedLanguage === "en"} showExecutionTarget selectedTarget={config.debug_connector_id} onSelectTarget={id => patchConfig({ debug_connector_id: id })} />
+          <DebugAutomationSetup english={i18n.resolvedLanguage === "en"} />
+        </div>}
       </form>
+      {selectedTask === "debug_agent" && <details className="debug-proxy-settings"><summary>{i18n.resolvedLanguage === "en" ? "Agent Service proxy" : "تنظیمات پروکسی Agent Service"}</summary><AgentServiceProxySettings /></details>}
       {authAgent && <AgentAuthDialog
         agent={authAgent.agent}
         forceReauth={authAgent.forceReauth}

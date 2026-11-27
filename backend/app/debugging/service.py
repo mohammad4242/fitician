@@ -70,16 +70,21 @@ def submit_message(
     key: str,
     occurrence_id: UUID | None = None,
     action: str = "analyze",
+    *,
+    evidence_only: bool = False,
 ) -> DebugRun:
     safe = validate_operator_message(content)
     thread = get_thread(db, issue_id)
-    if action not in ("analyze", "prepare_fix"):
+    if action not in ("analyze", "prepare_fix") or (evidence_only and action != "analyze"):
         raise ValueError("unsupported_action")
     if occurrence_id is not None:
         occurrence = db.get(DiagnosticEvent, occurrence_id)
         if occurrence is None or occurrence.issue_id != issue_id:
             raise ValueError("occurrence_not_found")
-    digest = hashlib.sha256(json.dumps([safe, str(occurrence_id), action]).encode()).hexdigest()
+    identity = [safe, str(occurrence_id), action]
+    if evidence_only:
+        identity.append("evidence_only")
+    digest = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
     existing = db.scalar(
         select(DebugMessage).where(
             DebugMessage.thread_id == thread.id, DebugMessage.submission_key == key
@@ -136,7 +141,7 @@ def submit_message(
     )
     from .runtime_profiles import execution_capabilities, snapshot_connector
 
-    snapshot["connector_id"] = snapshot_connector(db, snapshot)
+    snapshot["connector_id"] = None if evidence_only else snapshot_connector(db, snapshot)
     verification = db.scalar(
         select(AIAgentProfileVerification).where(
             AIAgentProfileVerification.task_type == AITaskType.DEBUG_AGENT,

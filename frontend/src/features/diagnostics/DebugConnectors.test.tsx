@@ -57,7 +57,7 @@ it("enrolls a repository worker without requiring AI authentication", async () =
   URL.createObjectURL = vi.fn(() => "blob:private-config");
   const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
   render(<DebugConnectors english />);
-  expect(screen.getByRole("combobox", { name: "New connector location" })).toHaveValue("laptop");
+  fireEvent.click(screen.getByText("Setup and access"));
   fireEvent.click(screen.getByRole("button", { name: "Enroll and download private configuration" }));
   await waitFor(() => expect(request).toHaveBeenCalledWith("/api/v1/admin/diagnostics/connectors", { method: "POST", body: JSON.stringify({ name: "Laptop" }) }));
   click.mockRestore();

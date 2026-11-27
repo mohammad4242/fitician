@@ -1,6 +1,11 @@
 /** Fixed operational facts and next actions; unknown codes do not imply a cause. */
 export function explainDebugFailure(code: string | null, english: boolean): string | null {
   switch (code) {
+    case "debug_agent_disabled":
+      return english ? "The debug assistant is disabled. Test the selected profile, then enable and save the task in AI Settings." : "دستیار بررسی خطا غیرفعال است. مدل منتخب را تست کنید، سپس در تنظیمات هوش مصنوعی تیک «فعال» را بزنید و ذخیره کنید.";
+    case "execution_target_changed":
+    case "execution_target_not_authorized":
+      return english ? "The selected laptop changed or lost access. Review and test the connection in AI Settings." : "اتصال لپ‌تاپ منتخب تغییر کرده یا دسترسی آن لغو شده است. اتصال را در تنظیمات هوش مصنوعی بررسی و تست کنید.";
     case "mock_execution_not_authorized":
       return english ? "MOCK cannot invoke a model, repository tools, or prepare a real fix. Select a real available agent." : "MOCK نمی‌تواند مدل یا ابزار مخزن را اجرا یا اصلاح واقعی آماده کند. یک ایجنت واقعیِ در دسترس را انتخاب کنید.";
     case "agent_authentication_required":
@@ -66,9 +71,19 @@ export function explainDebugFailure(code: string | null, english: boolean): stri
       return english ? "The provider rate-limited this request. Review its limits before retrying." : "درخواست به محدودیت نرخ سرویس مدل رسیده است. پیش از تلاش دوباره محدودیت همان سرویس را بررسی کنید.";
     case "provider_rejected":
       return english ? "The model service did not accept the request. Check access and the selected model's settings." : "سرویس مدل درخواست را نپذیرفت. اعتبار دسترسی و تنظیمات مدل منتخب را بررسی کنید.";
+    case "local_connector_not_configured":
+      return english ? "Select a laptop in AI Settings and verify its repository connection." : "در تنظیمات هوش مصنوعی لپ‌تاپ را انتخاب و اتصال مخزن را تست کنید.";
+    case "debug_tests_not_configured":
+      return english ? "No test runner is configured for this laptop. Set up laptop validation or enable connected GitHub Actions validation." : "برای این لپ‌تاپ محیط تست آماده نیست. تست لپ‌تاپ یا اتصال آزمون GitHub Actions را تنظیم کنید.";
+    case "automation_worker_not_configured":
+    case "automation_worker_offline":
+      return english ? "The GitHub Actions broker is unavailable. Connect it or set up laptop tests." : "اتصال اجرای GitHub Actions برقرار نیست. آن را وصل کنید یا تست لپ‌تاپ را تنظیم کنید.";
+    case "github_validation_unavailable":
+      return english ? "GitHub Actions validation is unavailable. Check access to the repository and the validation workflow." : "آزمون در GitHub Actions در دسترس نیست. دسترسی مخزن و گردش‌کار تست را بررسی کنید.";
+    case "provider_invalid_response":
+      return english ? "Agent Service returned an unusable response. Inspect the execution details and retry." : "پاسخ Agent Service قابل استفاده نبود. جزئیات اجرا را بررسی کنید و دوباره تلاش کنید.";
     case "repair_executor_not_configured":
     case "interactive_runtime_not_configured":
-    case "local_connector_not_configured":
       return english ? "A compatible execution runtime is not configured. Select and verify an explicit execution target." : "محیط اجرای سازگار تنظیم نشده است. یک محل اجرای مشخص را انتخاب و اتصالش را بررسی کنید.";
     case "github_credential_not_configured":
       return english ? "Independent GitHub access is not configured. Install the broker's scoped credential in its secret store." : "دسترسی مستقل GitHub تنظیم نشده است. دسترسی محدود broker را در تنظیمات امن آن ثبت کنید.";

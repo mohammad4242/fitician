@@ -164,7 +164,7 @@ async def run_agent(
         for t in tools
         if t["name"] not in {"fitician_commit", "fitician_create_pr", "fitician_ci_publish_pr"}
     ]
-    if mock:
+    if mock or not config.get("connector_id"):
         tools = []
     async with httpx.AsyncClient(
         trust_env=False, headers={"X-Correlation-ID": str(run_id)}

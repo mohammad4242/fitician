@@ -112,6 +112,23 @@ def evidence_package(
 ) -> dict[str, Any]:
     from sqlalchemy import select
 
+    metadata = {}
+    if occurrence_id is not None:
+        occurrence = db.get(DiagnosticEvent, occurrence_id)
+        if occurrence is None or occurrence.issue_id != issue_id:
+            raise ValueError("occurrence_not_found")
+        metadata["occurrence"] = {
+            "event_id": str(occurrence.id),
+            "error_code": occurrence.error_code,
+            "operation": occurrence.operation,
+            "component": occurrence.component,
+            "stage": occurrence.stage,
+            "category": occurrence.category,
+            "outcome": occurrence.outcome,
+            "http_status": occurrence.http_status,
+            "release_commit": occurrence.build,
+        }
+
     statement = select(DiagnosticEvidenceSnapshot).where(
         DiagnosticEvidenceSnapshot.issue_id == issue_id
     )
@@ -120,6 +137,7 @@ def evidence_package(
     snapshot = db.scalar(statement.order_by(DiagnosticEvidenceSnapshot.created_at.desc()).limit(1))
     if snapshot is None:
         return {
+            **metadata,
             "issue_id": str(issue_id),
             "snapshot": None,
             "missing": ["exception_stack"],
@@ -142,6 +160,7 @@ def evidence_package(
         else None
     )
     return {
+        **metadata,
         "external_issue_url": issue_url,
         "external_source": external.source_evidence if external else None,
         "sync_state": external.sync_state if external else "not_configured",
@@ -165,7 +184,9 @@ def evidence_package(
         else "unknown",
         "created_at": snapshot.created_at.isoformat(),
         "missing": []
-        if snapshot.payload.get("exception", {}).get("values")
+        if any(
+            value.get("frames") for value in snapshot.payload.get("exception", {}).get("values", [])
+        )
         or (external and external.source_evidence)
         else ["exception_stack"],
     }

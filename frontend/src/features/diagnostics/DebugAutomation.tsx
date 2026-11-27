@@ -64,12 +64,21 @@ export function DebugAutomationSetup({ english }: { english: boolean }) {
     try { await request(`${root}/automation-workers/${encodeURIComponent(id)}/revoke`, { method: "POST" }); await load(); }
     catch { setError(true); } finally { setBusy(false); }
   }
-  return <section className="diagnostics-card" dir={english ? "ltr" : "rtl"} style={{ minWidth: 0, overflowWrap: "anywhere" }}>
-    <h3>{english ? "Controlled GitHub Actions connection" : "اتصال کنترل‌شدهٔ GitHub Actions"}</h3>
-    <p>{english ? "The Germany broker uses its own enrollment and scoped GitHub credential. Selected-model execution and CI have separate permissions." : "broker آلمان اتصال و دسترسی محدود GitHub مستقل دارد. مجوز اجرای مدل و مجوز CI جدا ثبت می‌شوند."}</p>
-    <button type="button" disabled={busy || workers.some(row => !row.revoked)} onClick={() => void enroll()}>{english ? "Enroll Germany CI broker" : "ثبت اتصال broker آلمان"}</button>
-    <p>{english ? "Install the downloaded configuration as the service's private worker.json with mode 0600. Configure its GitHub access separately in the server secret store." : "فایل دانلودشده را با نام worker.json و دسترسی 0600 در تنظیمات خصوصی سرویس ثبت کنید. دسترسی GitHub در مخزن امن سرور تنظیم می‌شود."}</p>
-    {!workers.length && <p>{english ? "No CI broker is enrolled." : "هنوز broker مربوط به CI ثبت نشده است."}</p>}
+  const worker = workers.find(row => !row.revoked);
+  const githubStatus = !worker ? (english ? "Connection not configured" : "اتصال تنظیم نشده")
+    : !worker.connected ? (english ? "Offline" : "آفلاین")
+    : !worker.capabilities.github_authenticated ? (english ? "GitHub access unverified" : "دسترسی GitHub تأیید نشده")
+    : !worker.capabilities.workflow_installed ? (english ? "Validation workflow unavailable" : "گردش‌کار تست در دسترس نیست")
+    : (english ? "Connected · validation available" : "متصل · تست در دسترس");
+  return <section className="diagnostics-card debug-connection" dir={english ? "ltr" : "rtl"}>
+    <h3>GitHub Actions</h3>
+    <p>{english ? "Runs CI tests and publishes approved draft pull requests." : "تست CI را اجرا می‌کند و PR پیش‌نویس را پس از تأیید منتشر می‌کند."}</p>
+    <p role="status">{githubStatus}</p>
+    {worker && <button className="diagnostics-button diagnostics-button--quiet" type="button" onClick={() => void load().catch(() => setError(true))}>{english ? "Refresh CI status" : "تازه‌سازی وضعیت CI"}</button>}
+    {!worker && <button className="diagnostics-button" type="button" disabled={busy} onClick={() => void enroll()}>{english ? "Enroll Germany CI broker" : "ثبت اتصال CI آلمان"}</button>}
+    <details>
+      <summary>{english ? "Setup and access" : "نصب و مدیریت دسترسی"}</summary>
+      <p>{english ? "Install the downloaded configuration as the service's private worker.json with mode 0600. Configure its GitHub access separately in the server secret store." : "فایل دانلودشده را با نام worker.json و دسترسی 0600 در تنظیمات خصوصی سرویس ثبت کنید. دسترسی GitHub را در مخزن امن سرور تنظیم کنید."}</p>
     {workers.map(row => <article key={row.id}><strong>{row.name}</strong> · <bdi>{row.environment}</bdi>
       <p>{row.revoked ? (english ? "Revoked" : "دسترسی لغو شده") : row.connected ? (english ? "Panel connection active" : "اتصال پنل برقرار است") : (english ? "Offline" : "آفلاین")}</p>
       <p>{row.capabilities.github_authenticated ? (english ? "GitHub authentication checked" : "ورود GitHub بررسی شده") : (english ? "GitHub authentication unverified" : "ورود GitHub تأیید نشده")}</p>
@@ -77,6 +86,7 @@ export function DebugAutomationSetup({ english }: { english: boolean }) {
       {row.capabilities.error_code && <p>{explainDebugFailure(row.capabilities.error_code, english)} <code dir="ltr" style={codeStyle}>{row.capabilities.error_code}</code></p>}
       {!row.revoked && <p><button type="button" disabled={busy} onClick={() => void revoke(row.id)}>{english ? "Revoke CI broker" : "لغو دسترسی broker"}</button></p>}
     </article>)}
+    </details>
     {error && <p role="status">{english ? "The CI connection could not be updated." : "خواندن یا تغییر اتصال CI انجام نشد."}</p>}
   </section>;
 }

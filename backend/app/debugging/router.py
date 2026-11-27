@@ -42,6 +42,7 @@ class MessageInput(BaseModel):
     content: str = Field(min_length=1, max_length=8000)
     occurrence_id: UUID | None = None
     action: Literal["analyze", "prepare_fix"] = "analyze"
+    evidence_only: bool = False
 
 
 def run_json(run: DebugRun) -> dict[str, Any]:
@@ -347,6 +348,7 @@ def post_message(
             idempotency_key,
             payload.occurrence_id,
             payload.action,
+            evidence_only=payload.evidence_only,
         )
         db.commit()
         return run_json(run)

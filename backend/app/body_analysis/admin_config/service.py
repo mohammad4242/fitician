@@ -357,11 +357,12 @@ def save_task_config(
         if task_type is AITaskType.DEBUG_AGENT:
             from app.debugging.runtime_profiles import authorized_target
 
-            if debug_connector_id is None:
-                raise AIConfigError("Select a laptop execution target independently of the agent")
-            connector = authorized_target(db, debug_connector_id)
-            if connector.capabilities.get("execution_role") != "repository_worker":
-                raise AIConfigError("The selected target must be a repository-only laptop worker")
+            if debug_connector_id is not None:
+                connector = authorized_target(db, debug_connector_id)
+                if connector.capabilities.get("execution_role") != "repository_worker":
+                    raise AIConfigError(
+                        "The selected target must be a repository-only laptop worker"
+                    )
             if agent_profile_id.startswith("connector:"):
                 raise AIConfigError("Select a profile from Agent Service, not a laptop AI profile")
     elif payload.enabled:
