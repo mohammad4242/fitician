@@ -68,6 +68,15 @@ class Settings(BaseSettings):
     billing_fake_provider_enabled: bool = False
     billing_order_ttl_minutes: int = Field(default=30, ge=1, le=1440)
     billing_callback_base_url: str | None = Field(default=None, max_length=500)
+    tetrapay_enabled: bool = False
+    tetrapay_mode: Literal["sandbox", "live"] = "sandbox"
+    tetrapay_api_key: SecretStr | None = Field(default=None, repr=False)
+    tetrapay_base_url: str = "https://api.sandbox.tetra98.com/api/v1"
+    tetrapay_webhook_enabled: bool = False
+    tetrapay_webhook_secret: SecretStr | None = Field(default=None, repr=False)
+    tetrapay_callback_url: str = "https://fitician.fit/billing/checkout-result"
+    tetrapay_webhook_url: str = "https://fitician.fit/api/v1/billing/webhooks/tetrapay"
+
     notification_worker_batch_size: int = Field(default=100, ge=1, le=500)
     notification_worker_poll_seconds: float = Field(default=5.0, gt=0, le=60)
     notification_worker_lease_seconds: int = Field(default=60, ge=10, le=3600)
@@ -278,7 +287,7 @@ class Settings(BaseSettings):
     food_price_provider_api_key: SecretStr | None = Field(default=None, repr=False)
     food_price_provider_base_url: str | None = Field(default=None, max_length=500, repr=False)
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", hide_input_in_errors=True)
 
     @field_validator("agent_service_token", mode="before")
     @classmethod
@@ -353,6 +362,46 @@ class Settings(BaseSettings):
         lab_root = self.nutrition_lab_storage_root.resolve()
         if lab_root == public_root or lab_root.is_relative_to(public_root):
             raise ValueError("Nutrition lab storage must be outside public media storage")
+        return self
+
+    @model_validator(mode="after")
+    def validate_tetrapay(self) -> Self:
+        expected = (
+            "https://api.tetra98.com/api/v1"
+            if self.tetrapay_mode == "live"
+            else "https://api.sandbox.tetra98.com/api/v1"
+        )
+        if self.tetrapay_base_url != expected:
+            raise ValueError("TetraPay mode and fixed API URL must match")
+        if self.tetrapay_enabled:
+            if not self.tetrapay_api_key or not self.tetrapay_api_key.get_secret_value().strip():
+                raise ValueError("Enabled TetraPay requires an API key")
+            if self.app_env == "production" and self.tetrapay_mode != "live":
+                raise ValueError("Production cannot enable TetraPay sandbox")
+        for value, path in [
+            (self.tetrapay_callback_url, "/billing/checkout-result"),
+            (self.tetrapay_webhook_url, "/api/v1/billing/webhooks/tetrapay"),
+        ]:
+            url = urlsplit(value)
+            host = url.hostname or ""
+            if (
+                url.scheme != "https"
+                or url.path != path
+                or url.query
+                or url.fragment
+                or url.username
+                or url.password
+                or url.port not in {None, 443}
+                or not (host == "fitician.fit" or host.endswith(".fitician.fit"))
+                or (self.app_env == "production" and host != "fitician.fit")
+            ):
+                raise ValueError("TetraPay URLs require approved Fitician HTTPS routes")
+        if self.tetrapay_webhook_enabled and (
+            not self.tetrapay_enabled
+            or not self.tetrapay_webhook_secret
+            or not self.tetrapay_webhook_secret.get_secret_value().strip()
+        ):
+            raise ValueError("Enabled TetraPay webhook requires its separate signing key")
         return self
 
     @model_validator(mode="after")

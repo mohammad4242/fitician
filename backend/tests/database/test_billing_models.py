@@ -1,8 +1,8 @@
 from sqlalchemy import inspect
 
 from app.billing.models import (
-    BillingOrder,
     BillingOfferConfig,
+    BillingOrder,
     BillingProviderProduct,
     BillingTransaction,
 )
@@ -36,6 +36,11 @@ def test_billing_tables_have_snapshot_and_provider_safe_columns() -> None:
         "order_id",
         "provider",
         "provider_reference",
+        "provider_mode",
+        "provider_evidence",
+        "checkout_url",
+        "reconcile_attempts",
+        "next_reconcile_at",
         "amount_irr",
         "currency",
         "status",
@@ -50,7 +55,12 @@ def test_billing_tables_have_snapshot_and_provider_safe_columns() -> None:
 def test_billing_models_are_registered_and_have_required_delete_actions() -> None:
     metadata = BillingOrder.metadata
     assert metadata is BillingTransaction.metadata
-    assert {"billing_offer_configs", "billing_provider_products", "billing_orders", "billing_transactions"} <= set(metadata.tables)
+    assert {
+        "billing_offer_configs",
+        "billing_provider_products",
+        "billing_orders",
+        "billing_transactions",
+    } <= set(metadata.tables)
 
     user_fk = next(iter(BillingOrder.__table__.c.user_id.foreign_keys))
     grant_fk = next(iter(BillingOrder.__table__.c.access_grant_id.foreign_keys))

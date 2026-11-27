@@ -5,11 +5,12 @@ from uuid import UUID
 from app.billing.enums import BillingOfferCode, PaymentProviderCode
 
 CheckoutKind = Literal["redirect", "native"]
-PaymentOutcomeStatus = Literal["verified", "failed", "refunded"]
+PaymentOutcomeStatus = Literal["verified", "failed", "refunded", "pending", "expired"]
 
 
 class PaymentProviderError(Exception):
-    pass
+    retry_after: int | None = None
+    evidence: dict[str, str | None] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,16 +45,14 @@ class ProviderVerificationRequest:
 class ProviderPaymentResult:
     status: PaymentOutcomeStatus
     provider_reference: str
+    evidence: dict[str, str | None] | None = None
 
 
 class PaymentProvider(Protocol):
     code: PaymentProviderCode
 
-    def create_checkout(self, request: ProviderCheckoutRequest) -> ProviderCheckoutResult:
-        ...
+    def create_checkout(self, request: ProviderCheckoutRequest) -> ProviderCheckoutResult: ...
 
-    def verify_payment(self, request: ProviderVerificationRequest) -> ProviderPaymentResult:
-        ...
+    def verify_payment(self, request: ProviderVerificationRequest) -> ProviderPaymentResult: ...
 
-    def verify_refund(self, request: ProviderVerificationRequest) -> ProviderPaymentResult:
-        ...
+    def verify_refund(self, request: ProviderVerificationRequest) -> ProviderPaymentResult: ...

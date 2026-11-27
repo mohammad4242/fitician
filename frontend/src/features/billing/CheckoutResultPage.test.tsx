@@ -6,6 +6,7 @@ import "../../i18n";
 
 const billingApi = vi.hoisted(() => ({
   getOrder: vi.fn(),
+  verifyTetraPayReturn: vi.fn(),
   verifyPayment: vi.fn(),
 }));
 const entitlementState = vi.hoisted(() => ({ refresh: vi.fn(async () => undefined) }));
@@ -67,5 +68,13 @@ it("does not refresh entitlements after a failed payment", async () => {
 
   expect(await screen.findByRole("heading", { name: "پرداخت ناموفق بود" })).toBeInTheDocument();
   expect(billingApi.getOrder).toHaveBeenCalledWith("order-1");
+  expect(entitlementState.refresh).not.toHaveBeenCalled();
+});
+
+it("ignores callback status and verifies the token on the server", async () => {
+  billingApi.verifyTetraPayReturn.mockResolvedValue({ verified: false, transaction_status: "pending", order_status: "pending" });
+  render(<MemoryRouter initialEntries={["/billing/checkout-result?token=provider-token&status=paid"]}><CheckoutResultPage /></MemoryRouter>);
+  expect(await screen.findByRole("heading", { name: "پرداخت در انتظار تأیید" })).toBeInTheDocument();
+  expect(billingApi.verifyTetraPayReturn).toHaveBeenCalledWith("provider-token");
   expect(entitlementState.refresh).not.toHaveBeenCalled();
 });

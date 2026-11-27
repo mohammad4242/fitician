@@ -16,10 +16,13 @@ import type {
   QuotaStatus,
 } from "@fitician/core/entitlements";
 
+import { AppState } from "react-native";
+import { createBillingApi } from "../billing/billingApi";
 import { useMobileAuth } from "../auth/MobileAuthProvider";
 import { createEntitlementApi } from "./entitlementApi";
 
 export interface EntitlementContextValue {
+  readonly paymentStatus?: "pending" | "verified" | "failed" | "expired" | null;
   readonly snapshot: EntitlementSnapshot | null;
   readonly loading: boolean;
   readonly error: unknown | null;
@@ -40,6 +43,7 @@ export function EntitlementProvider({ children }: { readonly children: ReactNode
   const auth = useMobileAuth();
   const userId = auth.status === "signed_in" ? auth.user?.id ?? null : null;
   const api = useMemo(() => createEntitlementApi(auth.request), [auth.request]);
+  const [paymentStatus, setPaymentStatus] = useState<"pending" | "verified" | "failed" | "expired" | null>(null);
   const [snapshot, setSnapshot] = useState<EntitlementSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown | null>(null);
@@ -55,6 +59,7 @@ export function EntitlementProvider({ children }: { readonly children: ReactNode
     if (userId === null) {
       loadedUserId.current = null;
       inFlightRequest.current = null;
+      setPaymentStatus(null);
       setSnapshot(null);
       setError(null);
       setLoading(false);
@@ -112,9 +117,37 @@ export function EntitlementProvider({ children }: { readonly children: ReactNode
   const retry = useCallback(() => {
     setRetryAttempt((attempt) => attempt + 1);
   }, []);
+  useEffect(() => {
+    if (userId === null) return;
+    let active = true;
+    let running = false;
+    let lastRecovery = 0;
+    const billing = createBillingApi(auth.request);
+    async function recover() {
+      if (running || Date.now() - lastRecovery < 30000) return;
+      running = true;
+      lastRecovery = Date.now();
+      try {
+        const checkouts = await billing.getPendingCheckouts();
+        if (active) setPaymentStatus(checkouts.length ? "pending" : null);
+        for (const checkout of checkouts.slice(0, 3)) {
+          if (checkout.provider_reference === null) continue;
+          const result = await billing.verifyPayment(checkout.provider, {transaction_id: checkout.transaction_id});
+          if (active && result.verified) { setPaymentStatus("verified"); retry(); }
+          else if (active && ["expired", "failed", "cancelled"].includes(result.order_status)) setPaymentStatus(result.order_status === "expired" ? "expired" : "failed");
+        }
+      } catch { /* The server scheduler remains responsible while offline. */ }
+      finally { running = false; }
+    }
+    void recover();
+    const subscription = AppState.addEventListener("change", (state) => { if (state === "active") { retry(); void recover(); } });
+    return () => { active = false; subscription.remove(); };
+  }, [auth.request, userId, retry]);
+
   const value = useMemo<EntitlementContextValue>(
     () => ({
       snapshot,
+      paymentStatus,
       loading,
       error,
       retry,
@@ -124,7 +157,7 @@ export function EntitlementProvider({ children }: { readonly children: ReactNode
         (quota) => quota.entitlement === entitlement,
       ) ?? null,
     }),
-    [error, loading, retry, snapshot],
+    [error, loading, retry, snapshot, paymentStatus],
   );
 
   return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;

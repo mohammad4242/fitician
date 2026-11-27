@@ -47,7 +47,7 @@ export const billingTransactionStatuses = [
 ] as const;
 export type BillingTransactionStatus = (typeof billingTransactionStatuses)[number];
 
-export const paymentProviderCodes = ["fake"] as const;
+export const paymentProviderCodes = ["fake", "tetrapay"] as const;
 export type PaymentProviderCode = (typeof paymentProviderCodes)[number];
 
 export type BillingOffer = {
@@ -95,3 +95,17 @@ export type BillingPaymentResult = {
   readonly verified: boolean;
   readonly access_grant_id: string | null;
 };
+
+export type CheckoutMethods = {
+  readonly providers: readonly PaymentProviderCode[];
+  readonly default_provider: PaymentProviderCode | null;
+};
+
+export function isTetraPayCheckoutUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && !parsed.username && !parsed.password
+      && (!parsed.port || parsed.port === "443")
+      && ["tetra98.com", "tetrapay.online"].some((domain) => parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`));
+  } catch { return false; }
+}

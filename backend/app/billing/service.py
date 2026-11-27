@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -37,8 +38,10 @@ from app.billing.providers.base import (
     PaymentProvider,
     PaymentProviderError,
     ProviderCheckoutRequest,
+    ProviderPaymentResult,
     ProviderVerificationRequest,
 )
+from app.billing.providers.tetrapay import TetraPayProvider
 from app.billing.repository import (
     find_order_by_idempotency,
     get_offer_config,
@@ -65,6 +68,8 @@ from app.billing.schemas import (
 )
 from app.config import Settings
 from app.entitlements.catalog import QUOTA_POLICIES, package_definition
+
+logger = logging.getLogger(__name__)
 
 
 def utc_now(now: datetime | None = None) -> datetime:
@@ -137,10 +142,7 @@ def list_offer_responses(
 ) -> list[BillingOfferResponse]:
     reference = utc_now(now)
     configs = {config.offer_code: config for config in list_offer_configs(db)}
-    return [
-        _offer_response(code, configs.get(code), now=reference)
-        for code in PAID_OFFER_CATALOG
-    ]
+    return [_offer_response(code, configs.get(code), now=reference) for code in PAID_OFFER_CATALOG]
 
 
 def _admin_offer_response(
@@ -166,8 +168,7 @@ def list_admin_offer_responses(
     reference = utc_now(now)
     configs = {config.offer_code: config for config in list_offer_configs(db)}
     return [
-        _admin_offer_response(code, configs.get(code), now=reference)
-        for code in PAID_OFFER_CATALOG
+        _admin_offer_response(code, configs.get(code), now=reference) for code in PAID_OFFER_CATALOG
     ]
 
 
@@ -259,6 +260,10 @@ def to_admin_order_response(order: BillingOrder) -> AdminBillingOrderResponse:
                 order_id=transaction.order_id,
                 provider=transaction.provider,
                 provider_reference=transaction.provider_reference,
+                provider_evidence=transaction.provider_evidence,
+                provider_mode=transaction.provider_mode,
+                reconcile_attempts=transaction.reconcile_attempts,
+                next_reconcile_at=transaction.next_reconcile_at,
                 amount_irr=transaction.amount_irr,
                 currency=transaction.currency,
                 status=transaction.status,
@@ -411,59 +416,162 @@ def create_checkout(
         raise BillingOrderNotFoundError
     if order.status in _FINAL_ORDER_STATUSES:
         raise BillingOrderInvalidStateError(order.status.value)
-    if order.expires_at is not None and utc_now(order.expires_at) <= reference:
-        order.status = BillingOrderStatus.EXPIRED
-        db.commit()
-        raise BillingOrderInvalidStateError(BillingOrderStatus.EXPIRED.value)
     if order.provider is not payload.provider or provider.code is not payload.provider:
         raise BillingProviderRequestError("Payment provider does not match the order")
 
-    mapping = db.scalar(
-        select(BillingProviderProduct).where(
-            BillingProviderProduct.offer_code == order.offer_code,
-            BillingProviderProduct.provider == payload.provider,
-            BillingProviderProduct.is_active.is_(True),
+    transaction = db.scalar(
+        select(BillingTransaction)
+        .where(
+            BillingTransaction.order_id == order.id,
+            BillingTransaction.status.in_(
+                [BillingTransactionStatus.CREATED, BillingTransactionStatus.PENDING]
+            ),
         )
+        .order_by(BillingTransaction.created_at)
+        .limit(1)
     )
-    transaction = BillingTransaction(
-        order_id=order.id,
-        provider=order.provider,
-        amount_irr=order.amount_irr_snapshot,
-        currency=order.currency_snapshot,
-        status=BillingTransactionStatus.CREATED,
-    )
-    db.add(transaction)
-    db.flush()
-    try:
-        result = provider.create_checkout(
-            ProviderCheckoutRequest(
-                order_id=order.id,
-                transaction_id=transaction.id,
-                offer_code=order.offer_code,
-                amount_irr=order.amount_irr_snapshot,
-                currency=order.currency_snapshot,
-                external_product_id=mapping.external_product_id if mapping else None,
-                callback_base_url=callback_base_url,
+    if transaction is None:
+        if order.expires_at is not None and utc_now(order.expires_at) <= reference:
+            order.status = BillingOrderStatus.EXPIRED
+            db.commit()
+            raise BillingOrderInvalidStateError(BillingOrderStatus.EXPIRED.value)
+        transaction = BillingTransaction(
+            order_id=order.id,
+            provider=order.provider,
+            amount_irr=order.amount_irr_snapshot,
+            currency=order.currency_snapshot,
+            status=BillingTransactionStatus.CREATED,
+            provider_mode=provider.settings.tetrapay_mode
+            if isinstance(provider, TetraPayProvider)
+            else None,
+            next_reconcile_at=reference,
+        )
+        db.add(transaction)
+        order.status = BillingOrderStatus.PENDING
+        # Persist the stable id BEFORE the provider write; retries recover this exact invoice.
+        db.commit()
+        order = get_order_for_user(db, order_id, user_id, lock=True)
+        assert order is not None
+        db.refresh(transaction)
+    return resume_checkout(db, order, transaction, provider, callback_base_url=callback_base_url)
+
+
+def resume_checkout(
+    db: Session,
+    order: BillingOrder,
+    transaction: BillingTransaction,
+    provider: PaymentProvider,
+    *,
+    callback_base_url: str | None = None,
+) -> BillingCheckoutResponse:
+    if (
+        isinstance(provider, TetraPayProvider)
+        and transaction.provider_mode != provider.settings.tetrapay_mode
+    ):
+        raise BillingPaymentVerificationError("Payment environment mismatch")
+    if transaction.checkout_url is None:
+        mapping = db.scalar(
+            select(BillingProviderProduct).where(
+                BillingProviderProduct.offer_code == order.offer_code,
+                BillingProviderProduct.provider == order.provider,
+                BillingProviderProduct.is_active.is_(True),
             )
         )
-    except PaymentProviderError as error:
-        db.rollback()
-        raise BillingProviderRequestError(str(error)) from error
-    transaction.provider_reference = result.provider_reference
-    transaction.status = BillingTransactionStatus.PENDING
-    order.status = BillingOrderStatus.PENDING
-    db.flush()
-    db.commit()
-    db.refresh(transaction)
+        if transaction.next_reconcile_at and utc_now(transaction.next_reconcile_at) > utc_now():
+            raise BillingProviderRequestError("Payment retry is scheduled")
+        if defer_for_provider_cooldown(db, transaction):
+            raise BillingProviderRequestError("Payment provider retry is scheduled")
+        schedule_reconciliation(transaction)
+        try:
+            result = provider.create_checkout(
+                ProviderCheckoutRequest(
+                    order_id=order.id,
+                    transaction_id=transaction.id,
+                    offer_code=order.offer_code,
+                    amount_irr=transaction.amount_irr,
+                    currency=transaction.currency,
+                    external_product_id=mapping.external_product_id if mapping else None,
+                    callback_base_url=callback_base_url,
+                )
+            )
+        except PaymentProviderError as error:
+            schedule_retry_after(transaction, error)
+            db.commit()
+            payment_event("PAYMENT_PROVIDER_UNAVAILABLE", error=True)
+            raise BillingProviderRequestError("Payment provider unavailable; retry later") from None
+        transaction.provider_reference = result.provider_reference
+        transaction.checkout_url = result.checkout_url
+        transaction.status = BillingTransactionStatus.PENDING
+        transaction.next_reconcile_at = utc_now() + timedelta(seconds=60)
+        db.commit()
+        payment_event("PAYMENT_CHECKOUT_CREATED")
     return BillingCheckoutResponse(
         order_id=order.id,
         transaction_id=transaction.id,
         provider=order.provider,
-        checkout_kind=result.checkout_kind,
-        checkout_url=result.checkout_url,
-        provider_product_id=result.provider_product_id,
-        provider_reference=result.provider_reference,
+        checkout_kind="redirect",
+        checkout_url=transaction.checkout_url,
+        provider_product_id=None,
+        provider_reference=transaction.provider_reference,
     )
+
+
+def payment_event(code: str, *, error: bool = False) -> None:
+    # Diagnostic bridge forwards only this fixed code, never provider payloads or tokens.
+    logger.log(logging.ERROR if error else logging.INFO, code, extra={"error_code": code})
+
+
+def schedule_reconciliation(transaction: BillingTransaction) -> None:
+    transaction.reconcile_attempts += 1
+    transaction.next_reconcile_at = (
+        utc_now()
+        + timedelta(seconds=min(60 * 2 ** min(transaction.reconcile_attempts - 1, 9), 21600))
+        if transaction.reconcile_attempts < 64
+        else None
+    )
+
+
+def store_provider_evidence(
+    transaction: BillingTransaction, evidence: dict[str, str | None]
+) -> None:
+    previous = transaction.provider_evidence or {}
+    cooldown = previous.get("provider_cooldown_until")
+    transaction.provider_evidence = {
+        **({"provider_cooldown_until": cooldown} if cooldown else {}),
+        **evidence,
+    }
+
+
+def schedule_retry_after(transaction: BillingTransaction, error: PaymentProviderError) -> None:
+    if error.retry_after:
+        until = utc_now() + timedelta(seconds=error.retry_after)
+        store_provider_evidence(
+            transaction, {"provider_cooldown_until": until.isoformat(timespec="microseconds")}
+        )
+        if transaction.next_reconcile_at:
+            transaction.next_reconcile_at = max(transaction.next_reconcile_at, until)
+
+
+def defer_for_provider_cooldown(db: Session, transaction: BillingTransaction) -> bool:
+    if transaction.provider != PaymentProviderCode.TETRAPAY:
+        return False
+    # UTC strings use a fixed precision; the partial expression index keeps this bounded.
+    deadline = BillingTransaction.provider_evidence["provider_cooldown_until"].as_string()
+    value = db.scalar(
+        select(func.max(deadline)).where(
+            BillingTransaction.provider == transaction.provider,
+            BillingTransaction.provider_mode == transaction.provider_mode,
+            deadline.is_not(None),
+            deadline > utc_now().isoformat(timespec="microseconds"),
+        )
+    )
+    if not isinstance(value, str):
+        return False
+    until = datetime.fromisoformat(value)
+    if transaction.reconcile_attempts < 64:
+        transaction.next_reconcile_at = max(transaction.next_reconcile_at or until, until)
+    db.commit()
+    return True
 
 
 def _transaction_and_order_for_user(
@@ -474,9 +582,10 @@ def _transaction_and_order_for_user(
     transaction = get_transaction_for_user(db, transaction_id, user_id)
     if transaction is None:
         raise BillingOrderNotFoundError
-    order = get_order_for_user(db, transaction.order_id, user_id)
+    order = get_order_for_user(db, transaction.order_id, user_id, lock=True)
     if order is None:
         raise BillingOrderNotFoundError
+    db.refresh(transaction)
     return transaction, order
 
 
@@ -509,61 +618,107 @@ def verify_payment(
     transaction, order = _transaction_and_order_for_user(db, user_id, payload.transaction_id)
     if transaction.provider is not provider_code or provider.code is not provider_code:
         raise BillingProviderRequestError("Payment provider does not match the transaction")
-    if transaction.status in {
-        BillingTransactionStatus.VERIFIED,
-        BillingTransactionStatus.FAILED,
-        BillingTransactionStatus.REFUNDED,
-    }:
-        return _payment_result_response(transaction, order)
-    request = _provider_request(transaction, order, payload.provider_reference)
-    try:
-        result = provider.verify_payment(request)
-    except PaymentProviderError as error:
-        raise BillingPaymentVerificationError(str(error)) from error
+    return reconcile_payment(
+        db, transaction, order, provider, provider_reference=payload.provider_reference, now=now
+    )
 
-    locked_transaction = db.get(BillingTransaction, transaction.id)
-    locked_order = get_order_for_user(db, order.id, user_id, lock=True)
-    if locked_transaction is None or locked_order is None:
-        raise BillingOrderNotFoundError
-    if result.status == "verified":
-        locked_transaction.status = BillingTransactionStatus.VERIFIED
-        locked_transaction.verified_at = utc_now(now)
-        db.flush()
-        fulfillment = fulfill_paid_order(
-            db,
-            locked_order.id,
-            locked_transaction.id,
-            now=now,
+
+def reconcile_payment(
+    db: Session,
+    transaction: BillingTransaction,
+    order: BillingOrder,
+    provider: PaymentProvider,
+    *,
+    provider_reference: str | None = None,
+    now: datetime | None = None,
+    trusted_result: ProviderPaymentResult | None = None,
+) -> BillingPaymentResultResponse:
+    # Caller locks the order first, then refreshes transaction. All replicas use this order.
+    request = _provider_request(transaction, order, provider_reference)
+    if transaction.status in {BillingTransactionStatus.VERIFIED, BillingTransactionStatus.REFUNDED}:
+        return _payment_result_response(transaction, order)
+    if (
+        isinstance(provider, TetraPayProvider)
+        and transaction.provider_mode != provider.settings.tetrapay_mode
+    ):
+        raise BillingPaymentVerificationError("Payment environment mismatch")
+    if (
+        transaction.amount_irr != order.amount_irr_snapshot
+        or transaction.currency != order.currency_snapshot
+        or transaction.provider != order.provider
+    ):
+        raise BillingPaymentVerificationError("Payment invoice mismatch")
+    if (
+        trusted_result is None
+        and transaction.next_reconcile_at
+        and (
+            utc_now(transaction.next_reconcile_at) > utc_now(now)
+            and transaction.reconcile_attempts > 1
         )
-        return _payment_result_response(locked_transaction, fulfillment.order)
+    ):
+        return _payment_result_response(transaction, order)
+    if trusted_result is None and defer_for_provider_cooldown(db, transaction):
+        return _payment_result_response(transaction, order)
+    schedule_reconciliation(transaction)
+    try:
+        result = trusted_result or provider.verify_payment(request)
+        if result.provider_reference != transaction.provider_reference:
+            raise PaymentProviderError("Payment reference mismatch")
+    except PaymentProviderError as error:
+        schedule_retry_after(transaction, error)
+        if error.evidence:
+            store_provider_evidence(transaction, error.evidence)
+        db.commit()
+        payment_event(
+            error.evidence.get("reason") or "PAYMENT_VERIFICATION_FAILED"
+            if error.evidence
+            else "PAYMENT_VERIFICATION_FAILED",
+            error=True,
+        )
+        raise BillingPaymentVerificationError(
+            "Payment verification unavailable; retry later"
+        ) from None
+    if result.evidence:
+        store_provider_evidence(transaction, result.evidence)
+    if result.status == "verified":
+        transaction.status = BillingTransactionStatus.VERIFIED
+        transaction.verified_at = utc_now(now)
+        transaction.next_reconcile_at = None
+        db.flush()
+        # Confirmed full payments are honored even after internal invoice expiry.
+        fulfillment = fulfill_paid_order(db, order.id, transaction.id, now=now)
+        payment_event("PAYMENT_VERIFIED")
+        return _payment_result_response(transaction, fulfillment.order)
     if result.status == "refunded":
+        if order.user_id is None:
+            raise BillingPaymentVerificationError("Payment account is unavailable")
         return revoke_transaction(
             db,
-            user_id,
-            provider_code,
-            payload,
+            order.user_id,
+            transaction.provider,
+            VerifyPaymentRequest(
+                transaction_id=transaction.id, provider_reference=transaction.provider_reference
+            ),
             provider,
             now=now,
         )
-
-    locked_transaction.status = BillingTransactionStatus.FAILED
-    locked_transaction.failed_at = utc_now(now)
-    open_attempts = db.scalar(
-        select(func.count())
-        .select_from(BillingTransaction)
-        .where(
-            BillingTransaction.order_id == locked_order.id,
-            BillingTransaction.id != locked_transaction.id,
-            BillingTransaction.status.in_(
-                [BillingTransactionStatus.CREATED, BillingTransactionStatus.PENDING]
-            ),
-        )
-    )
-    if not open_attempts and locked_order.access_grant_id is None:
-        locked_order.status = BillingOrderStatus.FAILED
-    db.flush()
+    if result.status == "pending":
+        transaction.status = BillingTransactionStatus.PENDING
+        if order.access_grant_id is None:
+            order.status = BillingOrderStatus.PENDING
+        payment_event("PAYMENT_PENDING")
+    else:
+        transaction.status = BillingTransactionStatus.FAILED
+        transaction.failed_at = utc_now(now)
+        if order.access_grant_id is None:
+            order.status = (
+                BillingOrderStatus.EXPIRED
+                if result.status == "expired"
+                else BillingOrderStatus.FAILED
+            )
+        payment_event("PAYMENT_REJECTED")
     db.commit()
-    return _payment_result_response(locked_transaction, locked_order)
+    return _payment_result_response(transaction, order)
 
 
 def revoke_transaction(

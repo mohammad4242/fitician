@@ -1,6 +1,7 @@
 import type { TransportRequest } from "@fitician/core";
 import type {
   BillingCheckout,
+  CheckoutMethods,
   BillingOffer,
   BillingOrder,
   BillingPaymentResult,
@@ -25,6 +26,8 @@ export type VerifyBillingPaymentInput = {
 };
 
 export interface BillingApi {
+  getCheckoutMethods(): Promise<CheckoutMethods>;
+  getPendingCheckouts(): Promise<BillingCheckout[]>;
   createCheckout(orderId: string, input: CreateBillingCheckoutInput): Promise<BillingCheckout>;
   createOrder(input: CreateBillingOrderInput): Promise<BillingOrder>;
   getOffers(): Promise<BillingOffer[]>;
@@ -41,6 +44,8 @@ function jsonBody(value: object): TransportRequest["body"] {
 
 export function createBillingApi(request: AuthenticatedBillingRequest): BillingApi {
   return {
+    getCheckoutMethods: () => request<CheckoutMethods>({method: "GET", path: `${billingPath}/checkout-methods`}),
+    getPendingCheckouts: () => request<BillingCheckout[]>({method: "GET", path: `${billingPath}/pending-checkouts`}),
     createCheckout: (orderId, input) => request<BillingCheckout>({
       body: jsonBody(input),
       method: "POST",

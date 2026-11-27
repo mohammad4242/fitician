@@ -9,6 +9,7 @@ const billingApi = vi.hoisted(() => ({
   createCheckout: vi.fn(),
   createOrder: vi.fn(),
   getOffers: vi.fn(),
+  getCheckoutMethods: vi.fn(),
 }));
 
 vi.mock("./api", () => billingApi);
@@ -17,6 +18,7 @@ import { CheckoutPage } from "./CheckoutPage";
 
 beforeEach(() => {
   Object.values(billingApi).forEach((mock) => mock.mockReset());
+  billingApi.getCheckoutMethods.mockResolvedValue({providers: ["fake"], default_provider: "fake"});
   billingApi.getOffers.mockResolvedValue([{
     offer_code: "training_4w",
     package_code: "training",
@@ -74,4 +76,29 @@ it("creates an order from the selected offer and starts provider checkout", asyn
   expect(billingApi.createOrder.mock.calls[0][0]).not.toHaveProperty("amount_irr");
   expect(billingApi.createCheckout).toHaveBeenCalledWith("order-1", { provider: "fake" });
   await waitFor(() => expect(screen.getByText("checkout-placeholder")).toBeInTheDocument());
+});
+
+it("does not offer checkout when the server has no enabled method", async () => {
+  billingApi.getCheckoutMethods.mockResolvedValue({ providers: [], default_provider: null });
+  render(<MemoryRouter initialEntries={["/billing/checkout/training_4w"]}><Routes>
+    <Route path="/billing/checkout/:offerCode" element={<CheckoutPage />} />
+  </Routes></MemoryRouter>);
+  await waitFor(() => expect(screen.getByRole("button", {name: "ادامه به پرداخت"})).toBeDisabled());
+  expect(billingApi.createOrder).not.toHaveBeenCalled();
+});
+
+it("retains the purchase identity across a checkout page reload", async () => {
+  const user = userEvent.setup();
+  const page = () => <MemoryRouter initialEntries={["/billing/checkout/training_4w"]}><Routes>
+    <Route path="/billing/checkout/:offerCode" element={<CheckoutPage />} />
+    <Route path="/billing/result" element={<span>checkout-placeholder</span>} />
+  </Routes></MemoryRouter>;
+  const first = render(page());
+  await user.click(await screen.findByRole("button", {name: "ادامه به پرداخت"}));
+  await screen.findByText("checkout-placeholder");
+  first.unmount();
+  render(page());
+  await user.click(await screen.findByRole("button", {name: "ادامه به پرداخت"}));
+  await screen.findByText("checkout-placeholder");
+  expect(billingApi.createOrder.mock.calls[0][0].client_idempotency_key).toBe(billingApi.createOrder.mock.calls[1][0].client_idempotency_key);
 });

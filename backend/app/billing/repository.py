@@ -35,14 +35,14 @@ def get_order_for_user(
         BillingOrder.user_id == user_id,
     )
     if lock:
-        statement = statement.with_for_update()
+        statement = statement.with_for_update().execution_options(populate_existing=True)
     return db.scalar(statement)
 
 
 def get_order(db: Session, order_id: UUID, *, lock: bool = False) -> BillingOrder | None:
     statement = select(BillingOrder).where(BillingOrder.id == order_id)
     if lock:
-        statement = statement.with_for_update()
+        statement = statement.with_for_update().execution_options(populate_existing=True)
     return db.scalar(statement)
 
 
@@ -91,7 +91,7 @@ def find_order_by_idempotency(
         BillingOrder.idempotency_key == idempotency_key,
     )
     if lock:
-        statement = statement.with_for_update()
+        statement = statement.with_for_update().execution_options(populate_existing=True)
     return db.scalar(statement)
 
 
@@ -111,5 +111,5 @@ def get_transaction_for_user(
         )
     )
     if lock:
-        statement = statement.with_for_update()
+        statement = statement.with_for_update().execution_options(populate_existing=True)
     return db.scalar(statement)

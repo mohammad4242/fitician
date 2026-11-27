@@ -1,0 +1,1530 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "TetraPay API",
+    "version": "1.0.0",
+    "description": "ساخت لینک پرداخت، استعلام و verify برای سرور فروشگاه.\n\n1. `POST /payments`: سرور شما با `amount`، `order_id` و `callback_url` لینک می‌سازد و `token`، `payment_url` و `bot_payment_url` می‌گیرد.\n2. پرداخت‌کننده را به `payment_url` بفرستید؛ روش پرداخت را همان‌جا انتخاب می‌کند.\n3. `callback_url?token=…&status=…`: پس از پرداخت یا انصراف، پرداخت‌کننده با `token` و `status` به آدرس بازگشت شما برمی‌گردد. این `status` فقط برای نمایش است.\n4. `POST /payments/{token}/verify`: سرور شما `verify` را صدا می‌زند. فقط اگر `status` برابر `paid` بود و `order_id` و `amount` با سفارش شما یکی بود، سفارش را تحویل دهید.\n5. `POST <webhook_url>`: اگر وب‌هوک را روشن کرده باشید، تتراپی هم‌زمان نتیجه را امضاشده به آدرس وب‌هوک شما می‌فرستد؛ حتی اگر پرداخت‌کننده هرگز برنگردد. وب‌هوکی که امضایش درست است، به‌تنهایی نتیجه قطعی است.\n6. `verify` و وب‌هوک هر دو تکرارپذیرند و ممکن است هر دو برسند؛ تحویل سفارش را طوری بنویسید که دو بار انجام نشود.\n\nسقف درخواست به پلن درگاه بستگی دارد؛ پلن پیش‌فرض 60 درخواست در دقیقه است. همه مبلغ‌ها به ریال و به صورت رشته عددی‌اند و زمان‌ها ISO 8601 به وقت UTC."
+  },
+  "servers": [
+    {
+      "url": "https://api.tetra98.com/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "apiKey": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "payments",
+      "description": "لینک پرداخت"
+    }
+  ],
+  "paths": {
+    "/payments": {
+      "post": {
+        "operationId": "createPayment",
+        "summary": "ساخت لینک پرداخت",
+        "description": "یک لینک پرداخت می‌سازد. پرداخت‌کننده را به `payment_url` بفرستید، یا در تلگرام به `bot_payment_url`. ارسال دوباره همان `order_id` با همان مبلغ، همان لینک را با کد `200` برمی‌گرداند؛ با مبلغ دیگر خطای `ORDER_CONFLICT` می‌گیرد. بدنه باید JSON باشد و هدر `Content-Type: application/json` داشته باشد.",
+        "tags": [
+          "payments"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePayment"
+              },
+              "example": {
+                "amount": "12500000",
+                "order_id": "ORD-10482",
+                "callback_url": "https://ketabno.ir/cb"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "این `order_id` قبلاً با همین مبلغ ساخته شده بود؛ همان لینک قبلی برمی‌گردد و لینک تازه‌ای ساخته نمی‌شود.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentLink"
+                },
+                "examples": {
+                  "ok": {
+                    "summary": "این `order_id` قبلاً با همین مبلغ ساخته شده بود؛ همان لینک قبلی برمی‌گردد و لینک تازه‌ای ساخته نمی‌شود.",
+                    "value": {
+                      "token": "q9Xk2VbR7tLmN4pA8sWcYg",
+                      "payment_url": "https://tetrapay.online/pay/q9Xk2VbR7tLmN4pA8sWcYg",
+                      "bot_payment_url": "https://t.me/Tetra98_Bot?start=pay_q9Xk2VbR7tLmN4pA8sWcYg",
+                      "amount": "12500000",
+                      "payable_amount": "12562500",
+                      "net_amount": "12437500",
+                      "fee_total": "125000",
+                      "fee_payer": "62500",
+                      "fee_merchant": "62500",
+                      "expires_at": "2026-09-29T10:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "لینک تازه ساخته شد.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentLink"
+                },
+                "examples": {
+                  "ok": {
+                    "summary": "لینک تازه ساخته شد.",
+                    "value": {
+                      "token": "q9Xk2VbR7tLmN4pA8sWcYg",
+                      "payment_url": "https://tetrapay.online/pay/q9Xk2VbR7tLmN4pA8sWcYg",
+                      "bot_payment_url": "https://t.me/Tetra98_Bot?start=pay_q9Xk2VbR7tLmN4pA8sWcYg",
+                      "amount": "12500000",
+                      "payable_amount": "12562500",
+                      "net_amount": "12437500",
+                      "fee_total": "125000",
+                      "fee_payer": "62500",
+                      "fee_merchant": "62500",
+                      "expires_at": "2026-09-29T10:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "بدنه JSON درستی نیست، مثلاً ویرگول اضافه یا کوتیشن جاافتاده.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "BAD_JSON": {
+                    "summary": "بدنه JSON درستی نیست، مثلاً ویرگول اضافه یا کوتیشن جاافتاده.",
+                    "value": {
+                      "error": {
+                        "code": "BAD_JSON",
+                        "message": "بدنه درخواست خوانا نیست"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "هدر `Authorization` نیست، کلید شکل درستی ندارد یا باطل شده است.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "UNAUTHORIZED": {
+                    "summary": "هدر `Authorization` نیست، کلید شکل درستی ندارد یا باطل شده است.",
+                    "value": {
+                      "error": {
+                        "code": "UNAUTHORIZED",
+                        "message": "کلید API نامعتبر یا باطل‌شده است"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "- GATEWAY_SUSPENDED: درگاه تعلیق شده یا حساب شما مسدود است. استعلام و `verify` کار می‌کنند.\n- NO_METHOD_AVAILABLE: هیچ روش پرداختی (آنلاین یا کارت به کارت) برای درگاه روشن نیست.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "GATEWAY_SUSPENDED": {
+                    "summary": "درگاه تعلیق شده یا حساب شما مسدود است. استعلام و `verify` کار می‌کنند.",
+                    "value": {
+                      "error": {
+                        "code": "GATEWAY_SUSPENDED",
+                        "message": "درگاه تعلیق شده یا حساب پذیرنده مسدود است"
+                      }
+                    }
+                  },
+                  "NO_METHOD_AVAILABLE": {
+                    "summary": "هیچ روش پرداختی (آنلاین یا کارت به کارت) برای درگاه روشن نیست.",
+                    "value": {
+                      "error": {
+                        "code": "NO_METHOD_AVAILABLE",
+                        "message": "هیچ روش پرداختی برای این درگاه روشن نیست"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "این `order_id` قبلاً با مبلغ دیگری ساخته شده است.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "ORDER_CONFLICT": {
+                    "summary": "این `order_id` قبلاً با مبلغ دیگری ساخته شده است.",
+                    "value": {
+                      "error": {
+                        "code": "ORDER_CONFLICT",
+                        "message": "این order_id قبلاً با مبلغ دیگری ثبت شده است"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "هدر `Content-Type: application/json` فرستاده نشده است.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "UNSUPPORTED_MEDIA_TYPE": {
+                    "summary": "هدر `Content-Type: application/json` فرستاده نشده است.",
+                    "value": {
+                      "error": {
+                        "code": "UNSUPPORTED_MEDIA_TYPE",
+                        "message": "بدنه درخواست باید JSON باشد"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "- VALIDATION: فیلدی نیست یا شکلش درست نیست. `fields` نام فیلدهای نامعتبر را دارد؛ برای `customer_phone` و `customer_email` به‌جایش `field` می‌آید.\n- AMOUNT_OUT_OF_RANGE: مبلغ بیرون از بازه مجاز درگاه است. `min` و `max` به ریال‌اند.\n- INVALID_CALLBACK: `callback_url` با `https` نیست، یا نه روی وب‌سایت درگاه است و نه آدرس ربات تلگرام درگاه.\n- INVALID_WEBHOOK: `webhook_url` با `https` نیست، یا درگاه فقط وب‌سایت دارد و آدرس روی دامنه وب‌سایت نیست.\n- WEBHOOK_NOT_CONFIGURED: `webhook_url` فرستاده شده اما برای درگاه کلید وب‌هوک ساخته نشده است.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "VALIDATION": {
+                    "summary": "فیلدی نیست یا شکلش درست نیست. `fields` نام فیلدهای نامعتبر را دارد؛ برای `customer_phone` و `customer_email` به‌جایش `field` می‌آید.",
+                    "value": {
+                      "error": {
+                        "code": "VALIDATION",
+                        "message": "بدنه درخواست معتبر نیست",
+                        "fields": [
+                          "amount"
+                        ]
+                      }
+                    }
+                  },
+                  "AMOUNT_OUT_OF_RANGE": {
+                    "summary": "مبلغ بیرون از بازه مجاز درگاه است. `min` و `max` به ریال‌اند.",
+                    "value": {
+                      "error": {
+                        "code": "AMOUNT_OUT_OF_RANGE",
+                        "message": "مبلغ خارج از بازه مجاز است",
+                        "min": "10000",
+                        "max": "1000000000"
+                      }
+                    }
+                  },
+                  "INVALID_CALLBACK": {
+                    "summary": "`callback_url` با `https` نیست، یا نه روی وب‌سایت درگاه است و نه آدرس ربات تلگرام درگاه.",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_CALLBACK",
+                        "message": "callback_url باید https و روی وب‌سایت درگاه یا آدرس ربات تلگرام درگاه باشد"
+                      }
+                    }
+                  },
+                  "INVALID_WEBHOOK": {
+                    "summary": "`webhook_url` با `https` نیست، یا درگاه فقط وب‌سایت دارد و آدرس روی دامنه وب‌سایت نیست.",
+                    "value": {
+                      "error": {
+                        "code": "INVALID_WEBHOOK",
+                        "message": "webhook_url باید https باشد و برای درگاهی که فقط وب‌سایت دارد، روی دامنه وب‌سایت"
+                      }
+                    }
+                  },
+                  "WEBHOOK_NOT_CONFIGURED": {
+                    "summary": "`webhook_url` فرستاده شده اما برای درگاه کلید وب‌هوک ساخته نشده است.",
+                    "value": {
+                      "error": {
+                        "code": "WEBHOOK_NOT_CONFIGURED",
+                        "message": "برای این درگاه هنوز کلید وب‌هوک ساخته نشده است"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "- RATE_LIMITED: بیش از سقف درخواست پلن درگاه (در دقیقه یا ساعت، برای همه درخواست‌ها یا همین نوع درخواست). `retryAfter` و هدر `Retry-After` ثانیه‌های انتظارند.\n- DAILY_LIMIT_REACHED: سقف روزانه درگاه پر شده است. `kind` می‌گوید کدام سقف (`links` یا `payments`)، و `retryAfter` تا نیمه‌شب تهران است.",
+            "headers": {
+              "Retry-After": {
+                "description": "ثانیه‌های انتظار پیش از درخواست بعدی.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "RATE_LIMITED": {
+                    "summary": "بیش از سقف درخواست پلن درگاه (در دقیقه یا ساعت، برای همه درخواست‌ها یا همین نوع درخواست). `retryAfter` و هدر `Retry-After` ثانیه‌های انتظارند.",
+                    "value": {
+                      "error": {
+                        "code": "RATE_LIMITED",
+                        "message": "تعداد درخواست‌ها بیش از حد مجاز است",
+                        "retryAfter": 42
+                      }
+                    }
+                  },
+                  "DAILY_LIMIT_REACHED": {
+                    "summary": "سقف روزانه درگاه پر شده است. `kind` می‌گوید کدام سقف (`links` یا `payments`)، و `retryAfter` تا نیمه‌شب تهران است.",
+                    "value": {
+                      "error": {
+                        "code": "DAILY_LIMIT_REACHED",
+                        "message": "سقف تعداد تراکنش روزانه این درگاه پر شده است",
+                        "kind": "links",
+                        "limit": 500,
+                        "retryAfter": 30120
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "خطای پیش‌بینی‌نشده در تتراپی. همان درخواست را کمی بعد دوباره بفرستید.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "INTERNAL": {
+                    "summary": "خطای پیش‌بینی‌نشده در تتراپی. همان درخواست را کمی بعد دوباره بفرستید.",
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL",
+                        "message": "خطای داخلی؛ دوباره تلاش کنید"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{token}": {
+      "get": {
+        "operationId": "getPayment",
+        "summary": "استعلام بدون تغییر",
+        "description": "وضعیت فعلی لینک را برمی‌گرداند و چیزی را تغییر نمی‌دهد. برای نمایش وضعیت مناسب است؛ برای تحویل سفارش به پاسخ `verify` یا وب‌هوک امضاشده تکیه کنید.",
+        "tags": [
+          "payments"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "توکن لینک: همان `token` پاسخ ساخت، یا پارامتر `token` در آدرس بازگشت.",
+            "schema": {
+              "type": "string",
+              "description": "توکن لینک: همان `token` پاسخ ساخت، یا پارامتر `token` در آدرس بازگشت.",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "وضعیت فعلی لینک. فقط برای نمایش؛ تحویل سفارش با `verify` یا وب‌هوک.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Payment"
+                },
+                "examples": {
+                  "ok": {
+                    "summary": "وضعیت فعلی لینک. فقط برای نمایش؛ تحویل سفارش با `verify` یا وب‌هوک.",
+                    "value": {
+                      "token": "q9Xk2VbR7tLmN4pA8sWcYg",
+                      "status": "pending",
+                      "order_id": "ORD-10482",
+                      "amount": "12500000",
+                      "payable_amount": "12562500",
+                      "received_amount": null,
+                      "net_amount": "12437500",
+                      "fee_total": "125000",
+                      "fee_payer": "62500",
+                      "fee_merchant": "62500",
+                      "method": null,
+                      "paid_at": null,
+                      "expires_at": "2026-09-29T10:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "هدر `Authorization` نیست، کلید شکل درستی ندارد یا باطل شده است.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "UNAUTHORIZED": {
+                    "summary": "هدر `Authorization` نیست، کلید شکل درستی ندارد یا باطل شده است.",
+                    "value": {
+                      "error": {
+                        "code": "UNAUTHORIZED",
+                        "message": "کلید API نامعتبر یا باطل‌شده است"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "توکن وجود ندارد یا مال درگاه دیگری است؛ هر دو حالت همین پاسخ را دارند.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "NOT_FOUND": {
+                    "summary": "توکن وجود ندارد یا مال درگاه دیگری است؛ هر دو حالت همین پاسخ را دارند.",
+                    "value": {
+                      "error": {
+                        "code": "NOT_FOUND",
+                        "message": "پرداختی با این توکن برای این درگاه پیدا نشد"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "بیش از سقف درخواست پلن درگاه (در دقیقه یا ساعت، برای همه درخواست‌ها یا همین نوع درخواست). `retryAfter` و هدر `Retry-After` ثانیه‌های انتظارند.",
+            "headers": {
+              "Retry-After": {
+                "description": "ثانیه‌های انتظار پیش از درخواست بعدی.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "RATE_LIMITED": {
+                    "summary": "بیش از سقف درخواست پلن درگاه (در دقیقه یا ساعت، برای همه درخواست‌ها یا همین نوع درخواست). `retryAfter` و هدر `Retry-After` ثانیه‌های انتظارند.",
+                    "value": {
+                      "error": {
+                        "code": "RATE_LIMITED",
+                        "message": "تعداد درخواست‌ها بیش از حد مجاز است",
+                        "retryAfter": 42
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "خطای پیش‌بینی‌نشده در تتراپی. همان درخواست را کمی بعد دوباره بفرستید.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "INTERNAL": {
+                    "summary": "خطای پیش‌بینی‌نشده در تتراپی. همان درخواست را کمی بعد دوباره بفرستید.",
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL",
+                        "message": "خطای داخلی؛ دوباره تلاش کنید"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{token}/verify": {
+      "post": {
+        "operationId": "verifyPayment",
+        "summary": "تایید نهایی نتیجه",
+        "description": "نتیجه قطعی پرداخت. پس از بازگشت پرداخت‌کننده صدا بزنید و فقط وقتی `status` برابر `paid` است سفارش را تحویل دهید. بدنه ندارد و تکرارپذیر است: از دومین `verify` یک لینک پرداخت‌شده، `verified_before` برابر `true` است. روی لینک پرداخت‌نشده فقط وضعیت برمی‌گردد و چیزی ثبت نمی‌شود. دو فیلد فقط وقتی می‌آیند که صدق کنند: `partial` برابر `true` وقتی پرداخت با مبلغ کمتر پذیرفته شده (`received_amount` کمتر از `payable_amount`)، و `underpaid` وقتی وضعیت `pending` است چون مشتری کمتر واریز کرده و منتظر تصمیم شماست (`received_amount`، `shortfall`، `net_amount_if_accepted`، `fee_total_if_accepted`، `decide_by`). در اضافه‌واریز، `received_amount` همان `payable_amount` است و مازاد را تتراپی به مشتری برمی‌گرداند.",
+        "tags": [
+          "payments"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "توکن لینک: همان `token` پاسخ ساخت، یا پارامتر `token` در آدرس بازگشت.",
+            "schema": {
+              "type": "string",
+              "description": "توکن لینک: همان `token` پاسخ ساخت، یا پارامتر `token` در آدرس بازگشت.",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "- پرداخت‌شده: پرداخت شده است. اگر `order_id` و `amount` با سفارش شما یکی است، سفارش را یک‌بار تحویل دهید.\n- پرداخت‌نشده: هنوز پرداخت نشده است (`created`، `pending` یا `expired`). چیزی ثبت نمی‌شود؛ سفارش را تحویل ندهید.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentResult"
+                },
+                "examples": {
+                  "پرداخت‌شده": {
+                    "summary": "پرداخت شده است. اگر `order_id` و `amount` با سفارش شما یکی است، سفارش را یک‌بار تحویل دهید.",
+                    "value": {
+                      "token": "q9Xk2VbR7tLmN4pA8sWcYg",
+                      "status": "paid",
+                      "order_id": "ORD-10482",
+                      "amount": "12500000",
+                      "payable_amount": "12562500",
+                      "received_amount": "12562500",
+                      "net_amount": "12437500",
+                      "fee_total": "125000",
+                      "fee_payer": "62500",
+                      "fee_merchant": "62500",
+                      "method": "online",
+                      "paid_at": "2026-09-29T10:21:44.000Z",
+                      "verified_before": false
+                    }
+                  },
+                  "پرداخت‌نشده": {
+                    "summary": "هنوز پرداخت نشده است (`created`، `pending` یا `expired`). چیزی ثبت نمی‌شود؛ سفارش را تحویل ندهید.",
+                    "value": {
+                      "token": "q9Xk2VbR7tLmN4pA8sWcYg",
+                      "status": "created",
+                      "order_id": "ORD-10482",
+                      "amount": "12500000",
+                      "payable_amount": "12562500",
+                      "received_amount": null,
+                      "net_amount": "12437500",
+                      "fee_total": "125000",
+                      "fee_payer": "62500",
+                      "fee_merchant": "62500",
+                      "method": null,
+                      "paid_at": null,
+                      "verified_before": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "هدر `Authorization` نیست، کلید شکل درستی ندارد یا باطل شده است.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "UNAUTHORIZED": {
+                    "summary": "هدر `Authorization` نیست، کلید شکل درستی ندارد یا باطل شده است.",
+                    "value": {
+                      "error": {
+                        "code": "UNAUTHORIZED",
+                        "message": "کلید API نامعتبر یا باطل‌شده است"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "توکن وجود ندارد یا مال درگاه دیگری است؛ هر دو حالت همین پاسخ را دارند.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "NOT_FOUND": {
+                    "summary": "توکن وجود ندارد یا مال درگاه دیگری است؛ هر دو حالت همین پاسخ را دارند.",
+                    "value": {
+                      "error": {
+                        "code": "NOT_FOUND",
+                        "message": "پرداختی با این توکن برای این درگاه پیدا نشد"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "بیش از سقف درخواست پلن درگاه (در دقیقه یا ساعت، برای همه درخواست‌ها یا همین نوع درخواست). `retryAfter` و هدر `Retry-After` ثانیه‌های انتظارند.",
+            "headers": {
+              "Retry-After": {
+                "description": "ثانیه‌های انتظار پیش از درخواست بعدی.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "RATE_LIMITED": {
+                    "summary": "بیش از سقف درخواست پلن درگاه (در دقیقه یا ساعت، برای همه درخواست‌ها یا همین نوع درخواست). `retryAfter` و هدر `Retry-After` ثانیه‌های انتظارند.",
+                    "value": {
+                      "error": {
+                        "code": "RATE_LIMITED",
+                        "message": "تعداد درخواست‌ها بیش از حد مجاز است",
+                        "retryAfter": 42
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "خطای پیش‌بینی‌نشده در تتراپی. همان درخواست را کمی بعد دوباره بفرستید.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "INTERNAL": {
+                    "summary": "خطای پیش‌بینی‌نشده در تتراپی. همان درخواست را کمی بعد دوباره بفرستید.",
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL",
+                        "message": "خطای داخلی؛ دوباره تلاش کنید"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/{token}/partial/{decision}": {
+      "post": {
+        "operationId": "decideUnderpaid",
+        "summary": "تصمیم دربارهٔ کم‌واریز",
+        "description": "وقتی مشتری کارت به کارت کمتر از مبلغ واریز کرده و `verify` در `underpaid` منتظر تصمیم شماست. `accept` همان مبلغ دریافتی را می‌پذیرد: کارمزد بر اساس آن بازمحاسبه می‌شود (حداقل کارمزد درگاه حفظ می‌شود) و لینک `paid` می‌شود. `reject` پرداخت را ناموفق می‌کند و تتراپی مبلغ را به مشتری برمی‌گرداند. بدنه ندارد. اگر تا `decide_by` تصمیم نگیرید، کارشناسان تتراپی تصمیم می‌گیرند. پاسخ همان بدنهٔ `verify` بدون `verified_before` است.",
+        "tags": [
+          "payments"
+        ],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "description": "توکن لینک: همان `token` پاسخ ساخت، یا پارامتر `token` در آدرس بازگشت.",
+            "schema": {
+              "type": "string",
+              "description": "توکن لینک: همان `token` پاسخ ساخت، یا پارامتر `token` در آدرس بازگشت.",
+              "maxLength": 64
+            }
+          },
+          {
+            "name": "decision",
+            "in": "path",
+            "required": true,
+            "description": "`accept` یا `reject`",
+            "schema": {
+              "type": "string",
+              "description": "`accept` یا `reject`"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "تصمیم ثبت شد. پس از `accept` لینک `paid` است و `partial` برابر `true`؛ پس از `reject` وضعیت `created` یا `expired` است و `partial` نمی‌آید.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartialDecision"
+                },
+                "examples": {
+                  "ok": {
+                    "summary": "تصمیم ثبت شد. پس از `accept` لینک `paid` است و `partial` برابر `true`؛ پس از `reject` وضعیت `created` یا `expired` است و `partial` نمی‌آید.",
+                    "value": {
+                      "token": "q9Xk2VbR7tLmN4pA8sWcYg",
+                      "status": "paid",
+                      "order_id": "ORD-10482",
+                      "amount": "12500000",
+                      "payable_amount": "12562500",
+                      "received_amount": "12000000",
+                      "net_amount": "11880000",
+                      "fee_total": "120000",
+                      "fee_payer": "60000",
+                      "fee_merchant": "60000",
+                      "method": "card",
+                      "paid_at": "2026-09-29T10:21:44.000Z",
+                      "partial": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "هدر `Authorization` نیست، کلید شکل درستی ندارد یا باطل شده است.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "UNAUTHORIZED": {
+                    "summary": "هدر `Authorization` نیست، کلید شکل درستی ندارد یا باطل شده است.",
+                    "value": {
+                      "error": {
+                        "code": "UNAUTHORIZED",
+                        "message": "کلید API نامعتبر یا باطل‌شده است"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "توکن وجود ندارد یا مال درگاه دیگری است؛ هر دو حالت همین پاسخ را دارند.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "NOT_FOUND": {
+                    "summary": "توکن وجود ندارد یا مال درگاه دیگری است؛ هر دو حالت همین پاسخ را دارند.",
+                    "value": {
+                      "error": {
+                        "code": "NOT_FOUND",
+                        "message": "پرداختی با این توکن برای این درگاه پیدا نشد"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "این لینک کم‌واریزی منتظر تصمیم ندارد: پرداخت کامل شده، قبلاً تصمیم گرفته‌اید، یا مهلت گذشته و با کارشناس است.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "NOT_UNDERPAID": {
+                    "summary": "این لینک کم‌واریزی منتظر تصمیم ندارد: پرداخت کامل شده، قبلاً تصمیم گرفته‌اید، یا مهلت گذشته و با کارشناس است.",
+                    "value": {
+                      "error": {
+                        "code": "NOT_UNDERPAID",
+                        "message": "این پرداخت کم‌واریزی در انتظار تصمیم شما ندارد"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`decision` چیزی جز `accept` یا `reject` است.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "VALIDATION": {
+                    "summary": "`decision` چیزی جز `accept` یا `reject` است.",
+                    "value": {
+                      "error": {
+                        "code": "VALIDATION",
+                        "message": "بدنه درخواست معتبر نیست",
+                        "fields": [
+                          "decision"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "بیش از سقف درخواست پلن درگاه (در دقیقه یا ساعت، برای همه درخواست‌ها یا همین نوع درخواست). `retryAfter` و هدر `Retry-After` ثانیه‌های انتظارند.",
+            "headers": {
+              "Retry-After": {
+                "description": "ثانیه‌های انتظار پیش از درخواست بعدی.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "RATE_LIMITED": {
+                    "summary": "بیش از سقف درخواست پلن درگاه (در دقیقه یا ساعت، برای همه درخواست‌ها یا همین نوع درخواست). `retryAfter` و هدر `Retry-After` ثانیه‌های انتظارند.",
+                    "value": {
+                      "error": {
+                        "code": "RATE_LIMITED",
+                        "message": "تعداد درخواست‌ها بیش از حد مجاز است",
+                        "retryAfter": 42
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "خطای پیش‌بینی‌نشده در تتراپی. همان درخواست را کمی بعد دوباره بفرستید.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "INTERNAL": {
+                    "summary": "خطای پیش‌بینی‌نشده در تتراپی. همان درخواست را کمی بعد دوباره بفرستید.",
+                    "value": {
+                      "error": {
+                        "code": "INTERNAL",
+                        "message": "خطای داخلی؛ دوباره تلاش کنید"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {
+    "payment.paid": {
+      "post": {
+        "operationId": "paymentPaid",
+        "summary": "وب‌هوک پرداخت",
+        "description": "وب‌هوک اختیاری است. در پنل، «تنظیمات» درگاه، کلید وب‌هوک بسازید (فقط یک‌بار نمایش داده می‌شود) و آدرس وب‌هوک درگاه را ثبت کنید؛ هر پرداخت هم می‌تواند با `webhook_url` آدرس دیگری بدهد. آدرس هنگام ساخت لینک روی همان لینک ثابت می‌شود. وقتی لینک پرداخت‌شده شد، یک درخواست `POST` با بدنه JSON به آن آدرس می‌رسد.\n\n1. بدنه خام درخواست را پیش از هر پردازش JSON نگه دارید.\n2. از هدر امضا `t` و `v1` را جدا کنید. رشته `t.body` را بسازید (مقدار `t`، یک نقطه، سپس بدنه خام) و `HMAC-SHA256` آن را با کلید وب‌هوک به‌صورت `hex` حساب کنید.\n3. حاصل را با `v1` به‌صورت زمان-ثابت مقایسه کنید و اگر `t` بیش از ۵ دقیقه با اکنون فاصله دارد، رد کنید.\n4. `order_id` و `amount` را با سفارش خودتان مقایسه کنید و سفارش را فقط یک‌بار تحویل دهید.\n5. با کد `2xx` پاسخ دهید. هر پاسخ دیگر، تغییر مسیر یا بیش از ۱۰ ثانیه انتظار شکست است و پس از ۱، ۲، ۵، ۱۰، ۳۰، ۶۰، ۱۲۰ و ۲۴۰ دقیقه دوباره فرستاده می‌شود.",
+        "tags": [
+          "payments"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "X-TetraPay-Event",
+            "in": "header",
+            "required": true,
+            "description": "نوع رویداد: `payment.paid`، یا `payment.underpaid` برای لینکی که با `notify_underpaid` ساخته شده.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-TetraPay-Event-Id",
+            "in": "header",
+            "required": true,
+            "description": "شناسه یکتای رویداد؛ در تلاش‌های دوباره ثابت است. رویدادی را که قبلاً پردازش کرده‌اید نادیده بگیرید.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-TetraPay-Signature",
+            "in": "header",
+            "required": true,
+            "description": "به شکل `t=<unix>,v1=<hex>`: مقدار `t` زمان ارسال است و `v1` امضای `HMAC-SHA256` با کلید وب‌هوک شما روی رشته `t.body`.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "event",
+                  "event_id",
+                  "token",
+                  "status",
+                  "order_id",
+                  "amount",
+                  "payable_amount",
+                  "received_amount",
+                  "net_amount",
+                  "fee_total",
+                  "fee_payer",
+                  "fee_merchant",
+                  "method",
+                  "paid_at"
+                ],
+                "properties": {
+                  "event": {
+                    "type": "string",
+                    "description": "`payment.paid`"
+                  },
+                  "event_id": {
+                    "type": "string",
+                    "description": "همان `X-TetraPay-Event-Id`."
+                  },
+                  "token": {
+                    "type": "string",
+                    "description": "شناسه لینک پرداخت.",
+                    "maxLength": 64
+                  },
+                  "status": {
+                    "type": "string",
+                    "description": "وضعیت لینک: `created`، `pending`، `paid` یا `expired`.",
+                    "enum": [
+                      "created",
+                      "pending",
+                      "paid",
+                      "expired"
+                    ]
+                  },
+                  "order_id": {
+                    "type": "string",
+                    "description": "شناسه سفارش شما.",
+                    "pattern": "^[A-Za-z0-9_.:-]{1,64}$"
+                  },
+                  "amount": {
+                    "type": "string",
+                    "description": "مبلغ سفارش به ریال، به صورت رشته عددی.",
+                    "pattern": "^\\d+$"
+                  },
+                  "payable_amount": {
+                    "type": "string",
+                    "description": "مبلغی که پرداخت‌کننده می‌پردازد: مبلغ سفارش به‌علاوه سهم کارمزدی که بر عهده اوست.",
+                    "pattern": "^\\d+$"
+                  },
+                  "received_amount": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "مبلغی که واقعاً دریافت شد. در پرداخت جزئی (`allow_partial`) ممکن است کمتر از `payable_amount` باشد. تا پرداخت نشده `null` است."
+                  },
+                  "net_amount": {
+                    "type": "string",
+                    "description": "مبلغ خالصی که پس از کسر سهم شما از کارمزد به حساب شما می‌نشیند. تا پرداخت نشده، خالص در صورت پرداخت کامل.",
+                    "pattern": "^\\d+$"
+                  },
+                  "fee_total": {
+                    "type": "string",
+                    "description": "کل کارمزد تتراپی: `fee_payer` به‌علاوه `fee_merchant`.",
+                    "pattern": "^\\d+$"
+                  },
+                  "fee_payer": {
+                    "type": "string",
+                    "description": "سهم پرداخت‌کننده از کارمزد؛ روی `amount` افزوده می‌شود (`payable_amount` = `amount` + `fee_payer`).",
+                    "pattern": "^\\d+$"
+                  },
+                  "fee_merchant": {
+                    "type": "string",
+                    "description": "سهم شما از کارمزد؛ از `amount` کم می‌شود (`net_amount` = `amount` − `fee_merchant`). پس از پرداخت جزئی، هر دو سهم به همان نسبت از کارمزد بازمحاسبه‌شده‌اند.",
+                    "pattern": "^\\d+$"
+                  },
+                  "method": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "روش پرداخت موفق: `online` یا `card`. تا پرداخت نشده `null` است.",
+                    "enum": [
+                      "online",
+                      "card",
+                      null
+                    ]
+                  },
+                  "paid_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "زمان پرداخت (`ISO 8601`، `UTC`). تا پرداخت نشده `null` است.",
+                    "format": "date-time"
+                  }
+                }
+              },
+              "example": {
+                "event": "payment.paid",
+                "event_id": "6f1c2a9e-3b7d-4e21-9a0c-5d8e4f7b1a23",
+                "token": "q9Xk2VbR7tLmN4pA8sWcYg",
+                "status": "paid",
+                "order_id": "ORD-10482",
+                "amount": "12500000",
+                "payable_amount": "12562500",
+                "received_amount": "12562500",
+                "net_amount": "12437500",
+                "fee_total": "125000",
+                "fee_payer": "62500",
+                "fee_merchant": "62500",
+                "method": "online",
+                "paid_at": "2026-09-29T10:21:44.000Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "2XX": {
+            "description": "دریافت شد؛ دوباره فرستاده نمی‌شود."
+          },
+          "default": {
+            "description": "اولین تلاش معمولاً کمتر از یک دقیقه پس از پرداخت فرستاده می‌شود، چه پرداخت‌کننده به `callback_url` برگردد چه نه."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "کلید API درگاه از پنل، با پیشوند `tp_live_`."
+      }
+    },
+    "schemas": {
+      "CreatePayment": {
+        "type": "object",
+        "required": [
+          "amount",
+          "order_id",
+          "callback_url"
+        ],
+        "properties": {
+          "amount": {
+            "description": "مبلغ به ریال. رشته عددی پیشنهاد می‌شود؛ عدد صحیح هم پذیرفته است. باید در بازه مجاز تتراپی باشد.",
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{1,18}$"
+              },
+              {
+                "type": "integer",
+                "minimum": 0
+              }
+            ]
+          },
+          "order_id": {
+            "type": "string",
+            "description": "شناسه یکتای سفارش در درگاه شما: ۱ تا ۶۴ نویسه از `A-Z`، `a-z`، `0-9` و `_ . : -`",
+            "pattern": "^[A-Za-z0-9_.:-]{1,64}$"
+          },
+          "callback_url": {
+            "type": "string",
+            "description": "آدرس بازگشت پرداخت‌کننده، `https` و حداکثر ۲۰۰۰ نویسه: روی وب‌سایت ثبت‌شده درگاه (همان دامنه یا زیردامنه آن)، یا آدرس ربات تلگرام ثبت‌شده درگاه با پارامتر دلخواه، مثلاً `https://t.me/<bot>?start=paid-123`. پیج اینستاگرام آدرس بازگشت نمی‌گیرد. اگر پشتیبانی محدودیت آدرس بازگشت را برای درگاه برداشته باشد، هر آدرس `https`.",
+            "format": "uri",
+            "maxLength": 2000
+          },
+          "description": {
+            "type": "string",
+            "description": "توضیح سفارش، حداکثر ۲۵۵ نویسه.",
+            "maxLength": 255
+          },
+          "allow_partial": {
+            "type": "boolean",
+            "description": "اگر `true` باشد، واریز کارت به کارتِ کمتر از مبلغ خودکار با همان مبلغ واقعی پذیرفته می‌شود (کارمزد بازمحاسبه می‌شود). اگر `false` باشد (پیش‌فرض)، چنین واریزی منتظر تصمیم شما می‌ماند: در پنل، تلگرام یا با `POST /payments/{token}/partial/{decision}`."
+          },
+          "customer_phone": {
+            "type": "string",
+            "description": "موبایل مشتری (مثلاً `09121234567`). اگر بفرستید، کارت‌هایی که مشتری قبلاً با آن‌ها موفق کارت به کارت کرده، به‌صورت پوشیده برای انتخاب نمایش داده می‌شوند و کارت این پرداخت هم پس از موفقیت ذخیره می‌شود.",
+            "maxLength": 32
+          },
+          "customer_email": {
+            "type": "string",
+            "description": "ایمیل مشتری، حداکثر ۲۵۴ نویسه. مثل `customer_phone` عمل می‌کند و جدا از آن نگهداری می‌شود؛ اگر هر دو را بفرستید، کارت‌های هر دو یک‌جا و بدون تکرار نمایش داده می‌شوند.",
+            "format": "email",
+            "maxLength": 254
+          },
+          "webhook_url": {
+            "type": "string",
+            "description": "وب‌هوک همین پرداخت را به این آدرس بفرستد، به‌جای آدرس وب‌هوک درگاه. باید `https` باشد. اگر درگاه ربات تلگرام یا پیج اینستاگرام دارد، هر دامنه‌ای؛ اگر فقط وب‌سایت دارد، روی دامنه وب‌سایت یا زیردامنه آن. فقط وقتی پذیرفته می‌شود که در پنل برای درگاه کلید وب‌هوک ساخته باشید.",
+            "format": "uri",
+            "maxLength": 2000
+          },
+          "notify_underpaid": {
+            "type": "boolean",
+            "description": "اگر `true` باشد و درگاه وب‌هوک داشته باشد، وقتی مشتری کمتر از مبلغ کارت به کارت کند وب‌هوک `payment.underpaid` هم فرستاده می‌شود تا تصمیم بگیرید. پیش‌فرض `false`: بدون آن فقط `payment.paid` می‌آید."
+          }
+        }
+      },
+      "PaymentLink": {
+        "type": "object",
+        "required": [
+          "token",
+          "payment_url",
+          "bot_payment_url",
+          "amount",
+          "payable_amount",
+          "net_amount",
+          "fee_total",
+          "fee_payer",
+          "fee_merchant",
+          "expires_at"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "شناسه لینک پرداخت.",
+            "maxLength": 64
+          },
+          "payment_url": {
+            "type": "string",
+            "description": "صفحه پرداخت؛ پرداخت‌کننده را به این آدرس هدایت کنید."
+          },
+          "bot_payment_url": {
+            "type": "string",
+            "description": "همین پرداخت در ربات تلگرام تتراپی: صورت‌حساب و دکمه پرداخت را نشان می‌دهد و نتیجه را در تلگرام به پرداخت‌کننده پیام می‌دهد. برای فروشگاه تلگرامی به‌جای `payment_url` بفرستید."
+          },
+          "amount": {
+            "type": "string",
+            "description": "مبلغ سفارش به ریال، به صورت رشته عددی.",
+            "pattern": "^\\d+$"
+          },
+          "payable_amount": {
+            "type": "string",
+            "description": "مبلغی که پرداخت‌کننده می‌پردازد: مبلغ سفارش به‌علاوه سهم کارمزدی که بر عهده اوست.",
+            "pattern": "^\\d+$"
+          },
+          "net_amount": {
+            "type": "string",
+            "description": "مبلغ خالصی که پس از کسر سهم شما از کارمزد به حساب شما می‌نشیند. تا پرداخت نشده، خالص در صورت پرداخت کامل.",
+            "pattern": "^\\d+$"
+          },
+          "fee_total": {
+            "type": "string",
+            "description": "کل کارمزد تتراپی: `fee_payer` به‌علاوه `fee_merchant`.",
+            "pattern": "^\\d+$"
+          },
+          "fee_payer": {
+            "type": "string",
+            "description": "سهم پرداخت‌کننده از کارمزد؛ روی `amount` افزوده می‌شود (`payable_amount` = `amount` + `fee_payer`).",
+            "pattern": "^\\d+$"
+          },
+          "fee_merchant": {
+            "type": "string",
+            "description": "سهم شما از کارمزد؛ از `amount` کم می‌شود (`net_amount` = `amount` − `fee_merchant`). پس از پرداخت جزئی، هر دو سهم به همان نسبت از کارمزد بازمحاسبه‌شده‌اند.",
+            "pattern": "^\\d+$"
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "پایان اعتبار لینک (`ISO 8601`، `UTC`).",
+            "format": "date-time"
+          }
+        }
+      },
+      "Payment": {
+        "type": "object",
+        "required": [
+          "token",
+          "status",
+          "order_id",
+          "amount",
+          "payable_amount",
+          "received_amount",
+          "net_amount",
+          "fee_total",
+          "fee_payer",
+          "fee_merchant",
+          "method",
+          "paid_at",
+          "expires_at"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "شناسه لینک پرداخت.",
+            "maxLength": 64
+          },
+          "status": {
+            "type": "string",
+            "description": "وضعیت لینک: `created`، `pending`، `paid` یا `expired`.",
+            "enum": [
+              "created",
+              "pending",
+              "paid",
+              "expired"
+            ]
+          },
+          "order_id": {
+            "type": "string",
+            "description": "شناسه سفارش شما.",
+            "pattern": "^[A-Za-z0-9_.:-]{1,64}$"
+          },
+          "amount": {
+            "type": "string",
+            "description": "مبلغ سفارش به ریال، به صورت رشته عددی.",
+            "pattern": "^\\d+$"
+          },
+          "payable_amount": {
+            "type": "string",
+            "description": "مبلغی که پرداخت‌کننده می‌پردازد: مبلغ سفارش به‌علاوه سهم کارمزدی که بر عهده اوست.",
+            "pattern": "^\\d+$"
+          },
+          "received_amount": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "مبلغی که واقعاً دریافت شد. در پرداخت جزئی (`allow_partial`) ممکن است کمتر از `payable_amount` باشد. تا پرداخت نشده `null` است."
+          },
+          "net_amount": {
+            "type": "string",
+            "description": "مبلغ خالصی که پس از کسر سهم شما از کارمزد به حساب شما می‌نشیند. تا پرداخت نشده، خالص در صورت پرداخت کامل.",
+            "pattern": "^\\d+$"
+          },
+          "fee_total": {
+            "type": "string",
+            "description": "کل کارمزد تتراپی: `fee_payer` به‌علاوه `fee_merchant`.",
+            "pattern": "^\\d+$"
+          },
+          "fee_payer": {
+            "type": "string",
+            "description": "سهم پرداخت‌کننده از کارمزد؛ روی `amount` افزوده می‌شود (`payable_amount` = `amount` + `fee_payer`).",
+            "pattern": "^\\d+$"
+          },
+          "fee_merchant": {
+            "type": "string",
+            "description": "سهم شما از کارمزد؛ از `amount` کم می‌شود (`net_amount` = `amount` − `fee_merchant`). پس از پرداخت جزئی، هر دو سهم به همان نسبت از کارمزد بازمحاسبه‌شده‌اند.",
+            "pattern": "^\\d+$"
+          },
+          "method": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "روش پرداخت موفق: `online` یا `card`. تا پرداخت نشده `null` است.",
+            "enum": [
+              "online",
+              "card",
+              null
+            ]
+          },
+          "paid_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "زمان پرداخت (`ISO 8601`، `UTC`). تا پرداخت نشده `null` است.",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "پایان اعتبار لینک (`ISO 8601`، `UTC`).",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaymentResult": {
+        "type": "object",
+        "required": [
+          "token",
+          "status",
+          "order_id",
+          "amount",
+          "payable_amount",
+          "received_amount",
+          "net_amount",
+          "fee_total",
+          "fee_payer",
+          "fee_merchant",
+          "method",
+          "paid_at",
+          "verified_before"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "شناسه لینک پرداخت.",
+            "maxLength": 64
+          },
+          "status": {
+            "type": "string",
+            "description": "وضعیت لینک: `created`، `pending`، `paid` یا `expired`.",
+            "enum": [
+              "created",
+              "pending",
+              "paid",
+              "expired"
+            ]
+          },
+          "order_id": {
+            "type": "string",
+            "description": "شناسه سفارش شما.",
+            "pattern": "^[A-Za-z0-9_.:-]{1,64}$"
+          },
+          "amount": {
+            "type": "string",
+            "description": "مبلغ سفارش به ریال، به صورت رشته عددی.",
+            "pattern": "^\\d+$"
+          },
+          "payable_amount": {
+            "type": "string",
+            "description": "مبلغی که پرداخت‌کننده می‌پردازد: مبلغ سفارش به‌علاوه سهم کارمزدی که بر عهده اوست.",
+            "pattern": "^\\d+$"
+          },
+          "received_amount": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "مبلغی که واقعاً دریافت شد. در پرداخت جزئی (`allow_partial`) ممکن است کمتر از `payable_amount` باشد. تا پرداخت نشده `null` است."
+          },
+          "net_amount": {
+            "type": "string",
+            "description": "مبلغ خالصی که پس از کسر سهم شما از کارمزد به حساب شما می‌نشیند. تا پرداخت نشده، خالص در صورت پرداخت کامل.",
+            "pattern": "^\\d+$"
+          },
+          "fee_total": {
+            "type": "string",
+            "description": "کل کارمزد تتراپی: `fee_payer` به‌علاوه `fee_merchant`.",
+            "pattern": "^\\d+$"
+          },
+          "fee_payer": {
+            "type": "string",
+            "description": "سهم پرداخت‌کننده از کارمزد؛ روی `amount` افزوده می‌شود (`payable_amount` = `amount` + `fee_payer`).",
+            "pattern": "^\\d+$"
+          },
+          "fee_merchant": {
+            "type": "string",
+            "description": "سهم شما از کارمزد؛ از `amount` کم می‌شود (`net_amount` = `amount` − `fee_merchant`). پس از پرداخت جزئی، هر دو سهم به همان نسبت از کارمزد بازمحاسبه‌شده‌اند.",
+            "pattern": "^\\d+$"
+          },
+          "method": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "روش پرداخت موفق: `online` یا `card`. تا پرداخت نشده `null` است.",
+            "enum": [
+              "online",
+              "card",
+              null
+            ]
+          },
+          "paid_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "زمان پرداخت (`ISO 8601`، `UTC`). تا پرداخت نشده `null` است.",
+            "format": "date-time"
+          },
+          "verified_before": {
+            "type": "boolean",
+            "description": "`true` یعنی این پرداخت پیش‌تر `verify` شده است."
+          }
+        }
+      },
+      "PartialDecision": {
+        "type": "object",
+        "required": [
+          "token",
+          "status",
+          "order_id",
+          "amount",
+          "payable_amount",
+          "received_amount",
+          "net_amount",
+          "fee_total",
+          "fee_payer",
+          "fee_merchant",
+          "method",
+          "paid_at"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "شناسه لینک پرداخت.",
+            "maxLength": 64
+          },
+          "status": {
+            "type": "string",
+            "description": "وضعیت لینک: `created`، `pending`، `paid` یا `expired`.",
+            "enum": [
+              "created",
+              "pending",
+              "paid",
+              "expired"
+            ]
+          },
+          "order_id": {
+            "type": "string",
+            "description": "شناسه سفارش شما.",
+            "pattern": "^[A-Za-z0-9_.:-]{1,64}$"
+          },
+          "amount": {
+            "type": "string",
+            "description": "مبلغ سفارش به ریال، به صورت رشته عددی.",
+            "pattern": "^\\d+$"
+          },
+          "payable_amount": {
+            "type": "string",
+            "description": "مبلغی که پرداخت‌کننده می‌پردازد: مبلغ سفارش به‌علاوه سهم کارمزدی که بر عهده اوست.",
+            "pattern": "^\\d+$"
+          },
+          "received_amount": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "مبلغ دریافتی مشتری."
+          },
+          "net_amount": {
+            "type": "string",
+            "description": "خالص شما با کارمزد بازمحاسبه‌شده.",
+            "pattern": "^\\d+$"
+          },
+          "fee_total": {
+            "type": "string",
+            "description": "کارمزد بازمحاسبه‌شده.",
+            "pattern": "^\\d+$"
+          },
+          "fee_payer": {
+            "type": "string",
+            "description": "سهم پرداخت‌کننده از کارمزد؛ روی `amount` افزوده می‌شود (`payable_amount` = `amount` + `fee_payer`).",
+            "pattern": "^\\d+$"
+          },
+          "fee_merchant": {
+            "type": "string",
+            "description": "سهم شما از کارمزد؛ از `amount` کم می‌شود (`net_amount` = `amount` − `fee_merchant`). پس از پرداخت جزئی، هر دو سهم به همان نسبت از کارمزد بازمحاسبه‌شده‌اند.",
+            "pattern": "^\\d+$"
+          },
+          "method": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "روش پرداخت موفق: `online` یا `card`. تا پرداخت نشده `null` است.",
+            "enum": [
+              "online",
+              "card",
+              null
+            ]
+          },
+          "paid_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "زمان پرداخت (`ISO 8601`، `UTC`). تا پرداخت نشده `null` است.",
+            "format": "date-time"
+          },
+          "partial": {
+            "type": "boolean",
+            "description": "پس از `accept` برابر `true`؛ پس از `reject` نمی‌آید."
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "description": "بسته به کد، فیلدهای بیشتری هم می‌آید: `min`/`max`، `fields`/`field`، `retryAfter`، `kind`/`limit`.",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "UNAUTHORIZED",
+                  "GATEWAY_SUSPENDED",
+                  "NO_METHOD_AVAILABLE",
+                  "NOT_FOUND",
+                  "ORDER_CONFLICT",
+                  "AMOUNT_OUT_OF_RANGE",
+                  "INVALID_CALLBACK",
+                  "INVALID_WEBHOOK",
+                  "WEBHOOK_NOT_CONFIGURED",
+                  "RATE_LIMITED",
+                  "DAILY_LIMIT_REACHED",
+                  "SANDBOX_DISABLED",
+                  "VALIDATION",
+                  "UNSUPPORTED_MEDIA_TYPE",
+                  "NOT_UNDERPAID",
+                  "BAD_JSON",
+                  "INTERNAL"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "description": "پیام فارسی که می‌توانید به کاربر نشان دهید."
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

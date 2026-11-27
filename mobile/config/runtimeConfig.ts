@@ -8,6 +8,8 @@ export const DEFAULT_APP_LINK_HOST = "fitician.fit";
 export type { MobileRuntimeEnvironment } from "./productionApiConfig";
 
 export interface MobileRuntimeConfig {
+  readonly externalBillingEnabled?: boolean;
+  readonly billingDistribution?: string;
   readonly appLinkHost: string;
   readonly apiBaseUrl: string;
   readonly environment: MobileRuntimeEnvironment;
@@ -19,6 +21,8 @@ export interface MobileRuntimeConfig {
 }
 
 export interface MobileRuntimeExtra {
+  readonly externalBillingEnabled?: unknown;
+  readonly billingDistribution?: unknown;
   readonly appLinkHost?: unknown;
   readonly apiBaseUrl?: unknown;
   readonly environment?: unknown;
@@ -65,6 +69,8 @@ export function mobileRuntimeConfigFromExtra(
   const googleIosClientId = trimmedString(extra?.googleIosClientId);
   const googleWebClientId = trimmedString(extra?.googleWebClientId);
   return {
+    externalBillingEnabled: extra?.externalBillingEnabled === true,
+    billingDistribution: extra?.billingDistribution === "direct" ? "direct" : "store",
     appLinkHost: appLinkHost ?? DEFAULT_APP_LINK_HOST,
     apiBaseUrl: resolveApiBaseUrl(apiBaseUrl ?? undefined, environment),
     environment,

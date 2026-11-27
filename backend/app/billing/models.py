@@ -5,6 +5,7 @@ from enum import Enum as PyEnum
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     CheckConstraint,
@@ -16,6 +17,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -178,6 +180,14 @@ class BillingTransaction(Base):
             "provider", "provider_reference", name="uq_billing_transactions_provider_reference"
         ),
         Index("ix_billing_transactions_order_status", "order_id", "status"),
+        Index("ix_billing_transactions_reconcile", "next_reconcile_at"),
+        Index(
+            "ix_billing_transactions_provider_cooldown",
+            "provider",
+            "provider_mode",
+            text("(provider_evidence ->> 'provider_cooldown_until')"),
+            postgresql_where=text("provider_evidence ->> 'provider_cooldown_until' IS NOT NULL"),
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -202,4 +212,11 @@ class BillingTransaction(Base):
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     refunded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    provider_evidence: Mapped[dict[str, str | None] | None] = mapped_column(JSON, nullable=True)
+    provider_mode: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    checkout_url: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    reconcile_attempts: Mapped[int] = mapped_column(default=0, server_default="0")
+    next_reconcile_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     order: Mapped[BillingOrder] = relationship(back_populates="transactions")
